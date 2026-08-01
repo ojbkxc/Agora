@@ -51,7 +51,15 @@ jobs:
       - name: Check Rust compilation (host target)
         run: |
           cd rust-core
-          cargo check 2>&1
+          cargo check 2>&1 | tee /tmp/cargo-check.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Upload cargo check log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-check-log
+          path: /tmp/cargo-check.log
 
       - name: Set up NDK linker for Android target
         run: |
@@ -74,11 +82,6 @@ jobs:
           CONFIGEOF
           cat .cargo/config.toml
           export ANDROID_NDK_HOME="${NDK_PATH}"
-
-      - name: Check Rust compilation (Android target)
-        run: |
-          cd rust-core
-          cargo check --target aarch64-linux-android 2>&1
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
