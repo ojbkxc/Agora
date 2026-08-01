@@ -114,13 +114,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeDeriveAesK
         }
     };
 
-    // 重建 secret
-    let secret = match x25519_dalek::EphemeralSecret::from(secret_bytes) {
-        s => s,
-    };
-
-    // 派生共享密钥
-    let shared = ecdh::derive_shared_secret(secret, &server_pub);
+    // 从字节重建 secret 并派生共享密钥
+    let shared = ecdh::derive_shared_secret_from_bytes(&secret_bytes, &server_pub);
 
     // 派生 AES 密钥
     let aes_key = match hkdf::derive_aes_key_default(shared.as_bytes()) {

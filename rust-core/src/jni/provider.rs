@@ -193,14 +193,12 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
         Ok(events)
     });
 
-    let mut env_ref = unsafe { jni::JNIEnv::from_raw(env.get_raw()) }.unwrap();
-
     match result {
         Ok(events) => {
             // 通过回调推送每个事件
             for event in &events {
                 let event_json = serde_json::to_string(event).unwrap_or_default();
-                push_callback_event(&mut env_ref, &callback_ref, &event_json);
+                push_callback_event(&mut env, &callback_ref, &event_json);
             }
 
             // 返回摘要 JSON
@@ -209,7 +207,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
                 "event_count": events.len()
             });
             let summary_str = summary.to_string();
-            match util::string_to_jstring(&mut env_ref, &summary_str) {
+            match util::string_to_jstring(&mut env, &summary_str) {
                 Ok(s) => s,
                 Err(_) => std::ptr::null_mut(),
             }
@@ -225,11 +223,11 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
                     }
                 }
             });
-            push_callback_event(&mut env_ref, &callback_ref, &error_event.to_string());
+            push_callback_event(&mut env, &callback_ref, &error_event.to_string());
 
             // 返回错误 JSON
             let error_json = e.to_json_string();
-            match util::string_to_jstring(&mut env_ref, &error_json) {
+            match util::string_to_jstring(&mut env, &error_json) {
                 Ok(s) => s,
                 Err(_) => std::ptr::null_mut(),
             }

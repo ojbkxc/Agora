@@ -71,8 +71,8 @@ impl ConchSession {
         let new_keypair = ecdh::generate_keypair();
         let client_pub_key = ecdh::encode_public_key(&new_keypair.public);
 
-        // 派生共享密钥（会消费 secret）
-        let shared = ecdh::derive_shared_secret(new_keypair.secret, server_pub);
+        // 派生共享密钥
+        let shared = ecdh::derive_shared_secret(&new_keypair.secret, server_pub);
         self.aes_key = hkdf::derive_aes_key_default(shared.as_bytes())?;
 
         // 加密请求体

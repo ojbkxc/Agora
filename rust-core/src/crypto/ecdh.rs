@@ -1,17 +1,17 @@
 use crate::error::{AgoraError, AgoraResult};
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
+use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
-/// 临时 X25519 密钥对
+/// 临时 X25519 密钥对（使用 StaticSecret 以支持序列化）
 pub struct EphemeralKeyPair {
-    pub secret: EphemeralSecret,
+    pub secret: StaticSecret,
     pub public: PublicKey,
 }
 
 /// 生成临时 X25519 密钥对
 pub fn generate_keypair() -> EphemeralKeyPair {
-    let secret = EphemeralSecret::random_from_rng(rand::thread_rng());
+    let secret = StaticSecret::random_from_rng(rand::thread_rng());
     let public = PublicKey::from(&secret);
     EphemeralKeyPair { secret, public }
 }
@@ -35,7 +35,13 @@ pub fn decode_public_key(encoded: &str) -> AgoraResult<PublicKey> {
     Ok(PublicKey::from(arr))
 }
 
-/// 派生共享密钥
-pub fn derive_shared_secret(secret: EphemeralSecret, public: &PublicKey) -> SharedSecret {
+/// 派生共享密钥（接受 StaticSecret 引用）
+pub fn derive_shared_secret(secret: &StaticSecret, public: &PublicKey) -> SharedSecret {
+    secret.diffie_hellman(public)
+}
+
+/// 从字节重建 StaticSecret 并派生共享密钥
+pub fn derive_shared_secret_from_bytes(secret_bytes: &[u8; 32], public: &PublicKey) -> SharedSecret {
+    let secret = StaticSecret::from(*secret_bytes);
     secret.diffie_hellman(public)
 }
