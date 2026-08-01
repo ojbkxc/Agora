@@ -35,18 +35,6 @@ jobs:
           rustc --version
           cargo --version
           rustup target list --installed
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -la "$ANDROID_SDK_ROOT/ndk/" 2>/dev/null || echo "No NDK found at ANDROID_SDK_ROOT"
-          ls -la "$ANDROID_HOME/ndk/" 2>/dev/null || echo "No NDK found at ANDROID_HOME"
-          NDK_PATH="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          if [ -d "$NDK_PATH" ]; then
-            echo "NDK 28.2.13676358 found at $NDK_PATH"
-            ls -la "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/" | head -20
-          else
-            echo "NDK 28.2.13676358 NOT found"
-            find "$ANDROID_SDK_ROOT" -name "aarch64-linux-android21-clang" 2>/dev/null | head -5
-          fi
 
       - name: Check Rust compilation (host target)
         run: |
@@ -54,8 +42,8 @@ jobs:
           cargo check 2>&1 | tee /tmp/cargo-check.log
           exit ${PIPESTATUS[0]}
 
-      - name: Upload cargo check log (on failure)
-        if: failure()
+      - name: Upload cargo check log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cargo-check-log
@@ -70,15 +58,6 @@ jobs:
           cat > .cargo/config.toml <<CONFIGEOF
           [target.aarch64-linux-android]
           linker = "${LLVM_BIN}/aarch64-linux-android21-clang"
-
-          [target.armv7-linux-androideabi]
-          linker = "${LLVM_BIN}/armv7a-linux-androideabi21-clang"
-
-          [target.x86_64-linux-android]
-          linker = "${LLVM_BIN}/x86_64-linux-android21-clang"
-
-          [target.i686-linux-android]
-          linker = "${LLVM_BIN}/i686-linux-android21-clang"
           CONFIGEOF
           cat .cargo/config.toml
           export ANDROID_NDK_HOME="${NDK_PATH}"
@@ -99,8 +78,6 @@ jobs:
             --platform 24 \
             --output-dir "${PWD}/../app/src/main/jniLibs" \
             build --release 2>&1 | tee /tmp/rust-build.log
-          echo "--- Build exit code: $? ---"
-          ls -la "${PWD}/../app/src/main/jniLibs/arm64-v8a/libagora_rs.so" 2>/dev/null || echo "ERROR: .so not found!"
 
       - name: Upload Rust build log (on failure)
         if: failure()

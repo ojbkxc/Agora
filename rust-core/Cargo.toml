@@ -1,7 +1,7 @@
 [package]
 name = "agora-rs"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 description = "Agora AI client core library"
 authors = ["newoether"]
 license = "MIT"
