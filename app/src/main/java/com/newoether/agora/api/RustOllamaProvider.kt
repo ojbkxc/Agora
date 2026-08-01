@@ -19,7 +19,7 @@ import kotlinx.serialization.json.Json
  */
 open class RustOllamaProvider : LlmProvider {
     override val name: String = Constants.PROVIDER_OLLAMA
-    override val defaultBaseUrl: String = ""
+    override val defaultBaseUrl: String = "http://localhost:11434/api"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -47,15 +47,22 @@ open class RustOllamaProvider : LlmProvider {
                         modelId = config.modelId,
                         systemPrompt = config.systemPrompt,
                         maxContextWindow = config.maxContextWindow,
+                        codeExecutionEnabled = config.codeExecutionEnabled,
+                        googleSearchEnabled = config.googleSearchEnabled,
                         thinkingEnabled = config.thinkingEnabled,
                         thinkingLevel = config.thinkingLevel,
+                        thinkingBudgetEnabled = config.thinkingBudgetEnabled,
+                        thinkingBudgetTokens = config.thinkingBudgetTokens,
                         baseUrl = baseUrl,
                         includeImages = config.includeImages,
                         temperature = config.temperature,
                         maxTokens = config.maxTokens,
                         topP = config.topP,
                         frequencyPenalty = config.frequencyPenalty,
-                        presencePenalty = config.presencePenalty
+                        presencePenalty = config.presencePenalty,
+                        userPrepend = config.userPrepend,
+                        userPostpend = config.userPostpend,
+                        tools = config.tools
                     )
                 )
                 RustProvider.nativeCreateProvider("ollama", providerConfigJson)

@@ -22,7 +22,7 @@ use crate::error::AgoraError;
 const TOOL_MSG_PREFIX: &str = "tool_";
 const RESULT_MSG_PREFIX: &str = "result_";
 const THINK_START: &str = " 思考";
-const THINK_END: &str = "";
+const THINK_END: &str = " 回复";
 
 // ============================================================
 // Ollama 请求消息（扩展字段用于 tool 和 thinking）
