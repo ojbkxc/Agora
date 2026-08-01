@@ -108,6 +108,52 @@ android {
     }
 }
 
+// ── Rust Native Library (agora_rs) ──────────────────────────────
+// Built via cargo-ndk (see rust-core/build-android.sh).
+// The resulting .so is placed in jniLibs/arm64-v8a/ automatically.
+// This task auto-triggers the build, but can also be run manually:
+//   cd rust-core && bash build-android.sh
+
+val buildRustLibrary by tasks.registering {
+    description = "Build the Rust agora_rs native library via cargo-ndk"
+    group = "build"
+
+    val rustProjectDir = rootProject.projectDir.resolve("rust-core")
+    val buildScript = rustProjectDir.resolve("build-android.sh")
+    val outputDir = projectDir.resolve("src/main/jniLibs/arm64-v8a")
+    val outputFile = outputDir.resolve("libagora_rs.so")
+
+    inputs.dir(rustProjectDir.resolve("src"))
+    inputs.file(rustProjectDir.resolve("Cargo.toml"))
+    outputs.file(outputFile)
+
+    doLast {
+        if (!outputFile.exists() || outputFile.lastModified() < file(rustProjectDir.resolve("Cargo.toml")).lastModified()) {
+            val cmd = if (System.getProperty("os.name").lowercase().contains("windows")) {
+                // On Windows, use WSL or manual cargo-ndk invocation
+                logger.warn("Rust Android build: Use WSL or run 'cd rust-core && bash build-android.sh' manually")
+                // Attempt to run via available bash (Git Bash, WSL)
+                listOf("bash", buildScript.absolutePath)
+            } else {
+                listOf("bash", buildScript.absolutePath)
+            }
+            val result = ProcessBuilder(cmd)
+                .directory(rustProjectDir)
+                .inheritIO()
+                .start()
+                .waitFor()
+            if (result != 0) {
+                throw GradleException("Rust library build failed (exit code $result). See above for details.")
+            }
+        }
+    }
+}
+
+// Wire Rust build into the assemble pipeline
+tasks.matching { it.name.startsWith("assemble") }.configureEach {
+    dependsOn(buildRustLibrary)
+}
+
 // Proot binaries (libproot_exec.so, libproot_loader.so, libtalloc.so) are
 // built via GNUmakefile (see .build-proot/) and placed directly in jniLibs.
 // No CMake target is needed — the binaries are manually managed prebuilts.

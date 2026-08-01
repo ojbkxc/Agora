@@ -1,0 +1,82 @@
+[package]
+name = "agora-rs"
+version = "0.1.0"
+edition = "2024"
+description = "Agora AI client core library"
+authors = ["newoether"]
+license = "MIT"
+
+[lib]
+name = "agora_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+# JNI
+jni = "0.21"
+
+# 异步运行时
+tokio = { version = "1.48.0", features = ["rt-multi-thread", "macros", "time", "sync"] }
+
+# HTTP
+reqwest = { version = "0.12.24", features = ["rustls-tls", "json", "stream", "socks"] }
+
+# 序列化
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.145", features = ["preserve_order"] }
+
+# 流式处理
+futures = "0.3.28"
+bytes = "1.6"
+
+# Trait 支持
+async-trait = "0.1.80"
+
+# 错误处理
+thiserror = "1.0.69"
+anyhow = "1.0"
+
+# 时间
+chrono = { version = "0.4.42", features = ["serde"] }
+
+# 编码
+base64 = "0.22.1"
+url = "2.5.0"
+
+# 哈希
+sha2 = "0.10"
+md5 = "0.8.0"
+
+# 日志
+log = "0.4.21"
+android_logger = "0.14"
+
+# UUID
+uuid = { version = "=1.18.1", features = ["v4", "serde"] }
+
+# 压缩
+zip = "2.2"
+
+# 加密
+ring = "0.17"
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+aes-gcm = "0.10"
+hkdf = "0.12"
+hmac = "0.12"
+rand = { version = "0.8.5", features = ["small_rng"] }
+hex = "0.4"
+
+# 向量计算
+ndarray = "0.15"
+
+# 正则
+regex = "1.12.2"
+
+# 全局单例（用于 JNI 全局变量）
+once_cell = "1.20"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+strip = true

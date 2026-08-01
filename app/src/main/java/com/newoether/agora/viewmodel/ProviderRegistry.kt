@@ -1,16 +1,14 @@
 package com.newoether.agora.viewmodel
 
 import com.newoether.agora.api.LlmProvider
-import com.newoether.agora.api.anthropic.AnthropicProvider
-import com.newoether.agora.api.gemini.GeminiProvider
+import com.newoether.agora.api.RustAnthropicProvider
+import com.newoether.agora.api.RustCustomAnthropicProvider
+import com.newoether.agora.api.RustCustomGeminiProvider
+import com.newoether.agora.api.RustCustomOpenAiProvider
+import com.newoether.agora.api.RustGeminiProvider
+import com.newoether.agora.api.RustOllamaProvider
+import com.newoether.agora.api.RustOpenAiProvider
 import com.newoether.agora.api.local.LocalProvider
-import com.newoether.agora.api.ollama.OllamaProvider
-import com.newoether.agora.api.openai.CustomOpenAiProvider
-import com.newoether.agora.api.openai.DeepSeekProvider
-import com.newoether.agora.api.openai.GroqProvider
-import com.newoether.agora.api.openai.OpenAiProvider
-import com.newoether.agora.api.openai.OpenRouterProvider
-import com.newoether.agora.api.openai.QwenProvider
 import com.newoether.agora.data.CustomEndpointProtocol
 import com.newoether.agora.data.CustomEndpointResolution
 import com.newoether.agora.data.CustomProviderConfig
@@ -28,9 +26,9 @@ internal fun createCustomProvider(
     config: CustomProviderConfig,
     baseUrl: String,
 ): LlmProvider? = when (config.protocol) {
-    CustomEndpointProtocol.OPENAI -> CustomOpenAiProvider(config.name, baseUrl)
-    CustomEndpointProtocol.GOOGLE -> GeminiProvider(config.name, baseUrl)
-    CustomEndpointProtocol.ANTHROPIC -> AnthropicProvider(config.name, baseUrl)
+    CustomEndpointProtocol.OPENAI -> RustCustomOpenAiProvider(config.name, baseUrl)
+    CustomEndpointProtocol.GOOGLE -> RustCustomGeminiProvider(config.name, baseUrl)
+    CustomEndpointProtocol.ANTHROPIC -> RustCustomAnthropicProvider(config.name, baseUrl)
     CustomEndpointProtocol.UNKNOWN -> null
 }
 
@@ -105,14 +103,14 @@ class ProviderRegistry(
     private val scope: CoroutineScope,
 ) {
     private val builtInProviders: Map<String, LlmProvider> = mapOf(
-        Constants.PROVIDER_GOOGLE to GeminiProvider(),
-        Constants.PROVIDER_OPENAI to OpenAiProvider(),
-        Constants.PROVIDER_ANTHROPIC to AnthropicProvider(),
-        Constants.PROVIDER_DEEPSEEK to DeepSeekProvider(),
-        Constants.PROVIDER_QWEN to QwenProvider(),
-        Constants.PROVIDER_GROQ to GroqProvider(),
-        Constants.PROVIDER_OLLAMA to OllamaProvider(),
-        Constants.PROVIDER_OPEN_ROUTER to OpenRouterProvider(),
+        Constants.PROVIDER_GOOGLE to RustGeminiProvider(),
+        Constants.PROVIDER_OPENAI to RustOpenAiProvider(),
+        Constants.PROVIDER_ANTHROPIC to RustAnthropicProvider(),
+        Constants.PROVIDER_DEEPSEEK to RustOpenAiProvider(), // DeepSeek uses OpenAI-compatible API
+        Constants.PROVIDER_QWEN to RustOpenAiProvider(),     // Qwen uses OpenAI-compatible API
+        Constants.PROVIDER_GROQ to RustOpenAiProvider(),     // Groq uses OpenAI-compatible API
+        Constants.PROVIDER_OLLAMA to RustOllamaProvider(),
+        Constants.PROVIDER_OPEN_ROUTER to RustOpenAiProvider(), // OpenRouter uses OpenAI-compatible API
         Constants.PROVIDER_LOCAL to localProvider
     )
 
