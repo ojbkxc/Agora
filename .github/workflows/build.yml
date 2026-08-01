@@ -59,9 +59,12 @@ jobs:
         run: cargo install cargo-ndk
 
       - name: Build Rust native library (agora_rs)
+        env:
+          RUST_BACKTRACE: "1"
         run: |
+          set -euo pipefail
           cd rust-core
-          chmod +x build-android.sh
+
           # Find NDK
           NDK_PATH=""
           for p in "$ANDROID_SDK_ROOT/ndk/28.2.13676358" "$ANDROID_HOME/ndk/28.2.13676358"; do
@@ -71,12 +74,48 @@ jobs:
             fi
           done
           if [ -z "$NDK_PATH" ]; then
-            # Try to find any NDK
             NDK_PATH=$(ls -d "$ANDROID_SDK_ROOT/ndk/"*/ 2>/dev/null | sort -V | tail -1)
             NDK_PATH=${NDK_PATH%/}
           fi
-          echo "Using NDK: $NDK_PATH"
-          ANDROID_NDK_HOME="$NDK_PATH" bash -x build-android.sh 2>&1
+          echo "Using NDK: ${NDK_PATH}"
+
+          # Set up the linker config
+          LLVM_BIN="${NDK_PATH}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          mkdir -p .cargo
+          cat > .cargo/config.toml <<CONFIGEOF
+          # CI-generated config
+          [target.aarch64-linux-android]
+          linker = "${LLVM_BIN}/aarch64-linux-android21-clang"
+
+          [target.armv7-linux-androideabi]
+          linker = "${LLVM_BIN}/armv7a-linux-androideabi21-clang"
+
+          [target.x86_64-linux-android]
+          linker = "${LLVM_BIN}/x86_64-linux-android21-clang"
+
+          [target.i686-linux-android]
+          linker = "${LLVM_BIN}/i686-linux-android21-clang"
+          CONFIGEOF
+          cat .cargo/config.toml
+
+          export ANDROID_NDK_HOME="${NDK_PATH}"
+
+          # Build with cargo-ndk, capturing output
+          cargo ndk \
+            --target arm64-v8a \
+            --platform 24 \
+            --output-dir "${PWD}/../app/src/main/jniLibs" \
+            build --release 2>&1 | tee /tmp/rust-build.log
+
+          echo "Build exit code: $?"
+          ls -la "${PWD}/../app/src/main/jniLibs/arm64-v8a/libagora_rs.so" 2>/dev/null || echo "ERROR: .so not found!"
+
+      - name: Upload Rust build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-build-log
+          path: /tmp/rust-build.log
 
       - name: Restore signing key
         if: ${{ env.KEYSTORE_BASE64 != '' }}
