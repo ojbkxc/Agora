@@ -10,7 +10,7 @@ use futures::StreamExt;
 
 use crate::api::http_client::AgoraHttpClient;
 use crate::api::message_pipeline;
-use crate::api::provider::LlmProvider;
+use crate::api::provider::{LlmProvider, StreamCallback};
 use crate::api::request_validator;
 use crate::api::types::*;
 use crate::error::AgoraError;
@@ -92,7 +92,8 @@ impl LlmProvider for OllamaProvider {
         messages: &[ChatMessage],
         config: &ProviderConfig,
         client: &AgoraHttpClient,
-    ) -> Result<Vec<StreamEvent>, AgoraError> {
+        on_event: &StreamCallback,
+    ) -> Result<(), AgoraError> {
         let base_url = self.effective_base_url(config);
         let model_name = config.model_id.clone();
 
@@ -114,12 +115,13 @@ impl LlmProvider for OllamaProvider {
         if let Some(ref tools) = config.tools {
             let violations = request_validator::validate_tool_definitions(tools);
             if !violations.is_empty() {
-                return Ok(vec![StreamEvent::Error {
+                on_event(StreamEvent::Error {
                     error: GenerationError::RequestFormat {
                         provider: self.name.clone(),
                         violations,
                     },
-                }]);
+                });
+                return Ok(());
             }
         }
 
@@ -140,12 +142,13 @@ impl LlmProvider for OllamaProvider {
             &["model"],
             &["messages"],
         ) {
-            return Ok(vec![StreamEvent::Error {
+            on_event(StreamEvent::Error {
                 error: GenerationError::RequestFormat {
                     provider: self.name.clone(),
                     violations: e.violations,
                 },
-            }]);
+            });
+            return Ok(());
         }
 
         let url = format!("{}/chat", base_url);
@@ -161,7 +164,6 @@ impl LlmProvider for OllamaProvider {
         // ── 重试循环 ──
         let max_attempts = 3;
         let mut last_error: Option<AgoraError> = None;
-        let mut retry_events: Vec<StreamEvent> = Vec::new();
 
         for attempt in 1..=max_attempts {
             let mut stream_resp = match client.stream_post(&url, &request, &headers).await {
@@ -174,15 +176,8 @@ impl LlmProvider for OllamaProvider {
 
             // 如果 HTTP 状态码是 200，解析流
             if stream_resp.code == 200 {
-                match parse_ollama_stream(stream_resp.stream(), config.thinking_enabled).await {
-                    Ok(mut events) => {
-                        if !retry_events.is_empty() {
-                            let mut all = std::mem::take(&mut retry_events);
-                            all.append(&mut events);
-                            return Ok(all);
-                        }
-                        return Ok(events);
-                    }
+                match parse_ollama_stream(stream_resp.stream(), config.thinking_enabled, on_event).await {
+                    Ok(()) => return Ok(()),
                     Err(e) => {
                         last_error = Some(e);
                     }
@@ -202,7 +197,7 @@ impl LlmProvider for OllamaProvider {
             // 可重试状态码
             let retryable = matches!(stream_resp.code, 429 | 502 | 503 | 504);
             if retryable && attempt < max_attempts {
-                retry_events.push(StreamEvent::Retrying {
+                on_event(StreamEvent::Retrying {
                     attempt: attempt as i32,
                     max_attempts: max_attempts as i32,
                 });
@@ -224,20 +219,17 @@ impl LlmProvider for OllamaProvider {
             break;
         }
 
-        // 如果有重试事件但最终还是失败，将重试事件和错误一起返回
-        if !retry_events.is_empty() {
-            let mut all = retry_events;
-            all.push(StreamEvent::Error {
+        // 如果生成失败，通过回调推送错误事件
+        if let Some(err) = last_error {
+            on_event(StreamEvent::Error {
                 error: GenerationError::Network {
-                    status_code: last_error.as_ref().and_then(|e| e.status_code()).unwrap_or(0),
-                    message: last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string()),
+                    status_code: err.status_code().unwrap_or(0),
+                    message: err.to_string(),
                 },
             });
-            return Ok(all);
         }
 
-        Err(last_error
-            .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string())))
+        Ok(())
     }
 
     async fn fetch_models(
@@ -541,12 +533,12 @@ fn parse_tool_result_json(json_str: &Option<String>) -> (Option<String>, String)
 // 流式解析
 // ============================================================
 
-/// 解析 Ollama 流式响应为 StreamEvent 列表
+/// 解析 Ollama 流式响应，通过回调实时推送事件
 async fn parse_ollama_stream(
     stream: &mut (dyn futures::Stream<Item = Result<bytes::Bytes, reqwest::Error>> + Send + Unpin),
     thinking_enabled: bool,
-) -> Result<Vec<StreamEvent>, AgoraError> {
-    let mut events: Vec<StreamEvent> = Vec::new();
+    on_event: &StreamCallback,
+) -> Result<(), AgoraError> {
     let mut buffer = String::new();
     let mut received_structured_thinking = false;
     let mut think_parser = ThinkTagStateMachine::new();
@@ -555,7 +547,7 @@ async fn parse_ollama_stream(
         let bytes = match chunk {
             Ok(b) => b,
             Err(e) => {
-                events.push(StreamEvent::Error {
+                on_event(StreamEvent::Error {
                     error: GenerationError::Network {
                         status_code: 0,
                         message: format!("Stream read error: {}", e),
@@ -583,7 +575,7 @@ async fn parse_ollama_stream(
                         // 1. 处理显式 thinking 字段（Ollama 0.5.4+）
                         if let Some(thinking) = msg.get("thinking").and_then(|v| v.as_str()) {
                             if !thinking.is_empty() && thinking_enabled {
-                                events.push(StreamEvent::ThoughtChunk {
+                                on_event(StreamEvent::ThoughtChunk {
                                     thought: thinking.to_string(),
                                     title: None,
                                     signature: None,
@@ -631,14 +623,14 @@ async fn parse_ollama_stream(
 
                             if calls.len() == 1 {
                                 let c = &calls[0];
-                                events.push(StreamEvent::ToolCallRequest {
+                                on_event(StreamEvent::ToolCallRequest {
                                     id: c.id.clone(),
                                     name: c.name.clone(),
                                     arguments: c.arguments.clone(),
                                     signature: c.signature.clone(),
                                 });
                             } else if calls.len() > 1 {
-                                events.push(StreamEvent::ToolCallsRequest { calls });
+                                on_event(StreamEvent::ToolCallsRequest { calls });
                             }
                         }
 
@@ -647,12 +639,12 @@ async fn parse_ollama_stream(
                             if !content.is_empty() {
                                 if received_structured_thinking {
                                     // 已收到结构化 thinking，content 直接作为文本
-                                    events.push(StreamEvent::TextChunk {
+                                    on_event(StreamEvent::TextChunk {
                                         text: content.to_string(),
                                     });
                                 } else {
                                     // 使用状态机解析 思考 标签
-                                    think_parser.feed(content, thinking_enabled, &mut events);
+                                    think_parser.feed(content, thinking_enabled, on_event);
                                 }
                             }
                         }
@@ -668,7 +660,7 @@ async fn parse_ollama_stream(
                             .get("eval_count")
                             .and_then(|v| v.as_i64())
                             .unwrap_or(0) as i32;
-                        events.push(StreamEvent::UsageUpdate {
+                        on_event(StreamEvent::UsageUpdate {
                             token_count: prompt_count + eval_count,
                             thoughts_token_count: 0,
                         });
@@ -676,7 +668,7 @@ async fn parse_ollama_stream(
 
                     // 处理错误
                     if let Some(error_msg) = response.get("error").and_then(|v| v.as_str()) {
-                        events.push(StreamEvent::Error {
+                        on_event(StreamEvent::Error {
                             error: GenerationError::Api {
                                 code: "ollama_error".to_string(),
                                 message: error_msg.to_string(),
@@ -693,9 +685,9 @@ async fn parse_ollama_stream(
     }
 
     // 最终 flush think parser
-    think_parser.flush(thinking_enabled, &mut events);
+    think_parser.flush(thinking_enabled, on_event);
 
-    Ok(events)
+    Ok(())
 }
 
 // ============================================================
@@ -719,21 +711,21 @@ impl ThinkTagStateMachine {
         }
     }
 
-    fn feed(&mut self, content: &str, thinking_enabled: bool, events: &mut Vec<StreamEvent>) {
+    fn feed(&mut self, content: &str, thinking_enabled: bool, on_event: &StreamCallback) {
         self.buffer.push_str(content);
-        self.drain(thinking_enabled, events);
+        self.drain(thinking_enabled, on_event);
     }
 
-    fn flush(&mut self, thinking_enabled: bool, events: &mut Vec<StreamEvent>) {
+    fn flush(&mut self, thinking_enabled: bool, on_event: &StreamCallback) {
         if !self.buffer.is_empty() {
             if self.in_think && thinking_enabled {
-                events.push(StreamEvent::ThoughtChunk {
+                on_event(StreamEvent::ThoughtChunk {
                     thought: std::mem::take(&mut self.buffer),
                     title: None,
                     signature: None,
                 });
             } else if !self.in_think {
-                events.push(StreamEvent::TextChunk {
+                on_event(StreamEvent::TextChunk {
                     text: std::mem::take(&mut self.buffer),
                 });
             } else {
@@ -743,14 +735,14 @@ impl ThinkTagStateMachine {
         }
     }
 
-    fn drain(&mut self, thinking_enabled: bool, events: &mut Vec<StreamEvent>) {
+    fn drain(&mut self, thinking_enabled: bool, on_event: &StreamCallback) {
         loop {
             if self.in_think {
                 // 在思考块内，寻找结束标签
                 if let Some(pos) = self.buffer.find(THINK_END) {
                     let thought = self.buffer[..pos].to_string();
                     if thinking_enabled && !thought.is_empty() {
-                        events.push(StreamEvent::ThoughtChunk {
+                        on_event(StreamEvent::ThoughtChunk {
                             thought,
                             title: None,
                             signature: None,
@@ -771,7 +763,7 @@ impl ThinkTagStateMachine {
                 if let Some(pos) = self.buffer.find(THINK_START) {
                     // 发射开始标签之前的文本
                     if pos > 0 {
-                        events.push(StreamEvent::TextChunk {
+                        on_event(StreamEvent::TextChunk {
                             text: self.buffer[..pos].to_string(),
                         });
                     }
@@ -785,7 +777,7 @@ impl ThinkTagStateMachine {
                         if prefix_len > 0 {
                             let split = self.buffer.len() - prefix_len;
                             if split > 0 {
-                                events.push(StreamEvent::TextChunk {
+                                on_event(StreamEvent::TextChunk {
                                     text: self.buffer[..split].to_string(),
                                 });
                                 self.buffer.drain(..split);
@@ -795,7 +787,7 @@ impl ThinkTagStateMachine {
                     }
                     // 没有开始标签，发射所有文本
                     if !self.buffer.is_empty() {
-                        events.push(StreamEvent::TextChunk {
+                        on_event(StreamEvent::TextChunk {
                             text: std::mem::take(&mut self.buffer),
                         });
                     }
@@ -836,12 +828,22 @@ fn longest_partial_prefix(buffer: &str, target: &str) -> usize {
 mod tests {
     use super::*;
 
+    fn collect_events(f: impl FnOnce(&StreamCallback)) -> Vec<StreamEvent> {
+        let events = std::sync::Mutex::new(Vec::new());
+        let callback: StreamCallback = Box::new(|event| {
+            events.lock().unwrap().push(event);
+        });
+        f(&callback);
+        events.into_inner().unwrap()
+    }
+
     #[test]
     fn test_think_parser_basic() {
-        let mut events = Vec::new();
-        let mut parser = ThinkTagStateMachine::new();
-        parser.feed("Hello 思考this is thinking world", true, &mut events);
-        parser.flush(true, &mut events);
+        let events = collect_events(|cb| {
+            let mut parser = ThinkTagStateMachine::new();
+            parser.feed("Hello 思考this is thinking world", true, cb);
+            parser.flush(true, cb);
+        });
 
         assert_eq!(events.len(), 2);
         match &events[0] {
@@ -859,10 +861,11 @@ mod tests {
 
     #[test]
     fn test_think_parser_disabled() {
-        let mut events = Vec::new();
-        let mut parser = ThinkTagStateMachine::new();
-        parser.feed("Hello 思考hidden world", false, &mut events);
-        parser.flush(false, &mut events);
+        let events = collect_events(|cb| {
+            let mut parser = ThinkTagStateMachine::new();
+            parser.feed("Hello 思考hidden world", false, cb);
+            parser.flush(false, cb);
+        });
 
         // 思考被禁用，不应有 ThoughtChunk
         let has_thought = events.iter().any(|e| matches!(e, StreamEvent::ThoughtChunk { .. }));
@@ -871,28 +874,31 @@ mod tests {
 
     #[test]
     fn test_think_parser_split_across_chunks() {
-        let mut events = Vec::new();
+        use std::sync::{Arc, Mutex};
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let callback: StreamCallback = {
+            let events = Arc::clone(&events);
+            Box::new(move |event| {
+                events.lock().unwrap().push(event);
+            })
+        };
         let mut parser = ThinkTagStateMachine::new();
 
-        parser.feed("Hello <thi", true, &mut events);
-        // 此时只有 "Hello " 被发射
-        assert_eq!(events.len(), 1);
-        if let StreamEvent::TextChunk { text } = &events[0] {
-            assert_eq!(text, "Hello ");
-        }
+        parser.feed("Hello <thi", true, &callback);
+        assert_eq!(events.lock().unwrap().len(), 1);
 
-        events.clear();
-        parser.feed("nk>thinking</t", true, &mut events);
-        // 等待结束标签
-        assert!(events.is_empty());
+        events.lock().unwrap().clear();
+        parser.feed("nk>thinking</t", true, &callback);
+        assert!(events.lock().unwrap().is_empty());
 
-        events.clear();
-        parser.feed("hink> world", true, &mut events);
-        parser.flush(true, &mut events);
+        events.lock().unwrap().clear();
+        parser.feed("hink> world", true, &callback);
+        parser.flush(true, &callback);
 
-        let has_thought = events.iter().any(|e| matches!(e, StreamEvent::ThoughtChunk { thought, .. } if thought == "thinking"));
+        let final_events = events.lock().unwrap();
+        let has_thought = final_events.iter().any(|e| matches!(e, StreamEvent::ThoughtChunk { thought, .. } if thought == "thinking"));
         assert!(has_thought);
-        let has_text = events
+        let has_text = final_events
             .iter()
             .any(|e| matches!(e, StreamEvent::TextChunk { text } if text == " world"));
         assert!(has_text);
@@ -900,10 +906,11 @@ mod tests {
 
     #[test]
     fn test_think_parser_no_tags() {
-        let mut events = Vec::new();
-        let mut parser = ThinkTagStateMachine::new();
-        parser.feed("Hello, world!", true, &mut events);
-        parser.flush(true, &mut events);
+        let events = collect_events(|cb| {
+            let mut parser = ThinkTagStateMachine::new();
+            parser.feed("Hello, world!", true, cb);
+            parser.flush(true, cb);
+        });
 
         assert_eq!(events.len(), 1);
         match &events[0] {
@@ -914,19 +921,21 @@ mod tests {
 
     #[test]
     fn test_think_parser_empty() {
-        let mut events = Vec::new();
-        let mut parser = ThinkTagStateMachine::new();
-        parser.feed("", true, &mut events);
-        parser.flush(true, &mut events);
+        let events = collect_events(|cb| {
+            let mut parser = ThinkTagStateMachine::new();
+            parser.feed("", true, cb);
+            parser.flush(true, cb);
+        });
         assert!(events.is_empty());
     }
 
     #[test]
     fn test_think_parser_multiple_blocks() {
-        let mut events = Vec::new();
-        let mut parser = ThinkTagStateMachine::new();
-        parser.feed("A 思考t1B 思考t2C", true, &mut events);
-        parser.flush(true, &mut events);
+        let events = collect_events(|cb| {
+            let mut parser = ThinkTagStateMachine::new();
+            parser.feed("A 思考t1B 思考t2C", true, cb);
+            parser.flush(true, cb);
+        });
 
         let thoughts: Vec<_> = events
             .iter()

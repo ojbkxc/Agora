@@ -9,7 +9,7 @@ use futures::StreamExt;
 
 use crate::api::http_client::AgoraHttpClient;
 use crate::api::message_pipeline;
-use crate::api::provider::LlmProvider;
+use crate::api::provider::{LlmProvider, StreamCallback};
 use crate::api::sse::{append_utf8_safe, strip_sse_field, take_sse_block};
 use crate::api::types::*;
 use crate::error::AgoraError;
@@ -51,7 +51,8 @@ impl LlmProvider for GeminiProvider {
         messages: &[ChatMessage],
         config: &ProviderConfig,
         client: &AgoraHttpClient,
-    ) -> Result<Vec<StreamEvent>, AgoraError> {
+        on_event: &StreamCallback,
+    ) -> Result<(), AgoraError> {
         let base_url = config
             .base_url
             .as_deref()
@@ -127,7 +128,6 @@ impl LlmProvider for GeminiProvider {
         // 7. 发送流式请求（带重试逻辑）
         let max_attempts = 3;
         let mut last_error: Option<AgoraError> = None;
-        let mut retry_events: Vec<StreamEvent> = Vec::new();
 
         for attempt in 1..=max_attempts {
             let mut stream_resp = match client.stream_post(&url, &request_json, &headers).await {
@@ -140,15 +140,8 @@ impl LlmProvider for GeminiProvider {
 
             // 如果 HTTP 状态码是 200，解析流
             if stream_resp.code == 200 {
-                match parse_sse_stream(stream_resp.stream()).await {
-                    Ok(mut events) => {
-                        if !retry_events.is_empty() {
-                            let mut all = std::mem::take(&mut retry_events);
-                            all.append(&mut events);
-                            return Ok(all);
-                        }
-                        return Ok(events);
-                    }
+                match parse_sse_stream(stream_resp.stream(), on_event).await {
+                    Ok(()) => return Ok(()),
                     Err(e) => {
                         last_error = Some(e);
                     }
@@ -159,7 +152,7 @@ impl LlmProvider for GeminiProvider {
             // 可重试状态码
             let retryable = matches!(stream_resp.code, 401 | 429 | 502 | 503 | 504);
             if retryable && attempt < max_attempts {
-                retry_events.push(StreamEvent::Retrying {
+                on_event(StreamEvent::Retrying {
                     attempt: attempt as i32,
                     max_attempts: max_attempts as i32,
                 });
@@ -186,20 +179,17 @@ impl LlmProvider for GeminiProvider {
             break;
         }
 
-        // 如果有重试事件但最终还是失败，将重试事件和错误一起返回
-        if !retry_events.is_empty() {
-            let mut all = retry_events;
-            all.push(StreamEvent::Error {
+        // 如果生成失败，通过回调推送错误事件
+        if let Some(err) = last_error {
+            on_event(StreamEvent::Error {
                 error: GenerationError::Network {
-                    status_code: last_error.as_ref().and_then(|e| e.status_code()).unwrap_or(0),
-                    message: last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string()),
+                    status_code: err.status_code().unwrap_or(0),
+                    message: err.to_string(),
                 },
             });
-            return Ok(all);
         }
 
-        Err(last_error
-            .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string())))
+        Ok(())
     }
 
     async fn fetch_models(
@@ -569,8 +559,8 @@ async fn parse_sse_stream(
     byte_stream: &mut (dyn futures::Stream<Item = Result<bytes::Bytes, reqwest::Error>>
           + Send
           + Unpin),
-) -> Result<Vec<StreamEvent>, AgoraError> {
-    let mut events = Vec::new();
+    on_event: &StreamCallback,
+) -> Result<(), AgoraError> {
     let mut raw_buffer = String::new();
     let mut remainder = Vec::new();
     let mut current_thought_signature: Option<String> = None;
@@ -611,7 +601,7 @@ async fn parse_sse_stream(
                                             match thought {
                                                 serde_json::Value::String(s) => {
                                                     let title = extract_thought_title(s);
-                                                    events.push(StreamEvent::ThoughtChunk {
+                                                    on_event(StreamEvent::ThoughtChunk {
                                                         thought: s.clone(),
                                                         title,
                                                         signature: current_thought_signature
@@ -634,7 +624,7 @@ async fn parse_sse_stream(
                                             .and_then(|v| v.as_str())
                                         {
                                             let title = extract_thought_title(rc);
-                                            events.push(StreamEvent::ThoughtChunk {
+                                            on_event(StreamEvent::ThoughtChunk {
                                                 thought: rc.to_string(),
                                                 title,
                                                 signature: current_thought_signature.clone(),
@@ -662,7 +652,7 @@ async fn parse_sse_stream(
                                                 is_part_of_thought || in_thought_block;
                                             if in_thought {
                                                 let title = extract_thought_title(text);
-                                                events.push(StreamEvent::ThoughtChunk {
+                                                on_event(StreamEvent::ThoughtChunk {
                                                     thought: text.to_string(),
                                                     title,
                                                     signature: current_thought_signature
@@ -670,7 +660,7 @@ async fn parse_sse_stream(
                                                 });
                                                 in_thought_block = false;
                                             } else {
-                                                events.push(StreamEvent::TextChunk {
+                                                on_event(StreamEvent::TextChunk {
                                                     text: text.to_string(),
                                                 });
                                             }
@@ -686,7 +676,7 @@ async fn parse_sse_stream(
                                                 .get("code")
                                                 .and_then(|v| v.as_str())
                                                 .unwrap_or("");
-                                            events.push(StreamEvent::TextChunk {
+                                            on_event(StreamEvent::TextChunk {
                                                 text: format!(
                                                     "\n```{}\n{}\n```\n",
                                                     lang, code
@@ -702,7 +692,7 @@ async fn parse_sse_stream(
                                                 .get("output")
                                                 .and_then(|v| v.as_str())
                                                 .unwrap_or("");
-                                            events.push(StreamEvent::TextChunk {
+                                            on_event(StreamEvent::TextChunk {
                                                 text: format!("\n> Output: {}\n", output),
                                             });
                                         }
@@ -744,7 +734,7 @@ async fn parse_sse_stream(
                                                 id
                                             };
 
-                                            events.push(StreamEvent::ToolCallRequest {
+                                            on_event(StreamEvent::ToolCallRequest {
                                                 id: call_id,
                                                 name,
                                                 arguments: args,
@@ -770,7 +760,7 @@ async fn parse_sse_stream(
                                 .and_then(|v| v.as_i64())
                                 .unwrap_or(0)
                                 as i32;
-                            events.push(StreamEvent::UsageUpdate {
+                            on_event(StreamEvent::UsageUpdate {
                                 token_count,
                                 thoughts_token_count,
                             });
@@ -787,7 +777,7 @@ async fn parse_sse_stream(
         }
     }
 
-    Ok(events)
+    Ok(())
 }
 
 // ============================================================

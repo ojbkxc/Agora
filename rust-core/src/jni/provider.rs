@@ -8,7 +8,8 @@ use std::sync::Mutex;
 
 use jni::JNIEnv;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
-use jni::sys::{jlong, jstring, JNI_TRUE};
+use jni::sys::{jlong, jstring};
+use jni::JavaVM;
 
 use crate::api::http_client::AgoraHttpClient;
 use crate::api::provider::LlmProvider;
@@ -126,7 +127,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
 
 /// Java: nativeGenerate(long handle, String messagesJson, String configJson, RustStreamCallback callback) -> String
 ///
-/// 执行流式生成，通过回调推送事件。返回最终 JSON 摘要。
+/// 执行流式生成，通过回调实时推送事件。返回最终 JSON 摘要。
 #[no_mangle]
 pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
     mut env: JNIEnv,
@@ -173,10 +174,56 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
         }
     };
 
+    // 获取 JavaVM 用于在回调中获取 JNIEnv
+    let jvm = match env.get_java_vm() {
+        Ok(jvm) => jvm,
+        Err(e) => {
+            util::handle_error(&mut env, AgoraError::Jni(format!("Failed to get JavaVM: {}", e)));
+            return std::ptr::null_mut();
+        }
+    };
+
     // 创建 HTTP 客户端
     let http_client = AgoraHttpClient::new();
 
-    // 在 tokio 运行时中执行异步生成
+    // 创建流式回调：通过 JNI 实时推送事件到 Kotlin
+    let on_event: crate::api::provider::StreamCallback = {
+        let jvm = jvm.clone();
+        let cb = callback_ref.clone();
+        Box::new(move |event: StreamEvent| {
+            let mut env = match jvm.attach_current_thread() {
+                Ok(env) => env,
+                Err(e) => {
+                    log::error!("[JNI] Failed to attach thread for callback: {}", e);
+                    return;
+                }
+            };
+            let event_json = match serde_json::to_string(&event) {
+                Ok(s) => s,
+                Err(e) => {
+                    log::error!("[JNI] Failed to serialize event: {}", e);
+                    return;
+                }
+            };
+            let jstr = match env.new_string(&event_json) {
+                Ok(s) => s,
+                Err(e) => {
+                    log::error!("[JNI] Failed to create JNI string: {}", e);
+                    return;
+                }
+            };
+            if let Err(e) = env.call_method(
+                cb.as_obj(),
+                "onEvent",
+                "(Ljava/lang/String;)V",
+                &[JValue::Object(&jstr)],
+            ) {
+                log::error!("[JNI] Failed to invoke callback.onEvent: {}", e);
+            }
+        })
+    };
+
+    // 在 tokio 运行时中执行异步生成，通过回调实时推送事件
     let result = util::get_global_runtime().block_on(async {
         let providers = PROVIDERS.lock().unwrap();
         let provider = match providers.get(&handle) {
@@ -186,26 +233,17 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
             }
         };
 
-        // 调用 generate_response
-        let events = provider
-            .generate_response(&messages, &config, &http_client)
-            .await?;
-
-        Ok(events)
+        // 调用 generate_response，传入回调实时推送事件
+        provider
+            .generate_response(&messages, &config, &http_client, &on_event)
+            .await
     });
 
     match result {
-        Ok(events) => {
-            // 通过回调推送每个事件
-            for event in &events {
-                let event_json = serde_json::to_string(event).unwrap_or_default();
-                push_callback_event(&mut env, &callback_ref, &event_json);
-            }
-
-            // 返回摘要 JSON
+        Ok(()) => {
+            // 返回完成状态
             let summary = serde_json::json!({
-                "status": "completed",
-                "event_count": events.len()
+                "status": "completed"
             });
             let summary_str = summary.to_string();
             match util::string_to_jstring(&mut env, &summary_str) {
@@ -224,7 +262,26 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
                     }
                 }
             });
-            push_callback_event(&mut env, &callback_ref, &error_event.to_string());
+            // 通过回调推送错误
+            {
+                let mut env = match jvm.attach_current_thread() {
+                    Ok(env) => env,
+                    Err(_) => {
+                        log::error!("[JNI] Failed to attach thread for error callback");
+                        return std::ptr::null_mut();
+                    }
+                };
+                let jstr = match env.new_string(&error_event.to_string()) {
+                    Ok(s) => s,
+                    Err(_) => return std::ptr::null_mut(),
+                };
+                let _ = env.call_method(
+                    callback_ref.as_obj(),
+                    "onEvent",
+                    "(Ljava/lang/String;)V",
+                    &[JValue::Object(&jstr)],
+                );
+            }
 
             // 返回错误 JSON
             let error_json = e.to_json_string();
@@ -300,31 +357,5 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeDestroyPr
     if handle > 0 {
         remove_provider(handle);
         log::info!("[JNI] Destroyed provider with handle {}", handle);
-    }
-}
-
-// ============================================================
-// 辅助函数
-// ============================================================
-
-/// 通过 JNI 回调推送事件到 Kotlin
-fn push_callback_event(env: &mut JNIEnv, callback: &GlobalRef, event_json: &str) {
-    let jstr = match env.new_string(event_json) {
-        Ok(s) => s,
-        Err(e) => {
-            log::error!("[JNI] Failed to create JNI string for callback: {}", e);
-            return;
-        }
-    };
-
-    let result = env.call_method(
-        callback.as_obj(),
-        "onEvent",
-        "(Ljava/lang/String;)V",
-        &[JValue::Object(&jstr)],
-    );
-
-    if let Err(e) = result {
-        log::error!("[JNI] Failed to invoke callback.onEvent: {}", e);
     }
 }

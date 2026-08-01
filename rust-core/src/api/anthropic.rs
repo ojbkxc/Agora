@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use crate::api::http_client::AgoraHttpClient;
 use crate::api::message_pipeline;
-use crate::api::provider::LlmProvider;
+use crate::api::provider::{LlmProvider, StreamCallback};
 use crate::api::request_validator;
 use crate::api::sse::{append_utf8_safe, strip_sse_field, take_sse_block};
 use crate::api::types::*;
@@ -736,11 +736,11 @@ impl AnthropicProvider {
         headers
     }
 
-    /// 解析 SSE 事件流，返回 StreamEvent 序列
+    /// 解析 SSE 事件流，通过回调实时推送事件
     async fn parse_sse_stream(
         stream_response: &mut crate::api::http_client::StreamResponse,
-    ) -> Result<Vec<StreamEvent>, AgoraError> {
-        let mut events: Vec<StreamEvent> = Vec::new();
+        on_event: &StreamCallback,
+    ) -> Result<(), AgoraError> {
         let mut raw_buffer = String::new();
         let mut remainder = Vec::new();
 
@@ -760,13 +760,10 @@ impl AnthropicProvider {
 
                     while let Some(block) = take_sse_block(&mut raw_buffer) {
                         // 解析 SSE 事件行
-                        let mut event_type: Option<String> = None;
                         let mut data_json: Option<String> = None;
 
                         for line in block.lines() {
-                            if let Some(val) = strip_sse_field(line, "event") {
-                                event_type = Some(val.to_string());
-                            } else if let Some(val) = strip_sse_field(line, "data") {
+                            if let Some(val) = strip_sse_field(line, "data") {
                                 data_json = Some(val.to_string());
                             }
                         }
@@ -844,7 +841,7 @@ impl AnthropicProvider {
                                                     .filter(|s| !s.is_empty())
                                                 {
                                                     thinking_signature = Some(sig.to_string());
-                                                    events.push(StreamEvent::ThoughtChunk {
+                                                    on_event(StreamEvent::ThoughtChunk {
                                                         thought: String::new(),
                                                         title: None,
                                                         signature: Some(sig.to_string()),
@@ -857,7 +854,7 @@ impl AnthropicProvider {
                                                     .get("text")
                                                     .and_then(|v| v.as_str())
                                                 {
-                                                    events.push(StreamEvent::TextChunk {
+                                                    on_event(StreamEvent::TextChunk {
                                                         text: text.to_string(),
                                                     });
                                                 }
@@ -871,7 +868,7 @@ impl AnthropicProvider {
                                                     {
                                                         thinking_signature = Some(sig.to_string());
                                                     }
-                                                    events.push(StreamEvent::ThoughtChunk {
+                                                    on_event(StreamEvent::ThoughtChunk {
                                                         thought: thinking.to_string(),
                                                         title: None,
                                                         signature: thinking_signature.clone(),
@@ -886,7 +883,7 @@ impl AnthropicProvider {
                                     if let (Some(ref id), Some(ref name)) =
                                         (&tool_use_id, &tool_use_name)
                                     {
-                                        events.push(StreamEvent::ToolCallRequest {
+                                        on_event(StreamEvent::ToolCallRequest {
                                             id: id.clone(),
                                             name: name.clone(),
                                             arguments: tool_use_args.clone(),
@@ -905,7 +902,7 @@ impl AnthropicProvider {
                                             .and_then(|v| v.as_i64())
                                         {
                                             let total = input_tokens + (ot as i32);
-                                            events.push(StreamEvent::UsageUpdate {
+                                            on_event(StreamEvent::UsageUpdate {
                                                 token_count: total,
                                                 thoughts_token_count: 0,
                                             });
@@ -933,7 +930,7 @@ impl AnthropicProvider {
                                             .and_then(|v| v.as_str())
                                             .unwrap_or("Unknown error")
                                             .to_string();
-                                        events.push(StreamEvent::Error {
+                                        on_event(StreamEvent::Error {
                                             error: GenerationError::Api {
                                                 code,
                                                 message,
@@ -957,7 +954,7 @@ impl AnthropicProvider {
             }
         }
 
-        Ok(events)
+        Ok(())
     }
 }
 
@@ -976,7 +973,8 @@ impl LlmProvider for AnthropicProvider {
         messages: &[ChatMessage],
         config: &ProviderConfig,
         client: &AgoraHttpClient,
-    ) -> Result<Vec<StreamEvent>, AgoraError> {
+        on_event: &StreamCallback,
+    ) -> Result<(), AgoraError> {
         let base_url = config
             .base_url
             .as_deref()
@@ -1041,17 +1039,17 @@ impl LlmProvider for AnthropicProvider {
         if let Some(ref tools) = config.tools {
             let violations = request_validator::validate_tool_definitions(tools);
             if !violations.is_empty() {
-                return Ok(vec![StreamEvent::Error {
+                on_event(StreamEvent::Error {
                     error: GenerationError::RequestFormat {
                         provider: self.name.clone(),
                         violations,
                     },
-                }]);
+                });
+                return Ok(());
             }
         }
 
         // ── Anthropic 消息合并（coalesce）──
-        // 先合并连续的 result_ 消息，再将 tool_ 消息转为 assistant 格式
         let message_groups = coalesce_anthropic_messages(&prepared_messages);
 
         // ── 消息转换（使用消息组）──
@@ -1111,12 +1109,13 @@ impl LlmProvider for AnthropicProvider {
             &["model"],
             &["messages"],
         ) {
-            return Ok(vec![StreamEvent::Error {
+            on_event(StreamEvent::Error {
                 error: GenerationError::RequestFormat {
                     provider: self.name.clone(),
                     violations: e.violations,
                 },
-            }]);
+            });
+            return Ok(());
         }
 
         let url = format!("{}/messages", base_url);
@@ -1125,7 +1124,6 @@ impl LlmProvider for AnthropicProvider {
         // ── 重试循环 ──
         let max_attempts = 3;
         let mut last_error: Option<AgoraError> = None;
-        let mut retry_events: Vec<StreamEvent> = Vec::new();
 
         for attempt in 1..=max_attempts {
             let mut stream_response = match client.stream_post(&url, &json_body, &headers).await {
@@ -1136,28 +1134,15 @@ impl LlmProvider for AnthropicProvider {
                 }
             };
 
-            // 如果 HTTP 状态码是 200，解析流
+            // 如果 HTTP 状态码是 200，解析流（实时回调）
             if stream_response.code == 200 {
-                match Self::parse_sse_stream(&mut stream_response).await {
-                    Ok(mut events) => {
-                        if !retry_events.is_empty() {
-                            let mut all = std::mem::take(&mut retry_events);
-                            all.append(&mut events);
-                            return Ok(all);
-                        }
-                        return Ok(events);
-                    }
-                    Err(e) => {
-                        last_error = Some(e);
-                    }
-                }
-                break;
+                return Self::parse_sse_stream(&mut stream_response, on_event).await;
             }
 
             // 可重试状态码
             let retryable = matches!(stream_response.code, 429 | 502 | 503 | 504);
             if retryable && attempt < max_attempts {
-                retry_events.push(StreamEvent::Retrying {
+                on_event(StreamEvent::Retrying {
                     attempt: attempt as i32,
                     max_attempts: max_attempts as i32,
                 });
@@ -1187,16 +1172,6 @@ impl LlmProvider for AnthropicProvider {
             });
             break;
         }
-
-        // 如果有重试事件但最终还是失败，将重试事件和错误一起返回
-        if !retry_events.is_empty() {
-            let mut all = retry_events;
-            all.push(StreamEvent::Error {
-                error: GenerationError::Network {
-                    status_code: last_error.as_ref().and_then(|e| e.status_code()).unwrap_or(0),
-                    message: last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string()),
-                },
-            });
             return Ok(all);
         }
 

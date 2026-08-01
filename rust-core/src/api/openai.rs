@@ -10,7 +10,7 @@ use futures::StreamExt;
 
 use crate::api::http_client::AgoraHttpClient;
 use crate::api::message_pipeline;
-use crate::api::provider::LlmProvider;
+use crate::api::provider::{LlmProvider, StreamCallback};
 use crate::api::request_validator;
 use crate::api::sse::{strip_sse_field, parse_sse_json_stream, SseEvent};
 use crate::api::types::*;
@@ -416,7 +416,7 @@ impl OpenAiProvider {
 
     // ── 流式 SSE 解析 ──
 
-    /// 解析 SSE 事件流，返回 StreamEvent 序列。
+    /// 解析 SSE 事件流，通过回调实时推送事件。
     ///
     /// 使用 engine_linux01 的 unfold 模式（`parse_sse_json_stream`）组织流对，
     /// 通过 `SseEvent` 枚举处理 JSON 数据块、DONE 标记和原始块。
@@ -425,9 +425,8 @@ impl OpenAiProvider {
         &self,
         stream_response: crate::api::http_client::StreamResponse,
         config: &ProviderConfig,
-    ) -> Result<Vec<StreamEvent>, AgoraError> {
-        let mut events: Vec<StreamEvent> = Vec::new();
-
+        on_event: &StreamCallback,
+    ) -> Result<(), AgoraError> {
         // 工具调用累积状态
         let mut pending_tool_calls: HashMap<i32, PendingToolCall> = HashMap::new();
         let mut structured_tool_calls_emitted = false;
@@ -456,7 +455,7 @@ impl OpenAiProvider {
                                 if let Ok(err_resp) =
                                     serde_json::from_value::<OpenAiErrorResponse>(value)
                                 {
-                                    events.push(StreamEvent::Error {
+                                    on_event(StreamEvent::Error {
                                         error: GenerationError::Api {
                                             code: err_resp.error.code.unwrap_or_default(),
                                             message: err_resp.error.message,
@@ -472,11 +471,11 @@ impl OpenAiProvider {
 
                     // ── 处理 delta ──
                     if let Some(delta) = choice.and_then(|c| c.delta.as_ref()) {
-                        // 处理 reasoning_content / content
-                        Self::handle_delta_content(
+                        // 处理 reasoning_content / content（实时回调）
+                        Self::handle_delta_content_callback(
                             delta,
                             config,
-                            &mut events,
+                            on_event,
                             &mut content_buffer,
                             &mut think_parser,
                             self.uses_reasoning_details,
@@ -550,7 +549,7 @@ impl OpenAiProvider {
                                 if calls.len() == 1 {
                                     structured_tool_calls_emitted = true;
                                     let c = &calls[0];
-                                    events.push(StreamEvent::ToolCallRequest {
+                                    on_event(StreamEvent::ToolCallRequest {
                                         id: c.id.clone(),
                                         name: c.name.clone(),
                                         arguments: c.arguments.clone(),
@@ -558,7 +557,7 @@ impl OpenAiProvider {
                                     });
                                 } else if calls.len() > 1 {
                                     structured_tool_calls_emitted = true;
-                                    events.push(StreamEvent::ToolCallsRequest { calls });
+                                    on_event(StreamEvent::ToolCallsRequest { calls });
                                 }
                             }
                         }
@@ -571,7 +570,7 @@ impl OpenAiProvider {
                             .as_ref()
                             .and_then(|d| d.reasoning_tokens)
                             .unwrap_or(0);
-                        events.push(StreamEvent::UsageUpdate {
+                        on_event(StreamEvent::UsageUpdate {
                             token_count: usage.total_tokens,
                             thoughts_token_count,
                         });
@@ -598,12 +597,12 @@ impl OpenAiProvider {
             for t in texts {
                 if !t.is_empty() {
                     content_buffer.push_str(&t);
-                    events.push(StreamEvent::TextChunk { text: t });
+                    on_event(StreamEvent::TextChunk { text: t });
                 }
             }
             for t in thoughts {
                 if !t.is_empty() {
-                    events.push(StreamEvent::ThoughtChunk {
+                    on_event(StreamEvent::ThoughtChunk {
                         thought: t,
                         title: None,
                         signature: None,
@@ -624,19 +623,19 @@ impl OpenAiProvider {
             if let Some(tool_calls) = Self::try_parse_tool_calls_from_text(&content_buffer) {
                 if tool_calls.len() == 1 {
                     let tc = &tool_calls[0];
-                    events.push(StreamEvent::ToolCallRequest {
+                    on_event(StreamEvent::ToolCallRequest {
                         id: tc.id.clone(),
                         name: tc.name.clone(),
                         arguments: tc.arguments.clone(),
                         signature: None,
                     });
                 } else if tool_calls.len() > 1 {
-                    events.push(StreamEvent::ToolCallsRequest { calls: tool_calls });
+                    on_event(StreamEvent::ToolCallsRequest { calls: tool_calls });
                 }
             }
         }
 
-        Ok(events)
+        Ok(())
     }
 
     /// 从 SSE 块中提取 data 字段值
@@ -654,11 +653,11 @@ impl OpenAiProvider {
         }
     }
 
-    /// 处理 delta 内容（reasoning + text content）
-    fn handle_delta_content(
+    /// 处理 delta 内容（reasoning + text content）- 通过回调实时推送
+    fn handle_delta_content_callback(
         delta: &OpenAiDelta,
         config: &ProviderConfig,
-        events: &mut Vec<StreamEvent>,
+        on_event: &StreamCallback,
         content_buffer: &mut String,
         think_parser: &mut Option<ThinkTagParser>,
         uses_reasoning_details: bool,
@@ -667,7 +666,7 @@ impl OpenAiProvider {
         if !uses_reasoning_details {
             if let Some(ref reasoning) = delta.reasoning {
                 if !reasoning.is_empty() && config.thinking_enabled {
-                    events.push(StreamEvent::ThoughtChunk {
+                    on_event(StreamEvent::ThoughtChunk {
                         thought: reasoning.clone(),
                         title: None,
                         signature: None,
@@ -685,12 +684,12 @@ impl OpenAiProvider {
                     let (texts, thoughts) = parser.feed(content);
                     for t in texts {
                         if !t.is_empty() {
-                            events.push(StreamEvent::TextChunk { text: t });
+                            on_event(StreamEvent::TextChunk { text: t });
                         }
                     }
                     for t in thoughts {
                         if !t.is_empty() {
-                            events.push(StreamEvent::ThoughtChunk {
+                            on_event(StreamEvent::ThoughtChunk {
                                 thought: t,
                                 title: None,
                                 signature: None,
@@ -698,7 +697,7 @@ impl OpenAiProvider {
                         }
                     }
                 } else {
-                    events.push(StreamEvent::TextChunk {
+                    on_event(StreamEvent::TextChunk {
                         text: content.clone(),
                     });
                 }
@@ -781,7 +780,8 @@ impl LlmProvider for OpenAiProvider {
         messages: &[ChatMessage],
         config: &ProviderConfig,
         client: &AgoraHttpClient,
-    ) -> Result<Vec<StreamEvent>, AgoraError> {
+        on_event: &StreamCallback,
+    ) -> Result<(), AgoraError> {
         let base_url = config
             .base_url
             .as_deref()
@@ -832,12 +832,13 @@ impl LlmProvider for OpenAiProvider {
         if let Some(ref tools) = config.tools {
             let violations = request_validator::validate_tool_definitions(tools);
             if !violations.is_empty() {
-                return Ok(vec![StreamEvent::Error {
+                on_event(StreamEvent::Error {
                     error: GenerationError::RequestFormat {
                         provider: self.name.clone(),
                         violations,
                     },
-                }]);
+                });
+                return Ok(());
             }
         }
 
@@ -851,12 +852,13 @@ impl LlmProvider for OpenAiProvider {
             &["model"],
             &["messages"],
         ) {
-            return Ok(vec![StreamEvent::Error {
+            on_event(StreamEvent::Error {
                 error: GenerationError::RequestFormat {
                     provider: self.name.clone(),
                     violations: e.violations,
                 },
-            }]);
+            });
+            return Ok(());
         }
 
         let headers = self.build_headers(&config.api_key);
@@ -864,7 +866,6 @@ impl LlmProvider for OpenAiProvider {
         // ── 重试循环 ──
         let max_attempts = 3;
         let mut last_error: Option<AgoraError> = None;
-        let mut retry_events: Vec<StreamEvent> = Vec::new();
 
         for attempt in 1..=max_attempts {
             let mut endpoint_index = 0;
@@ -887,23 +888,9 @@ impl LlmProvider for OpenAiProvider {
                         }
                     };
 
-                // 如果 HTTP 状态码是 200，解析流
+                // 如果 HTTP 状态码是 200，解析流（实时回调）
                 if stream_response.code == 200 {
-                    match self.parse_sse_stream(stream_response, config).await {
-                        Ok(mut events) => {
-                            // 如果有重试事件，合并到结果中
-                            if !retry_events.is_empty() {
-                                let mut all = std::mem::take(&mut retry_events);
-                                all.append(&mut events);
-                                return Ok(all);
-                            }
-                            return Ok(events);
-                        }
-                        Err(e) => {
-                            last_error = Some(e);
-                        }
-                    }
-                    break;
+                    return self.parse_sse_stream(stream_response, config, on_event).await;
                 }
 
                 // 非 200 状态码
@@ -918,7 +905,7 @@ impl LlmProvider for OpenAiProvider {
                 if retryable && attempt < max_attempts {
                     retry_this_attempt = true;
                     // 发出 Retrying 事件
-                    retry_events.push(StreamEvent::Retrying {
+                    on_event(StreamEvent::Retrying {
                         attempt: attempt as i32,
                         max_attempts: max_attempts as i32,
                     });
@@ -964,20 +951,12 @@ impl LlmProvider for OpenAiProvider {
             }
         }
 
-        // 如果有重试事件但最终还是失败，将重试事件和错误一起返回
-        if !retry_events.is_empty() {
-            let mut all = retry_events;
-            all.push(StreamEvent::Error {
-                error: GenerationError::Network {
-                    status_code: last_error.as_ref().and_then(|e| e.status_code()).unwrap_or(0),
-                    message: last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string()),
-                },
-            });
-            return Ok(all);
-        }
-
-        Err(last_error
-            .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string())))
+        // 推送最终错误事件
+        let err = last_error.unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string()));
+        on_event(StreamEvent::Error {
+            error: GenerationError::Unknown { message: err.to_string() },
+        });
+        Err(err)
     }
 
     async fn fetch_models(
