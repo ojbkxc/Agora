@@ -10,7 +10,9 @@ use futures::StreamExt;
 use serde::Serialize;
 
 use crate::api::http_client::AgoraHttpClient;
+use crate::api::message_pipeline;
 use crate::api::provider::LlmProvider;
+use crate::api::request_validator;
 use crate::api::sse::{append_utf8_safe, strip_sse_field, take_sse_block};
 use crate::api::types::*;
 use crate::error::AgoraError;
@@ -216,8 +218,374 @@ fn encode_image_to_base64(image_path: &str) -> Option<(String, String)> {
 // 消息转换
 // ============================================================
 
+/// 合并连续的 result_ 消息（Anthropic 要求将连续工具结果合并为单个用户消息）
+///
+/// 对应 Kotlin AnthropicProvider.coalesceAnthropicMessages
+fn coalesce_anthropic_messages(messages: &[ChatMessage]) -> Vec<Vec<ChatMessage>> {
+    let mut groups: Vec<Vec<ChatMessage>> = Vec::new();
+    let mut current_group: Vec<ChatMessage> = Vec::new();
+
+    for msg in messages {
+        let is_result = msg.id.starts_with("result_");
+        let is_tool = msg.id.starts_with("tool_");
+
+        if is_result {
+            // 连续 result_ 消息合并到同一组
+            current_group.push(msg.clone());
+        } else {
+            // 非 result_ 消息：先 flush 当前组
+            if !current_group.is_empty() {
+                groups.push(std::mem::take(&mut current_group));
+            }
+            if is_tool {
+                // 单个 tool_ 消息单独一组
+                groups.push(vec![msg.clone()]);
+            } else {
+                // 普通消息单独一组
+                groups.push(vec![msg.clone()]);
+            }
+        }
+    }
+
+    // flush 最后剩余组
+    if !current_group.is_empty() {
+        groups.push(current_group);
+    }
+
+    groups
+}
+
+/// 将 tool_ 消息（助手工具调用请求）转换为 Anthropic assistant 消息
+///
+/// 对应 Kotlin AnthropicProvider.buildAssistantToolUse
+fn convert_tool_message(msg: &ChatMessage) -> AnthropicApiMessage {
+    let mut parts = Vec::new();
+
+    // 如果有文本，添加 text 内容块
+    if !msg.text.trim().is_empty() {
+        parts.push(AnthropicContentBlock {
+            block_type: "text".to_string(),
+            text: Some(msg.text.clone()),
+            source: None,
+            id: None,
+            name: None,
+            input: None,
+            thinking: None,
+            signature: None,
+            tool_use_id: None,
+            content: None,
+        });
+    }
+
+    // 如果有思考内容，添加 thinking 内容块（thinking replay 签名）
+    if let Some(ref thoughts) = msg.thoughts {
+        if !thoughts.is_empty() {
+            // 从 tool_call_json 中提取签名
+            let signature = msg.tool_call_json.as_ref().and_then(|tcj| {
+                serde_json::from_str::<serde_json::Value>(tcj).ok().and_then(|v| {
+                    v.get("signature")
+                        .or_else(|| v.get("thought_signature"))
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string())
+                })
+            });
+
+            parts.push(AnthropicContentBlock {
+                block_type: "thinking".to_string(),
+                text: None,
+                source: None,
+                id: None,
+                name: None,
+                input: None,
+                thinking: Some(thoughts.clone()),
+                signature,
+                tool_use_id: None,
+                content: None,
+            });
+        }
+    }
+
+    // 从 tool_call_json 解析工具调用
+    if let Some(ref tcj) = msg.tool_call_json {
+        if !tcj.is_empty() {
+            if let Ok(tc) = serde_json::from_str::<serde_json::Value>(tcj) {
+                // 尝试 segments 格式（多个工具调用）
+                if let Some(segments) = tc.get("segments").and_then(|v| v.as_array()) {
+                    for seg in segments {
+                        if let Some(tool_use) = build_tool_use_block(seg) {
+                            parts.push(tool_use);
+                        }
+                    }
+                } else {
+                    // 单个工具调用
+                    if let Some(tool_use) = build_tool_use_block(&tc) {
+                        parts.push(tool_use);
+                    }
+                }
+            }
+        }
+    }
+
+    // 如果没有任何内容块，添加 "Continue"
+    if parts.is_empty() {
+        parts.push(AnthropicContentBlock {
+            block_type: "text".to_string(),
+            text: Some("Continue".to_string()),
+            source: None,
+            id: None,
+            name: None,
+            input: None,
+            thinking: None,
+            signature: None,
+            tool_use_id: None,
+            content: None,
+        });
+    }
+
+    AnthropicApiMessage {
+        role: "assistant".to_string(),
+        content: parts,
+    }
+}
+
+/// 从 JSON 值构建单个 tool_use 内容块
+fn build_tool_use_block(tc: &serde_json::Value) -> Option<AnthropicContentBlock> {
+    let tool_name = tc
+        .get("toolName")
+        .or_else(|| tc.get("tool_name"))
+        .and_then(|v| v.as_str())?;
+    let tool_call_id = tc
+        .get("toolCallId")
+        .or_else(|| tc.get("tool_call_id"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("call_0");
+
+    let arguments = tc
+        .get("toolArgs")
+        .or_else(|| tc.get("tool_args"))
+        .or_else(|| tc.get("arguments"))
+        .and_then(|v| {
+            if let Some(s) = v.as_str() {
+                serde_json::from_str(s).ok()
+            } else {
+                Some(v.clone())
+            }
+        })
+        .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+
+    Some(AnthropicContentBlock {
+        block_type: "tool_use".to_string(),
+        text: None,
+        source: None,
+        id: Some(tool_call_id.to_string()),
+        name: Some(tool_name.to_string()),
+        input: Some(arguments),
+        thinking: None,
+        signature: None,
+        tool_use_id: None,
+        content: None,
+    })
+}
+
+/// 将 result_ 消息（用户工具执行结果）转换为 Anthropic user 消息
+///
+/// 对应 Kotlin AnthropicProvider.buildToolResultBlocks
+fn convert_result_message(msg: &ChatMessage) -> AnthropicApiMessage {
+    let mut parts = Vec::new();
+
+    if let Some(ref tcj) = msg.tool_call_json {
+        if !tcj.is_empty() {
+            if let Ok(tc) = serde_json::from_str::<serde_json::Value>(tcj) {
+                let tool_name = tc
+                    .get("toolName")
+                    .or_else(|| tc.get("tool_name"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                let tool_call_id = tc
+                    .get("toolCallId")
+                    .or_else(|| tc.get("tool_call_id"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("call_0");
+                let result = tc
+                    .get("result")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                // 如果有文本内容，添加为 tool_result 的 content
+                let content_text = if !msg.text.trim().is_empty() {
+                    Some(msg.text.clone())
+                } else if !result.is_empty() {
+                    Some(result.to_string())
+                } else {
+                    None
+                };
+
+                let mut tool_result_content = Vec::new();
+                if let Some(ref text) = content_text {
+                    tool_result_content.push(serde_json::json!({
+                        "type": "text",
+                        "text": text
+                    }));
+                }
+
+                parts.push(AnthropicContentBlock {
+                    block_type: "tool_result".to_string(),
+                    text: None,
+                    source: None,
+                    id: None,
+                    name: Some(tool_name.to_string()),
+                    input: None,
+                    thinking: None,
+                    signature: None,
+                    tool_use_id: Some(tool_call_id.to_string()),
+                    content: if tool_result_content.is_empty() {
+                        None
+                    } else {
+                        Some(serde_json::to_string(&tool_result_content).unwrap_or_else(|_| {
+                            format!(r#"[{{"type":"text","text":"{}"}}]"#, result)
+                        }))
+                    },
+                });
+            }
+        }
+    }
+
+    // 如果没有 tool_call_json，回退到普通文本消息
+    if parts.is_empty() {
+        if !msg.text.trim().is_empty() {
+            parts.push(AnthropicContentBlock {
+                block_type: "text".to_string(),
+                text: Some(msg.text.clone()),
+                source: None,
+                id: None,
+                name: None,
+                input: None,
+                thinking: None,
+                signature: None,
+                tool_use_id: None,
+                content: None,
+            });
+        } else {
+            parts.push(AnthropicContentBlock {
+                block_type: "text".to_string(),
+                text: Some("Continue".to_string()),
+                source: None,
+                id: None,
+                name: None,
+                input: None,
+                thinking: None,
+                signature: None,
+                tool_use_id: None,
+                content: None,
+            });
+        }
+    }
+
+    AnthropicApiMessage {
+        role: "user".to_string(),
+        content: parts,
+    }
+}
+
+/// 将合并后的消息组转换为单个 Anthropic 消息
+///
+/// 一组可能包含多个 result_ 消息，需要合并为单个 user 消息
+fn convert_message_group(group: &[ChatMessage], include_images: bool) -> AnthropicApiMessage {
+    if group.len() == 1 {
+        return convert_message(&group[0], include_images);
+    }
+
+    // 多个 result_ 消息合并为单个 user 消息，每个工具结果一个 tool_result 内容块
+    let mut parts = Vec::new();
+
+    for msg in group {
+        if msg.id.starts_with("result_") {
+            if let Some(ref tcj) = msg.tool_call_json {
+                if !tcj.is_empty() {
+                    if let Ok(tc) = serde_json::from_str::<serde_json::Value>(tcj) {
+                        let tool_name = tc
+                            .get("toolName")
+                            .or_else(|| tc.get("tool_name"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown");
+                        let tool_call_id = tc
+                            .get("toolCallId")
+                            .or_else(|| tc.get("tool_call_id"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("call_0");
+                        let result = tc
+                            .get("result")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+
+                        let content_text = if !msg.text.trim().is_empty() {
+                            Some(msg.text.clone())
+                        } else {
+                            Some(result.to_string())
+                        };
+
+                        let tool_result_content = vec![serde_json::json!({
+                            "type": "text",
+                            "text": content_text.unwrap_or_default()
+                        })];
+
+                        parts.push(AnthropicContentBlock {
+                            block_type: "tool_result".to_string(),
+                            text: None,
+                            source: None,
+                            id: None,
+                            name: Some(tool_name.to_string()),
+                            input: None,
+                            thinking: None,
+                            signature: None,
+                            tool_use_id: Some(tool_call_id.to_string()),
+                            content: Some(
+                                serde_json::to_string(&tool_result_content).unwrap_or_default(),
+                            ),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    if parts.is_empty() {
+        parts.push(AnthropicContentBlock {
+            block_type: "text".to_string(),
+            text: Some("Continue".to_string()),
+            source: None,
+            id: None,
+            name: None,
+            input: None,
+            thinking: None,
+            signature: None,
+            tool_use_id: None,
+            content: None,
+        });
+    }
+
+    AnthropicApiMessage {
+        role: "user".to_string(),
+        content: parts,
+    }
+}
+
 /// 将 ChatMessage 转换为 Anthropic 格式的 API 消息
+///
+/// 根据消息 ID 前缀区分：
+/// - `tool_` → assistant 角色 + tool_use 内容块
+/// - `result_` → user 角色 + tool_result 内容块
+/// - 其他 → 根据 participant 确定角色
 fn convert_message(msg: &ChatMessage, include_images: bool) -> AnthropicApiMessage {
+    // tool_ 消息：助手发出的工具调用请求
+    if msg.id.starts_with("tool_") {
+        return convert_tool_message(msg);
+    }
+
+    // result_ 消息：用户的工具执行结果
+    if msg.id.starts_with("result_") {
+        return convert_result_message(msg);
+    }
     let mut parts = Vec::new();
 
     // 图像（仅用户消息）
@@ -666,10 +1034,36 @@ impl LlmProvider for AnthropicProvider {
         // temperature/top_p 仅在旧代/过渡代可用
         let allows_sampling_params = family != ClaudeFamily::CurrentAdaptive;
 
-        // ── 消息转换 ──
-        let api_messages: Vec<AnthropicApiMessage> = messages
+        // ── 消息准备管道（对应 Kotlin prepareMessages）──
+        let prepared_messages = message_pipeline::prepare_messages(messages, config.max_context_window);
+
+        // ── 工具定义验证（对应 Kotlin validateToolDefinitions）──
+        if let Some(ref tools) = config.tools {
+            let violations = request_validator::validate_tool_definitions(tools);
+            if !violations.is_empty() {
+                return Ok(vec![StreamEvent::Error {
+                    error: GenerationError::RequestFormat {
+                        provider: self.name.clone(),
+                        violations,
+                    },
+                }]);
+            }
+        }
+
+        // ── Anthropic 消息合并（coalesce）──
+        // 先合并连续的 result_ 消息，再将 tool_ 消息转为 assistant 格式
+        let message_groups = coalesce_anthropic_messages(&prepared_messages);
+
+        // ── 消息转换（使用消息组）──
+        let api_messages: Vec<AnthropicApiMessage> = message_groups
             .iter()
-            .map(|msg| convert_message(msg, config.include_images))
+            .map(|group| {
+                if group.len() > 1 {
+                    convert_message_group(group, config.include_images)
+                } else {
+                    convert_message(&group[0], config.include_images)
+                }
+            })
             .collect();
 
         // ── 工具定义转换 ──
@@ -708,13 +1102,106 @@ impl LlmProvider for AnthropicProvider {
         };
 
         let json_body = serde_json::to_value(&request_body)?;
+        let request_body_str = serde_json::to_string(&request_body)?;
+
+        // ── 序列化请求验证（对应 Kotlin requireValidSerializedRequest）──
+        if let Err(e) = request_validator::require_valid_serialized_request(
+            &self.name,
+            &request_body_str,
+            &["model"],
+            &["messages"],
+        ) {
+            return Ok(vec![StreamEvent::Error {
+                error: GenerationError::RequestFormat {
+                    provider: self.name.clone(),
+                    violations: e.violations,
+                },
+            }]);
+        }
 
         let url = format!("{}/messages", base_url);
         let headers = Self::build_headers(&config.api_key);
 
-        let mut stream_response = client.stream_post(&url, &json_body, &headers).await?;
+        // ── 重试循环 ──
+        let max_attempts = 3;
+        let mut last_error: Option<AgoraError> = None;
+        let mut retry_events: Vec<StreamEvent> = Vec::new();
 
-        Self::parse_sse_stream(&mut stream_response).await
+        for attempt in 1..=max_attempts {
+            let mut stream_response = match client.stream_post(&url, &json_body, &headers).await {
+                Ok(resp) => resp,
+                Err(e) => {
+                    last_error = Some(e);
+                    break;
+                }
+            };
+
+            // 如果 HTTP 状态码是 200，解析流
+            if stream_response.code == 200 {
+                match Self::parse_sse_stream(&mut stream_response).await {
+                    Ok(mut events) => {
+                        if !retry_events.is_empty() {
+                            let mut all = std::mem::take(&mut retry_events);
+                            all.append(&mut events);
+                            return Ok(all);
+                        }
+                        return Ok(events);
+                    }
+                    Err(e) => {
+                        last_error = Some(e);
+                    }
+                }
+                break;
+            }
+
+            // 可重试状态码
+            let retryable = matches!(stream_response.code, 429 | 502 | 503 | 504);
+            if retryable && attempt < max_attempts {
+                retry_events.push(StreamEvent::Retrying {
+                    attempt: attempt as i32,
+                    max_attempts: max_attempts as i32,
+                });
+                tokio::time::sleep(std::time::Duration::from_millis(1000 * attempt as u64)).await;
+                continue;
+            }
+
+            // 不可重试的错误
+            let error_body = stream_response.error_body.unwrap_or_default();
+            last_error = Some(match stream_response.code {
+                401 => AgoraError::Api {
+                    code: "401".to_string(),
+                    message: format!("Authentication failed: {}. Check your API key.", error_body),
+                },
+                403 => AgoraError::Api {
+                    code: "403".to_string(),
+                    message: format!("Access forbidden: {}", error_body),
+                },
+                404 => AgoraError::Api {
+                    code: "404".to_string(),
+                    message: format!("Not found: {}", error_body),
+                },
+                _ => AgoraError::Network {
+                    status_code: stream_response.code as i32,
+                    message: format!("HTTP {}: {}", stream_response.code, error_body),
+                },
+            });
+            break;
+        }
+
+        // 如果有重试事件但最终还是失败，将重试事件和错误一起返回
+        if !retry_events.is_empty() {
+            let mut all = retry_events;
+            all.push(StreamEvent::Error {
+                error: GenerationError::Network {
+                    status_code: last_error.as_ref().and_then(|e| e.status_code()).unwrap_or(0),
+                    message: last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string()),
+                },
+            });
+            return Ok(all);
+        }
+
+        Err(last_error
+            .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string())))
     }
 
     async fn fetch_models(

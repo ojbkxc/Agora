@@ -63,6 +63,8 @@ impl ProxyConfig {
 pub struct StreamResponse {
     /// HTTP 状态码
     pub code: u16,
+    /// 错误响应体（仅在非 2xx 时填充）
+    pub error_body: Option<String>,
     /// 字节流读取器
     reader: Box<dyn Stream<Item = Result<Bytes, reqwest::Error>> + Send + Unpin>,
 }
@@ -73,7 +75,21 @@ impl StreamResponse {
         code: u16,
         reader: Box<dyn Stream<Item = Result<Bytes, reqwest::Error>> + Send + Unpin>,
     ) -> Self {
-        Self { code, reader }
+        Self {
+            code,
+            error_body: None,
+            reader,
+        }
+    }
+
+    /// 创建带错误体的 StreamResponse
+    pub fn with_error(code: u16, error_body: String) -> Self {
+        use futures::stream;
+        Self {
+            code,
+            error_body: Some(error_body),
+            reader: Box::new(stream::empty()),
+        }
     }
 
     /// 获取字节流的引用

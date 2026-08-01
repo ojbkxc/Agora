@@ -10,6 +10,7 @@ pub const PROVIDER_GOOGLE: &str = "Google";
 pub const PROVIDER_DEEPSEEK: &str = "DeepSeek";
 pub const PROVIDER_QWEN: &str = "Qwen";
 pub const PROVIDER_GROQ: &str = "Groq";
+pub const PROVIDER_OPENROUTER: &str = "Open Router";
 pub const PROVIDER_UNKNOWN: &str = "Unknown";
 
 /// ModelId — "ProviderName:modelId" 格式的类型化包装
@@ -48,6 +49,8 @@ impl ModelId {
             PROVIDER_QWEN
         } else if s.contains("groq") {
             PROVIDER_GROQ
+        } else if s.contains("openrouter") {
+            PROVIDER_OPENROUTER
         } else if s.contains("models/") || s.starts_with("gemini") {
             PROVIDER_GOOGLE
         } else {

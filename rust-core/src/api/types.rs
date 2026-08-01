@@ -359,7 +359,7 @@ pub struct OpenAiDelta {
     pub role: Option<String>,
     #[serde(default)]
     pub content: Option<String>,
-    #[serde(default, alias = "reasoning_content")]
+    #[serde(default, alias = "reasoning_content", alias = "reasoning_details")]
     pub reasoning: Option<String>,
     #[serde(default)]
     pub tool_calls: Option<Vec<OpenAiToolCallDelta>>,

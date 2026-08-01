@@ -95,6 +95,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
                 crate::model::PROVIDER_DEEPSEEK => Box::new(OpenAiProvider::new_deepseek()),
                 crate::model::PROVIDER_GROQ => Box::new(OpenAiProvider::new_groq()),
                 crate::model::PROVIDER_QWEN => Box::new(OpenAiProvider::new_qwen()),
+                crate::model::PROVIDER_OPENROUTER => Box::new(OpenAiProvider::new_openrouter()),
                 crate::model::PROVIDER_UNKNOWN => {
                     // 自定义端点
                     let base_url = config

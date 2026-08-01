@@ -40,6 +40,8 @@ open class RustOpenAiProvider : LlmProvider {
                         modelId = config.modelId,
                         systemPrompt = config.systemPrompt,
                         maxContextWindow = config.maxContextWindow,
+                        codeExecutionEnabled = config.codeExecutionEnabled,
+                        googleSearchEnabled = config.googleSearchEnabled,
                         thinkingEnabled = config.thinkingEnabled,
                         thinkingLevel = config.thinkingLevel,
                         thinkingBudgetEnabled = config.thinkingBudgetEnabled,
@@ -50,7 +52,10 @@ open class RustOpenAiProvider : LlmProvider {
                         maxTokens = config.maxTokens,
                         topP = config.topP,
                         frequencyPenalty = config.frequencyPenalty,
-                        presencePenalty = config.presencePenalty
+                        presencePenalty = config.presencePenalty,
+                        userPrepend = config.userPrepend,
+                        userPostpend = config.userPostpend,
+                        tools = config.tools
                     )
                 )
                 RustProvider.nativeCreateProvider("openai", providerConfigJson)

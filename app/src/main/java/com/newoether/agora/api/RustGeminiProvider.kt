@@ -51,7 +51,10 @@ open class RustGeminiProvider : LlmProvider {
                         maxTokens = config.maxTokens,
                         topP = config.topP,
                         frequencyPenalty = config.frequencyPenalty,
-                        presencePenalty = config.presencePenalty
+                        presencePenalty = config.presencePenalty,
+                        userPrepend = config.userPrepend,
+                        userPostpend = config.userPostpend,
+                        tools = config.tools
                     )
                 )
                 RustProvider.nativeCreateProvider("gemini", providerConfigJson)

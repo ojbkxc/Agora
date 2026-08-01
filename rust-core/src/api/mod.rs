@@ -6,6 +6,12 @@ pub mod sse;
 pub mod http_client;
 pub mod provider;
 
+// 消息准备管道（对应 Kotlin ToolMessages.kt + MessageConverter.kt）
+pub mod message_pipeline;
+
+// 请求验证（对应 Kotlin RequestFormatValidation.kt）
+pub mod request_validator;
+
 // Provider 实现（各 LLM 厂商适配层）
 pub mod openai;
 pub mod anthropic;

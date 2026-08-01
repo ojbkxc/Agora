@@ -9,7 +9,9 @@ use async_trait::async_trait;
 use futures::StreamExt;
 
 use crate::api::http_client::AgoraHttpClient;
+use crate::api::message_pipeline;
 use crate::api::provider::LlmProvider;
+use crate::api::request_validator;
 use crate::api::sse::{strip_sse_field, parse_sse_json_stream, SseEvent};
 use crate::api::types::*;
 use crate::error::AgoraError;
@@ -789,9 +791,19 @@ impl LlmProvider for OpenAiProvider {
 
         let endpoint_urls = self.endpoint_candidates(base_url, "chat/completions");
 
-        // ── 消息转换 ──
+        // ── 消息准备管道（对应 Kotlin prepareMessages + convertToOpenAiMessages）──
+        // 1. 先经过消息准备管道（去重、状态投影、工具验证、空过滤、合并、截断）
+        let prepared_messages = message_pipeline::prepare_messages(messages, config.max_context_window);
+
+        // 2. 助手图像投影到最新用户消息
+        let prepared_messages = message_pipeline::project_assistant_images_to_latest_user_message(
+            &prepared_messages,
+            config.include_images,
+        );
+
+        // 3. 转换为 OpenAI 格式
         let api_messages = Self::convert_messages(
-            messages,
+            &prepared_messages,
             config.system_prompt.as_deref(),
             config.include_images,
         );
@@ -816,12 +828,43 @@ impl LlmProvider for OpenAiProvider {
 
         self.customize_request(&mut request, config);
 
+        // ── 工具定义验证（对应 Kotlin validateToolDefinitions）──
+        if let Some(ref tools) = config.tools {
+            let violations = request_validator::validate_tool_definitions(tools);
+            if !violations.is_empty() {
+                return Ok(vec![StreamEvent::Error {
+                    error: GenerationError::RequestFormat {
+                        provider: self.name.clone(),
+                        violations,
+                    },
+                }]);
+            }
+        }
+
         let json_body = serde_json::to_value(&request)?;
+        let request_body_str = serde_json::to_string(&request)?;
+
+        // ── 序列化请求验证（对应 Kotlin requireValidSerializedRequest）──
+        if let Err(e) = request_validator::require_valid_serialized_request(
+            &self.name,
+            &request_body_str,
+            &["model"],
+            &["messages"],
+        ) {
+            return Ok(vec![StreamEvent::Error {
+                error: GenerationError::RequestFormat {
+                    provider: self.name.clone(),
+                    violations: e.violations,
+                },
+            }]);
+        }
+
         let headers = self.build_headers(&config.api_key);
 
         // ── 重试循环 ──
         let max_attempts = 3;
         let mut last_error: Option<AgoraError> = None;
+        let mut retry_events: Vec<StreamEvent> = Vec::new();
 
         for attempt in 1..=max_attempts {
             let mut endpoint_index = 0;
@@ -847,7 +890,15 @@ impl LlmProvider for OpenAiProvider {
                 // 如果 HTTP 状态码是 200，解析流
                 if stream_response.code == 200 {
                     match self.parse_sse_stream(stream_response, config).await {
-                        Ok(events) => return Ok(events),
+                        Ok(mut events) => {
+                            // 如果有重试事件，合并到结果中
+                            if !retry_events.is_empty() {
+                                let mut all = std::mem::take(&mut retry_events);
+                                all.append(&mut events);
+                                return Ok(all);
+                            }
+                            return Ok(events);
+                        }
                         Err(e) => {
                             last_error = Some(e);
                         }
@@ -866,19 +917,44 @@ impl LlmProvider for OpenAiProvider {
                 let retryable = matches!(stream_response.code, 429 | 502 | 503 | 504);
                 if retryable && attempt < max_attempts {
                     retry_this_attempt = true;
-                    if attempt < max_attempts {
-                        events_on_retry(attempt, max_attempts);
-                    }
-                    // 等待后重试
+                    // 发出 Retrying 事件
+                    retry_events.push(StreamEvent::Retrying {
+                        attempt: attempt as i32,
+                        max_attempts: max_attempts as i32,
+                    });
+                    // 等待后重试（指数退避）
                     tokio::time::sleep(std::time::Duration::from_millis(1000 * attempt as u64))
                         .await;
                     break;
                 }
 
                 // 不可重试的错误
-                last_error = Some(AgoraError::Network {
-                    status_code: stream_response.code as i32,
-                    message: format!("HTTP {} from {}", stream_response.code, endpoint_url),
+                let error_body = stream_response.error_body.unwrap_or_default();
+                last_error = Some(match stream_response.code {
+                    401 => AgoraError::Api {
+                        code: "401".to_string(),
+                        message: format!("Authentication failed: {}. Check your API key.", error_body),
+                    },
+                    403 => AgoraError::Api {
+                        code: "403".to_string(),
+                        message: format!("Access forbidden: {}", error_body),
+                    },
+                    404 => {
+                        let hint = if endpoint_urls.len() > 1 {
+                            format!("\nTried {} and {}. OpenAI-compatible servers often require a /v1 Base URL.",
+                                endpoint_urls[0], endpoint_urls.last().unwrap())
+                        } else {
+                            String::new()
+                        };
+                        AgoraError::Api {
+                            code: "404".to_string(),
+                            message: format!("Not found: {}{}", error_body, hint),
+                        }
+                    }
+                    _ => AgoraError::Network {
+                        status_code: stream_response.code as i32,
+                        message: format!("HTTP {} from {}: {}", stream_response.code, endpoint_url, error_body),
+                    },
                 });
                 break;
             }
@@ -886,6 +962,18 @@ impl LlmProvider for OpenAiProvider {
             if !retry_this_attempt {
                 break;
             }
+        }
+
+        // 如果有重试事件但最终还是失败，将重试事件和错误一起返回
+        if !retry_events.is_empty() {
+            let mut all = retry_events;
+            all.push(StreamEvent::Error {
+                error: GenerationError::Network {
+                    status_code: last_error.as_ref().and_then(|e| e.status_code()).unwrap_or(0),
+                    message: last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string()),
+                },
+            });
+            return Ok(all);
         }
 
         Err(last_error
@@ -929,17 +1017,6 @@ impl LlmProvider for OpenAiProvider {
 
         Err(last_error.unwrap_or_else(|| AgoraError::Unknown("Failed to fetch models".to_string())))
     }
-}
-
-// ============================================================
-// 重试事件辅助
-// ============================================================
-
-/// 在重试时发出事件（占位，当前版本不发送重试事件因为返回 Vec）
-fn events_on_retry(attempt: i32, max_attempts: i32) {
-    let _ = (attempt, max_attempts);
-    // 重试事件在返回 Vec 的模式下不发送，因为事件需要在流式过程中推送。
-    // 调用方通过错误处理来感知重试。
 }
 
 // ============================================================

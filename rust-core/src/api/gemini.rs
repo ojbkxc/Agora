@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use futures::StreamExt;
 
 use crate::api::http_client::AgoraHttpClient;
+use crate::api::message_pipeline;
 use crate::api::provider::LlmProvider;
 use crate::api::sse::{append_utf8_safe, strip_sse_field, take_sse_block};
 use crate::api::types::*;
@@ -60,8 +61,9 @@ impl LlmProvider for GeminiProvider {
 
         let clean_model = config.model_id.trim_start_matches("models/");
 
-        // 1. 转换消息为 Gemini 格式
-        let contents = build_contents(messages, config)?;
+        // 1. 消息准备管道 + 转换消息为 Gemini 格式
+        let prepared_messages = message_pipeline::prepare_messages(messages, config.max_context_window);
+        let contents = build_contents(&prepared_messages, config)?;
 
         // 2. 构建 system_instruction
         let system_instruction = config.system_prompt.as_ref().map(|sp| GeminiContent {
@@ -122,13 +124,82 @@ impl LlmProvider for GeminiProvider {
         );
         headers.insert("x-goog-api-key".to_string(), config.api_key.clone());
 
-        // 7. 发送流式请求
-        let mut stream_resp = client.stream_post(&url, &request_json, &headers).await?;
+        // 7. 发送流式请求（带重试逻辑）
+        let max_attempts = 3;
+        let mut last_error: Option<AgoraError> = None;
+        let mut retry_events: Vec<StreamEvent> = Vec::new();
 
-        // 8. 解析 SSE 响应
-        let events = parse_sse_stream(stream_resp.stream()).await?;
+        for attempt in 1..=max_attempts {
+            let mut stream_resp = match client.stream_post(&url, &request_json, &headers).await {
+                Ok(resp) => resp,
+                Err(e) => {
+                    last_error = Some(e);
+                    break;
+                }
+            };
 
-        Ok(events)
+            // 如果 HTTP 状态码是 200，解析流
+            if stream_resp.code == 200 {
+                match parse_sse_stream(stream_resp.stream()).await {
+                    Ok(mut events) => {
+                        if !retry_events.is_empty() {
+                            let mut all = std::mem::take(&mut retry_events);
+                            all.append(&mut events);
+                            return Ok(all);
+                        }
+                        return Ok(events);
+                    }
+                    Err(e) => {
+                        last_error = Some(e);
+                    }
+                }
+                break;
+            }
+
+            // 可重试状态码
+            let retryable = matches!(stream_resp.code, 401 | 429 | 502 | 503 | 504);
+            if retryable && attempt < max_attempts {
+                retry_events.push(StreamEvent::Retrying {
+                    attempt: attempt as i32,
+                    max_attempts: max_attempts as i32,
+                });
+                tokio::time::sleep(std::time::Duration::from_millis(1000 * attempt as u64)).await;
+                continue;
+            }
+
+            // 不可重试的错误
+            let error_body = stream_resp.error_body.unwrap_or_default();
+            last_error = Some(match stream_resp.code {
+                401 => AgoraError::Api {
+                    code: "401".to_string(),
+                    message: format!("Authentication failed: {}. Check your API key.", error_body),
+                },
+                403 => AgoraError::Api {
+                    code: "403".to_string(),
+                    message: format!("Access forbidden: {}", error_body),
+                },
+                _ => AgoraError::Network {
+                    status_code: stream_resp.code as i32,
+                    message: format!("HTTP {}: {}", stream_resp.code, error_body),
+                },
+            });
+            break;
+        }
+
+        // 如果有重试事件但最终还是失败，将重试事件和错误一起返回
+        if !retry_events.is_empty() {
+            let mut all = retry_events;
+            all.push(StreamEvent::Error {
+                error: GenerationError::Network {
+                    status_code: last_error.as_ref().and_then(|e| e.status_code()).unwrap_or(0),
+                    message: last_error.as_ref().map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string()),
+                },
+            });
+            return Ok(all);
+        }
+
+        Err(last_error
+            .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string())))
     }
 
     async fn fetch_models(

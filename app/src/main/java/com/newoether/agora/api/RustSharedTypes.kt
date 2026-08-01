@@ -34,6 +34,9 @@ data class RustProviderConfig(
     @SerialName("top_p") val topP: Float? = null,
     @SerialName("frequency_penalty") val frequencyPenalty: Float? = null,
     @SerialName("presence_penalty") val presencePenalty: Float? = null,
+    @SerialName("user_prepend") val userPrepend: String? = null,
+    @SerialName("user_postpend") val userPostpend: String? = null,
+    val tools: List<ToolDefinition>? = null,
 )
 
 // ── Chat message (Kotlin → Rust) ────────────────────────────────────
@@ -44,6 +47,8 @@ data class RustChatMessage(
     @SerialName("parent_id") val parentId: String? = null,
     val text: String,
     val images: List<String> = emptyList(),
+    val thoughts: String? = null,
+    @SerialName("thought_title") val thoughtTitle: String? = null,
     val participant: String,
     val timestamp: Long = 0,
     @SerialName("model_name") val modelName: String? = null,
@@ -55,6 +60,8 @@ fun ChatMessage.toRustMessage(): RustChatMessage = RustChatMessage(
     parentId = parentId,
     text = text,
     images = images,
+    thoughts = thoughts,
+    thoughtTitle = thoughtTitle,
     participant = participant.name,
     timestamp = timestamp,
     modelName = modelName,
