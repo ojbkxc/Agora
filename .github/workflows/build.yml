@@ -24,7 +24,6 @@ jobs:
         with:
           packages: "ndk;28.2.13676358"
 
-      # ── Rust toolchain ──────────────────────────────────────────
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -32,15 +31,28 @@ jobs:
 
       - name: Debug Rust environment
         run: |
-          rustc --version
-          cargo --version
-          rustup target list --installed
+          echo "rustc: $(rustc --version)"
+          echo "cargo: $(cargo --version)"
+          echo "targets: $(rustup target list --installed | tr '\n' ' ')"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_SDK_ROOT/ndk/" 2>/dev/null || echo "No NDK"
 
       - name: Check Rust compilation (host target)
+        id: cargo_check
         run: |
           cd rust-core
           cargo check 2>&1 | tee /tmp/cargo-check.log
           exit ${PIPESTATUS[0]}
+
+      - name: Display cargo check errors
+        if: failure() && steps.cargo_check.outcome == 'failure'
+        run: |
+          echo "### Cargo Check Errors" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/cargo-check.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Full log saved to /tmp/cargo-check.log"
 
       - name: Upload cargo check log
         if: always()
@@ -50,6 +62,7 @@ jobs:
           path: /tmp/cargo-check.log
 
       - name: Set up NDK linker for Android target
+        if: success()
         run: |
           cd rust-core
           NDK_PATH="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
@@ -59,32 +72,21 @@ jobs:
           [target.aarch64-linux-android]
           linker = "${LLVM_BIN}/aarch64-linux-android21-clang"
           CONFIGEOF
-          cat .cargo/config.toml
           export ANDROID_NDK_HOME="${NDK_PATH}"
 
       - name: Install cargo-ndk
+        if: success()
         run: cargo install cargo-ndk
 
       - name: Full Android build with cargo-ndk
+        if: success()
         env:
           RUST_BACKTRACE: "1"
         run: |
-          set -euo pipefail
           cd rust-core
           NDK_PATH="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
           export ANDROID_NDK_HOME="${NDK_PATH}"
-          cargo ndk \
-            --target arm64-v8a \
-            --platform 24 \
-            --output-dir "${PWD}/../app/src/main/jniLibs" \
-            build --release 2>&1 | tee /tmp/rust-build.log
-
-      - name: Upload Rust build log (on failure)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-build-log
-          path: /tmp/rust-build.log
+          cargo ndk --target arm64-v8a --platform 24 --output-dir "${PWD}/../app/src/main/jniLibs" build --release 2>&1 | tee /tmp/rust-build.log
 
       - name: Restore signing key
         if: ${{ env.KEYSTORE_BASE64 != '' }}
