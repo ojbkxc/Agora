@@ -30,6 +30,31 @@ jobs:
         with:
           targets: aarch64-linux-android
 
+      - name: Debug Rust environment
+        run: |
+          rustc --version
+          cargo --version
+          rustup target list --installed
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_SDK_ROOT/ndk/" 2>/dev/null || echo "No NDK found at ANDROID_SDK_ROOT"
+          ls -la "$ANDROID_HOME/ndk/" 2>/dev/null || echo "No NDK found at ANDROID_HOME"
+          # Check if NDK 28.2.13676358 exists
+          NDK_PATH="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          if [ -d "$NDK_PATH" ]; then
+            echo "NDK 28.2.13676358 found at $NDK_PATH"
+            ls -la "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/" | head -20
+          else
+            echo "NDK 28.2.13676358 NOT found at $NDK_PATH"
+            # Try to find any NDK
+            find "$ANDROID_SDK_ROOT" -name "aarch64-linux-android21-clang" 2>/dev/null | head -5
+          fi
+
+      - name: Check Rust compilation (host target)
+        run: |
+          cd rust-core
+          cargo check 2>&1 || true
+
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
 
@@ -37,7 +62,21 @@ jobs:
         run: |
           cd rust-core
           chmod +x build-android.sh
-          ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/28.2.13676358" bash build-android.sh
+          # Find NDK
+          NDK_PATH=""
+          for p in "$ANDROID_SDK_ROOT/ndk/28.2.13676358" "$ANDROID_HOME/ndk/28.2.13676358"; do
+            if [ -d "$p" ]; then
+              NDK_PATH="$p"
+              break
+            fi
+          done
+          if [ -z "$NDK_PATH" ]; then
+            # Try to find any NDK
+            NDK_PATH=$(ls -d "$ANDROID_SDK_ROOT/ndk/"*/ 2>/dev/null | sort -V | tail -1)
+            NDK_PATH=${NDK_PATH%/}
+          fi
+          echo "Using NDK: $NDK_PATH"
+          ANDROID_NDK_HOME="$NDK_PATH" bash -x build-android.sh 2>&1
 
       - name: Restore signing key
         if: ${{ env.KEYSTORE_BASE64 != '' }}
