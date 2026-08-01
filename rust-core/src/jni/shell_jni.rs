@@ -70,7 +70,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeCreateShell
 /// 获取并验证服务端公钥。
 #[no_mangle]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFetchPublicKey(
-    mut env: JNIEnv,
+    _env: JNIEnv,
     _class: JClass,
     handle: jlong,
 ) -> jboolean {

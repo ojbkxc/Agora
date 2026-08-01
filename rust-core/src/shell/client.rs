@@ -70,7 +70,7 @@ impl ShellClient {
             Ok(resp) => {
                 if resp.status != 200 {
                     let detail = if resp.body.len() > 240 {
-                        &resp.body[..240]
+                        resp.body.floor_char_boundary(240)
                     } else {
                         &resp.body
                     };
@@ -447,7 +447,7 @@ fn build_command_json(command: &str, timeout_ms: i32, workdir: &str) -> String {
 /// 截断字符串
 fn truncate(s: &str, max_len: usize) -> &str {
     if s.len() > max_len {
-        &s[..max_len]
+        s.floor_char_boundary(max_len)
     } else {
         s
     }
