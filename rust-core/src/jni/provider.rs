@@ -176,7 +176,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
 
     // 获取 JavaVM 用于在回调中获取 JNIEnv
     let jvm = match env.get_java_vm() {
-        Ok(jvm) => jvm,
+        Ok(jvm) => Arc::new(jvm),
         Err(e) => {
             util::handle_error(&mut env, AgoraError::Jni(format!("Failed to get JavaVM: {}", e)));
             return std::ptr::null_mut();
@@ -188,7 +188,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
 
     // 创建流式回调：通过 JNI 实时推送事件到 Kotlin
     let on_event: crate::api::provider::StreamCallback = {
-        let jvm = jvm.clone();
+        let jvm = Arc::clone(&jvm);
         let cb = callback_ref.clone();
         Box::new(move |event: StreamEvent| {
             let mut env = match jvm.attach_current_thread() {

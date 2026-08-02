@@ -226,11 +226,11 @@ impl StreamingThinkTagParser {
                 break;
             }
             if let Some(run) = code_run {
-                let literal = &self.pending[index..index + run.length];
+                let literal = self.pending[index..index + run.length].to_string();
                 if self.in_thinking() {
-                    thought_buf.push_str(literal);
+                    thought_buf.push_str(&literal);
                 } else {
-                    text_buf.push_str(literal);
+                    text_buf.push_str(&literal);
                 }
                 for ch in literal.chars() {
                     self.update_line_state(ch);

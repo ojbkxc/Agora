@@ -284,7 +284,13 @@ impl AgoraHttpClient {
         if !status.is_success() {
             // 读取错误响应体
             let body = response.text().await.unwrap_or_default();
-            Self::check_status(status, &body)?;
+            return Err(match Self::check_status(status, &body) {
+                Err(e) => e,
+                Ok(()) => AgoraError::Network {
+                    status_code: code as i32,
+                    message: body,
+                },
+            });
         }
 
         let byte_stream = response.bytes_stream();

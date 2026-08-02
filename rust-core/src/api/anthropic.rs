@@ -1205,14 +1205,17 @@ impl LlmProvider for AnthropicProvider {
                 401 => AgoraError::Api {
                     code: "401".to_string(),
                     message: format!("Authentication failed: {}. Check your API key.", error_body),
+                    error_type: None,
                 },
                 403 => AgoraError::Api {
                     code: "403".to_string(),
                     message: format!("Access forbidden: {}", error_body),
+                    error_type: None,
                 },
                 404 => AgoraError::Api {
                     code: "404".to_string(),
                     message: format!("Not found: {}", error_body),
+                    error_type: None,
                 },
                 _ => AgoraError::Network {
                     status_code: stream_response.code as i32,

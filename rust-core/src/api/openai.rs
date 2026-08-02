@@ -357,7 +357,7 @@ impl OpenAiProvider {
             }
         }
 
-        Err(serde_json::Error::custom("无法解析 tool_call_json"))
+        Err(<serde_json::Error as serde::de::Error>::custom("无法解析 tool_call_json"))
     }
 
     /// 读取图像文件并编码为 base64
@@ -939,10 +939,12 @@ impl LlmProvider for OpenAiProvider {
                     401 => AgoraError::Api {
                         code: "401".to_string(),
                         message: format!("Authentication failed: {}. Check your API key.", error_body),
+                        error_type: None,
                     },
                     403 => AgoraError::Api {
                         code: "403".to_string(),
                         message: format!("Access forbidden: {}", error_body),
+                        error_type: None,
                     },
                     404 => {
                         let hint = if endpoint_urls.len() > 1 {
@@ -954,6 +956,7 @@ impl LlmProvider for OpenAiProvider {
                         AgoraError::Api {
                             code: "404".to_string(),
                             message: format!("Not found: {}{}", error_body, hint),
+                            error_type: None,
                         }
                     }
                     _ => AgoraError::Network {
@@ -1199,11 +1202,11 @@ impl ThinkTagParser {
     /// 查找开始标签匹配
     /// 返回 Some((marker_ref, tag_length)) 表示完全匹配，None 表示无匹配
     /// 返回 Some(None) 表示部分匹配
-    fn find_start_match(
+    fn find_start_match<'a>(
         remainder: &str,
-        markers: &[ThinkMarker],
+        markers: &'a [ThinkMarker],
         finalize: bool,
-    ) -> Option<Option<(&ThinkMarker, usize)>> {
+    ) -> Option<Option<(&'a ThinkMarker, usize)>> {
         for marker in markers {
             match Self::prefix_match(remainder, marker.start) {
                 MatchResult::Full(len) => return Some(Some((marker, len))),

@@ -210,6 +210,7 @@ impl LlmProvider for OllamaProvider {
                 401 => AgoraError::Api {
                     code: "401".to_string(),
                     message: format!("Authentication failed: {}. Check your API key.", error_body),
+                    error_type: None,
                 },
                 _ => AgoraError::Network {
                     status_code: stream_resp.code as i32,

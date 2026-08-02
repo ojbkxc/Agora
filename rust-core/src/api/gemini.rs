@@ -166,10 +166,12 @@ impl LlmProvider for GeminiProvider {
                 401 => AgoraError::Api {
                     code: "401".to_string(),
                     message: format!("Authentication failed: {}. Check your API key.", error_body),
+                    error_type: None,
                 },
                 403 => AgoraError::Api {
                     code: "403".to_string(),
                     message: format!("Access forbidden: {}", error_body),
+                    error_type: None,
                 },
                 _ => AgoraError::Network {
                     status_code: stream_resp.code as i32,

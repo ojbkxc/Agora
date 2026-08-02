@@ -133,7 +133,7 @@ pub fn sse_stream_parser(
 ) -> impl Stream<Item = Result<String, crate::error::AgoraError>> + Send + Unpin + 'static {
     let initial_state = (byte_stream, String::new(), Vec::<u8>::new());
 
-    stream::unfold(initial_state, move |(mut byte_stream, mut buffer, mut remainder)| async move {
+    Box::pin(stream::unfold(initial_state, move |(mut byte_stream, mut buffer, mut remainder)| async move {
         loop {
             // 尝试从缓冲区提取完整的 SSE 块
             if let Some(block) = take_sse_block(&mut buffer) {
@@ -161,7 +161,7 @@ pub fn sse_stream_parser(
                 }
             }
         }
-    })
+    }))
 }
 
 // ============================================================
@@ -222,7 +222,7 @@ pub fn parse_sse_json_stream(
 ) -> impl Stream<Item = Result<SseEvent, crate::error::AgoraError>> + Send + Unpin + 'static {
     let initial_state = (byte_stream, String::new(), Vec::<u8>::new());
 
-    stream::unfold(initial_state, move |(mut byte_stream, mut buffer, mut remainder)| async move {
+    Box::pin(stream::unfold(initial_state, move |(mut byte_stream, mut buffer, mut remainder)| async move {
         loop {
             if let Some(block) = take_sse_block(&mut buffer) {
                 let event = block_to_sse_event(&block);
@@ -247,7 +247,7 @@ pub fn parse_sse_json_stream(
                 }
             }
         }
-    })
+    }))
 }
 
 // ============================================================
