@@ -163,16 +163,63 @@
 
 ## Tech Stack
 
-- **Language:** [Kotlin](https://kotlinlang.org/)
+- **Language:** [Kotlin](https://kotlinlang.org/) + [Rust](https://www.rust-lang.org/)
 - **UI Framework:** [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material 3, dynamic color)
 - **Architecture:** MVVM with Kotlin Coroutines & Flow
 - **Local Storage:** [Room Database](https://developer.android.com/training/data-storage/room) with tree-structured message schema & DataStore Preferences
-- **Networking:** OkHttp with SSE streaming
-- **Serialization:** `kotlinx.serialization`
-- **Native:** llama.cpp via Android NDK (CMake) for on-device LLM inference and embeddings
+- **Networking:** `reqwest` (Rust, rustls-tls) with SSE streaming; OkHttp on the Kotlin side
+- **Serialization:** `kotlinx.serialization` (Kotlin) + `serde` / `serde_json` (Rust)
+- **Native (Rust core `agora_rs`):** cross-platform core compiled to `libagora_rs.so` via `cargo-ndk`, exposing JNI bindings for:
+  - **Providers** — OpenAI, Anthropic, Gemini, Ollama streaming/non-streaming generation, tool calls, and thinking-tag parsing
+  - **Crypto** — Conch protocol: ECDH key exchange, AES-256-GCM, HMAC-SHA256, HKDF, nonce-based anti-replay
+  - **Shell client** — encrypted remote command execution and file I/O against a Conch server
+  - **Embeddings** — remote and local embedding clients with cosine-similarity search
+- **Native (C/C++ via NDK/CMake):** llama.cpp for on-device LLM inference and embeddings; PRoot for the Alpine Linux sandbox
 - **Image Loading:** Coil
 - **Markdown:** Multiplatform Markdown Renderer M3
 - **Math:** JLaTeXMath-Android
+
+## Repository Layout
+
+```
+.
+├── app/                 # Android app (Kotlin / Jetpack Compose)
+│   └── src/main/cpp/    #   NDK C/C++: llama.cpp + PRoot JNI glue (CMake)
+├── rust-core/           # Rust core library → libagora_rs.so (cargo-ndk)
+│   ├── src/api/         #   providers, SSE, message pipeline, HTTP client
+│   ├── src/crypto/      #   Conch: ECDH, AES-GCM, HMAC, HKDF
+│   ├── src/shell/       #   encrypted shell client
+│   ├── src/embedding/   #   embedding client + similarity
+│   ├── src/jni/         #   JNI entry points (#[unsafe(no_mangle)])
+│   └── build-android.sh #   one-shot Android arm64-v8a build
+├── thirdparty/
+│   ├── llama.cpp/       # on-device LLM inference engine
+│   ├── proot/           # userspace sandbox (Alpine Linux)
+│   └── talloc/          # PRoot dependency
+├── docs/                # multilingual user manual (mkdocs)
+└── .github/workflows/   # CI: cargo check + cargo-ndk + Gradle assemble
+```
+
+## Building
+
+The CI workflow (`.github/workflows/build.yml`) runs the full pipeline. To build locally:
+
+```bash
+# 1. Rust host check
+cd rust-core && cargo check
+
+# 2. Rust Android library (arm64-v8a) — requires Android NDK + cargo-ndk
+#    set ANDROID_NDK_HOME, then:
+bash build-android.sh
+# → app/src/main/jniLibs/arm64-v8a/libagora_rs.so
+
+# 3. Android app — open in Android Studio and run, or:
+./gradlew :app:assembleFdroidRelease
+```
+
+> The Gradle `:app:buildRustLibrary` task wires the Rust build into the
+> assemble and `merge*JniLibFolders` pipeline, so `./gradlew assemble*`
+> builds the `.so` automatically when it is missing or out of date.
 
 ## Contributing
 

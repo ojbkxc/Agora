@@ -15,6 +15,7 @@ local.properties
 
 # Build artifacts
 app/release/
+apk-out/
 build_output.txt
 build_*.log
 
