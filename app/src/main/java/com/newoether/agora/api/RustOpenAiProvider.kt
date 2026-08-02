@@ -1,4 +1,4 @@
-package com.newoether.agora.api
+﻿package com.newoether.agora.api
 
 import com.newoether.agora.model.ChatMessage
 import com.newoether.agora.util.Constants
@@ -109,7 +109,7 @@ open class RustOpenAiProvider : LlmProvider {
 
         awaitClose {
             // Ensure native handle is destroyed if the flow is cancelled upstream
-            kotlinx.coroutines.runCatching {
+            runCatching {
                 RustProvider.nativeDestroyProvider(handle)
             }
         }

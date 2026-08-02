@@ -106,7 +106,7 @@ object RustEmbeddingClient {
         if (texts.isEmpty()) return emptyList()
         return try {
             val textsJson = json.encodeToString(
-                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.builtins.serializer<String>()),
+                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
                 texts
             )
             val raw = nativeComputeEmbeddings(textsJson, apiKey, model, baseUrl)

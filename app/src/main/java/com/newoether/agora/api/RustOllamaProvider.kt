@@ -1,4 +1,4 @@
-package com.newoether.agora.api
+﻿package com.newoether.agora.api
 
 import com.newoether.agora.model.ChatMessage
 import com.newoether.agora.util.Constants
@@ -115,7 +115,7 @@ open class RustOllamaProvider : LlmProvider {
         }
 
         awaitClose {
-            kotlinx.coroutines.runCatching {
+            runCatching {
                 RustProvider.nativeDestroyProvider(handle)
             }
         }
