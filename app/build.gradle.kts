@@ -154,6 +154,14 @@ tasks.matching { it.name.startsWith("assemble") }.configureEach {
     dependsOn(buildRustLibrary)
 }
 
+// Merge JNI libs reads app/src/main/jniLibs, which is the output directory of
+// buildRustLibrary. Gradle 9+ strict task-dependency validation requires an
+// explicit dependency, otherwise it aborts with an "implicit dependency"
+// error on :merge*JniLibFolders.
+tasks.matching { it.name.startsWith("merge") && it.name.contains("JniLibFolders") }.configureEach {
+    dependsOn(buildRustLibrary)
+}
+
 // Proot binaries (libproot_exec.so, libproot_loader.so, libtalloc.so) are
 // built via GNUmakefile (see .build-proot/) and placed directly in jniLibs.
 // No CMake target is needed — the binaries are manually managed prebuilts.
