@@ -673,6 +673,24 @@ impl OpenAiProvider {
                     });
                 }
             }
+        } else {
+            // ── reasoning_details 字段（OpenRouter）──
+            // OpenRouter sends reasoning as an array of {type, text} objects
+            if let Some(ref details) = delta.reasoning_details {
+                if config.thinking_enabled {
+                    for detail in details {
+                        if let Some(ref text) = detail.text {
+                            if !text.is_empty() {
+                                on_event(StreamEvent::ThoughtChunk {
+                                    thought: text.clone(),
+                                    title: detail.r#type.clone(),
+                                    signature: None,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // ── content 字段 ──

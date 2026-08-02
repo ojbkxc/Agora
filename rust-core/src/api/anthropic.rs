@@ -245,7 +245,6 @@ fn is_anthropic_tool_round_compatible(msg: &ChatMessage) -> bool {
     }
 
     // 有思考内容但没有有效签名 → 不兼容
-    let _ = thoughts; // thoughts is non-empty here
     false
 }
 

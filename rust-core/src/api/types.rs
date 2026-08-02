@@ -399,10 +399,22 @@ pub struct OpenAiDelta {
     pub role: Option<String>,
     #[serde(default)]
     pub content: Option<String>,
-    #[serde(default, alias = "reasoning_content", alias = "reasoning_details")]
+    #[serde(default, alias = "reasoning_content")]
     pub reasoning: Option<String>,
+    /// OpenRouter sends `reasoning_details` as an array of objects with `type` and `text` fields.
+    #[serde(default)]
+    pub reasoning_details: Option<Vec<OpenAiReasoningDetail>>,
     #[serde(default)]
     pub tool_calls: Option<Vec<OpenAiToolCallDelta>>,
+}
+
+/// OpenRouter reasoning detail item (matches Kotlin OpenAiReasoningDetail)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenAiReasoningDetail {
+    #[serde(default)]
+    pub r#type: Option<String>,
+    #[serde(default)]
+    pub text: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
