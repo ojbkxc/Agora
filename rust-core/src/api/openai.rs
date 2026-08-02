@@ -698,7 +698,7 @@ impl OpenAiProvider {
             if !content.is_empty() {
                 content_buffer.push_str(content);
 
-                if let Some(ref mut parser) = think_parser {
+                if let Some(parser) = think_parser {
                     let (texts, thoughts) = parser.feed(content);
                     for t in texts {
                         if !t.is_empty() {
