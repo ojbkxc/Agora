@@ -4,7 +4,7 @@
 // 实现 nativeCreateProvider / nativeGenerate / nativeFetchModels / nativeDestroyProvider
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use jni::JNIEnv;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
@@ -31,7 +31,7 @@ use once_cell::sync::Lazy;
 static NEXT_HANDLE: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(1);
 
 /// 存储所有活跃的 Provider 实例
-static PROVIDERS: Lazy<Mutex<HashMap<i64, Box<dyn LlmProvider>>>> =
+static PROVIDERS: Lazy<Mutex<HashMap<i64, Arc<dyn LlmProvider>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// 存储 Provider 的持久化配置（API key、base_url 等）
@@ -44,7 +44,7 @@ fn next_handle() -> i64 {
 }
 
 /// 存储 Provider 实例并返回 handle
-fn store_provider(provider: Box<dyn LlmProvider>, config: ProviderConfig) -> i64 {
+fn store_provider(provider: Arc<dyn LlmProvider>, config: ProviderConfig) -> i64 {
     let handle = next_handle();
     PROVIDERS.lock().unwrap().insert(handle, provider);
     PROVIDER_CONFIGS.lock().unwrap().insert(handle, config);
@@ -89,28 +89,28 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
     };
 
     // 根据 provider_type 创建对应的 Provider
-    let provider: Box<dyn LlmProvider> = match provider_type.as_str() {
+    let provider: Arc<dyn LlmProvider> = match provider_type.as_str() {
         "openai" => {
             let model_id = ModelId::parse(&config.model_id);
             match model_id.provider() {
-                crate::model::PROVIDER_DEEPSEEK => Box::new(OpenAiProvider::new_deepseek()),
-                crate::model::PROVIDER_GROQ => Box::new(OpenAiProvider::new_groq()),
-                crate::model::PROVIDER_QWEN => Box::new(OpenAiProvider::new_qwen()),
-                crate::model::PROVIDER_OPENROUTER => Box::new(OpenAiProvider::new_openrouter()),
+                crate::model::PROVIDER_DEEPSEEK => Arc::new(OpenAiProvider::new_deepseek()),
+                crate::model::PROVIDER_GROQ => Arc::new(OpenAiProvider::new_groq()),
+                crate::model::PROVIDER_QWEN => Arc::new(OpenAiProvider::new_qwen()),
+                crate::model::PROVIDER_OPENROUTER => Arc::new(OpenAiProvider::new_openrouter()),
                 crate::model::PROVIDER_UNKNOWN => {
                     // 自定义端点
                     let base_url = config
                         .base_url
                         .clone()
                         .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
-                    Box::new(OpenAiProvider::new_custom("Custom".to_string(), base_url))
+                    Arc::new(OpenAiProvider::new_custom("Custom".to_string(), base_url))
                 }
-                _ => Box::new(OpenAiProvider::new_openai()),
+                _ => Arc::new(OpenAiProvider::new_openai()),
             }
         }
-        "anthropic" => Box::new(AnthropicProvider::new()),
-        "gemini" => Box::new(GeminiProvider::new()),
-        "ollama" => Box::new(OllamaProvider::new()),
+        "anthropic" => Arc::new(AnthropicProvider::new()),
+        "gemini" => Arc::new(GeminiProvider::new()),
+        "ollama" => Arc::new(OllamaProvider::new()),
         _ => {
             util::handle_error(
                 &mut env,
@@ -225,11 +225,15 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
 
     // 在 tokio 运行时中执行异步生成，通过回调实时推送事件
     let result = util::get_global_runtime().block_on(async {
-        let providers = PROVIDERS.lock().unwrap();
-        let provider = match providers.get(&handle) {
-            Some(p) => p,
-            None => {
-                return Err(AgoraError::Config(format!("Provider not found for handle: {}", handle)));
+        // Clone the Arc out of the lock and drop the guard BEFORE awaiting,
+        // so other JNI threads can access PROVIDERS concurrently.
+        let provider = {
+            let providers = PROVIDERS.lock().unwrap();
+            match providers.get(&handle) {
+                Some(p) => p.clone(),
+                None => {
+                    return Err(AgoraError::Config(format!("Provider not found for handle: {}", handle)));
+                }
             }
         };
 
@@ -315,11 +319,14 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeFetchMode
     let base_url_opt = if base_url.is_empty() { None } else { Some(base_url.as_str()) };
 
     let result = util::get_global_runtime().block_on(async {
-        let providers = PROVIDERS.lock().unwrap();
-        let provider = match providers.get(&handle) {
-            Some(p) => p,
-            None => {
-                return Err(AgoraError::Config(format!("Provider not found for handle: {}", handle)));
+        // Clone the Arc out of the lock and drop the guard BEFORE awaiting.
+        let provider = {
+            let providers = PROVIDERS.lock().unwrap();
+            match providers.get(&handle) {
+                Some(p) => p.clone(),
+                None => {
+                    return Err(AgoraError::Config(format!("Provider not found for handle: {}", handle)));
+                }
             }
         };
         provider.fetch_models(&api_key, base_url_opt, &http_client).await

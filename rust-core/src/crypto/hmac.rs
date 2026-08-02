@@ -36,9 +36,11 @@ pub fn sha256_hex(data: &[u8]) -> String {
     hex::encode(hasher.finalize())
 }
 
-/// 生成 12 字节随机 nonce，返回 base64url 编码
+/// 生成 16 字节随机 nonce，返回 base64url 编码
+///
+/// 使用 16 字节（128 位）以匹配 Kotlin 端 RustCrypto.nativeGenerateNonce 的预期。
 pub fn generate_nonce() -> String {
-    let mut bytes = [0u8; 12];
+    let mut bytes = [0u8; 16];
     rand::thread_rng().fill_bytes(&mut bytes);
     URL_SAFE_NO_PAD.encode(bytes)
 }

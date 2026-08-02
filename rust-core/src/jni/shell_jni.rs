@@ -6,7 +6,7 @@
 //          nativeDestroyShellClient
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use jni::JNIEnv;
 use jni::objects::JClass;
@@ -20,12 +20,16 @@ use once_cell::sync::Lazy;
 
 // ============================================================
 // 全局 ShellClient 存储
+//
+// 每个 ShellClient 包装在 Arc<Mutex<>> 中，这样在 async 操作期间
+// 只持有单个 client 的锁，而非全局 SHELL_CLIENTS 锁，
+// 避免一个 shell 操作阻塞所有其他 shell client 的死锁问题。
 // ============================================================
 
 static NEXT_SHELL_HANDLE: std::sync::atomic::AtomicI64 =
     std::sync::atomic::AtomicI64::new(1);
 
-static SHELL_CLIENTS: Lazy<Mutex<HashMap<i64, ShellClient>>> =
+static SHELL_CLIENTS: Lazy<Mutex<HashMap<i64, Arc<Mutex<ShellClient>>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 fn next_shell_handle() -> i64 {
@@ -59,10 +63,20 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeCreateShell
 
     let client = ShellClient::new(server_url, api_key, cached_key);
     let handle = next_shell_handle();
-    SHELL_CLIENTS.lock().unwrap().insert(handle, client);
+    SHELL_CLIENTS
+        .lock()
+        .unwrap()
+        .insert(handle, Arc::new(Mutex::new(client)));
 
     log::info!("[JNI] Created shell client with handle {}", handle);
     handle
+}
+
+/// 从全局 map 中克隆 Arc<Mutex<ShellClient>> 出来，在 await 之前释放全局锁。
+/// 返回 None 如果 handle 无效。
+fn clone_shell_client(handle: jlong) -> Option<Arc<Mutex<ShellClient>>> {
+    let clients = SHELL_CLIENTS.lock().unwrap();
+    clients.get(&handle).map(|c| c.clone())
 }
 
 /// Java: nativeFetchPublicKey(long handle) -> boolean
@@ -74,12 +88,13 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFetchPublic
     _class: JClass,
     handle: jlong,
 ) -> jboolean {
+    let Some(client_arc) = clone_shell_client(handle) else {
+        return JNI_FALSE;
+    };
+
     let result = util::get_global_runtime().block_on(async {
-        let mut clients = SHELL_CLIENTS.lock().unwrap();
-        match clients.get_mut(&handle) {
-            Some(client) => client.fetch_public_key().await.unwrap_or(false),
-            None => false,
-        }
+        let mut client = client_arc.lock().unwrap();
+        client.fetch_public_key().await.unwrap_or(false)
     });
 
     if result {
@@ -108,12 +123,17 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeExecuteComm
         return std::ptr::null_mut();
     };
 
+    let Some(client_arc) = clone_shell_client(handle) else {
+        let response_str = serde_json::json!({"error": format!("Invalid shell handle: {}", handle)}).to_string();
+        return match util::string_to_jstring(&mut env, &response_str) {
+            Ok(s) => s,
+            Err(_) => std::ptr::null_mut(),
+        };
+    };
+
     let result = util::get_global_runtime().block_on(async {
-        let mut clients = SHELL_CLIENTS.lock().unwrap();
-        match clients.get_mut(&handle) {
-            Some(client) => client.execute_command(&command, timeout_ms, &workdir).await,
-            None => Err(AgoraError::Shell(format!("Invalid shell handle: {}", handle))),
-        }
+        let mut client = client_arc.lock().unwrap();
+        client.execute_command(&command, timeout_ms, &workdir).await
     });
 
     let response = match result {
@@ -124,9 +144,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeExecuteComm
                 Err(_) => serde_json::json!({"output": json_str, "exit_code": 0}),
             }
         }
-        Err(e) => {
-            serde_json::json!({"error": e.to_string()})
-        }
+        Err(e) => serde_json::json!({"error": e.to_string()}),
     };
 
     let response_str = response.to_string();
@@ -152,12 +170,17 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileRead(
         return std::ptr::null_mut();
     };
 
+    let Some(client_arc) = clone_shell_client(handle) else {
+        let response_str = serde_json::json!({"error": format!("Invalid shell handle: {}", handle)}).to_string();
+        return match util::string_to_jstring(&mut env, &response_str) {
+            Ok(s) => s,
+            Err(_) => std::ptr::null_mut(),
+        };
+    };
+
     let result = util::get_global_runtime().block_on(async {
-        let mut clients = SHELL_CLIENTS.lock().unwrap();
-        match clients.get_mut(&handle) {
-            Some(client) => client.file_read(&path, offset, limit).await,
-            None => Err(AgoraError::Shell(format!("Invalid shell handle: {}", handle))),
-        }
+        let mut client = client_arc.lock().unwrap();
+        client.file_read(&path, offset, limit).await
     });
 
     let response_str = match result {
@@ -189,12 +212,17 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileWrite(
         return std::ptr::null_mut();
     };
 
+    let Some(client_arc) = clone_shell_client(handle) else {
+        let response_str = serde_json::json!({"error": format!("Invalid shell handle: {}", handle)}).to_string();
+        return match util::string_to_jstring(&mut env, &response_str) {
+            Ok(s) => s,
+            Err(_) => std::ptr::null_mut(),
+        };
+    };
+
     let result = util::get_global_runtime().block_on(async {
-        let mut clients = SHELL_CLIENTS.lock().unwrap();
-        match clients.get_mut(&handle) {
-            Some(client) => client.file_write(&path, &content).await,
-            None => Err(AgoraError::Shell(format!("Invalid shell handle: {}", handle))),
-        }
+        let mut client = client_arc.lock().unwrap();
+        client.file_write(&path, &content).await
     });
 
     let response_str = match result {
@@ -232,12 +260,17 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGlob(
         return std::ptr::null_mut();
     };
 
+    let Some(client_arc) = clone_shell_client(handle) else {
+        let response_str = serde_json::json!({"error": format!("Invalid shell handle: {}", handle)}).to_string();
+        return match util::string_to_jstring(&mut env, &response_str) {
+            Ok(s) => s,
+            Err(_) => std::ptr::null_mut(),
+        };
+    };
+
     let result = util::get_global_runtime().block_on(async {
-        let mut clients = SHELL_CLIENTS.lock().unwrap();
-        match clients.get_mut(&handle) {
-            Some(client) => client.file_glob(&pattern, &base_path, None).await,
-            None => Err(AgoraError::Shell(format!("Invalid shell handle: {}", handle))),
-        }
+        let mut client = client_arc.lock().unwrap();
+        client.file_glob(&pattern, &base_path, None).await
     });
 
     let response_str = match result {
@@ -269,12 +302,17 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGrep(
         return std::ptr::null_mut();
     };
 
+    let Some(client_arc) = clone_shell_client(handle) else {
+        let response_str = serde_json::json!({"error": format!("Invalid shell handle: {}", handle)}).to_string();
+        return match util::string_to_jstring(&mut env, &response_str) {
+            Ok(s) => s,
+            Err(_) => std::ptr::null_mut(),
+        };
+    };
+
     let result = util::get_global_runtime().block_on(async {
-        let mut clients = SHELL_CLIENTS.lock().unwrap();
-        match clients.get_mut(&handle) {
-            Some(client) => client.file_grep(&pattern, &base_path, "").await,
-            None => Err(AgoraError::Shell(format!("Invalid shell handle: {}", handle))),
-        }
+        let mut client = client_arc.lock().unwrap();
+        client.file_grep(&pattern, &base_path, "").await
     });
 
     let response_str = match result {
