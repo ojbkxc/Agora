@@ -910,7 +910,7 @@ impl AnthropicProvider {
                                 }
 
                                 Some("content_block_stop") => {
-                                    if let (Some(ref id), Some(ref name)) =
+                                    if let (Some(id), Some(name)) =
                                         (&tool_use_id, &tool_use_name)
                                     {
                                         on_event(StreamEvent::ToolCallRequest {

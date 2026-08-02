@@ -1,4 +1,4 @@
-﻿// RustShell JNI 桥接层
+// RustShell JNI 桥接层
 //
 // 对应 Kotlin `com.newoether.agora.util.RustShell`
 // 实现 nativeCreateShellClient / nativeFetchPublicKey / nativeExecuteCommand
@@ -12,7 +12,6 @@ use jni::JNIEnv;
 use jni::objects::JClass;
 use jni::sys::{jboolean, jlong, jstring, JNI_TRUE, JNI_FALSE};
 
-use crate::error::AgoraError;
 use crate::jni::util;
 use crate::shell::client::ShellClient;
 
