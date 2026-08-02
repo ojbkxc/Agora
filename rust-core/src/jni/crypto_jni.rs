@@ -1,4 +1,4 @@
-// RustCrypto JNI 桥接层
+﻿// RustCrypto JNI 桥接层
 //
 // 对应 Kotlin `com.newoether.agora.util.RustCrypto`
 // 实现 nativeGenerateKeyPair / nativeDeriveAesKey / nativeEncrypt / nativeDecrypt
@@ -39,7 +39,7 @@ fn next_key_handle() -> i64 {
 /// Java: nativeGenerateKeyPair() -> String
 ///
 /// 生成 X25519 临时密钥对，返回 JSON: {"public_key": "...", "handle": N}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeGenerateKeyPair(
     mut env: JNIEnv,
     _class: JClass,
@@ -74,7 +74,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeGenerateKe
 /// Java: nativeDeriveAesKey(long handle, String serverPublicKey) -> String
 ///
 /// 从临时密钥对和服务端公钥派生 AES-256 密钥，返回 JSON: {"key": "..."}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeDeriveAesKey(
     mut env: JNIEnv,
     _class: JClass,
@@ -147,7 +147,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeDeriveAesK
 /// Java: nativeEncrypt(String key, String plaintext) -> String
 ///
 /// AES-256-GCM 加密，返回 base64url(nonce || ciphertext || tag)
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeEncrypt(
     mut env: JNIEnv,
     _class: JClass,
@@ -188,7 +188,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeEncrypt(
 /// Java: nativeDecrypt(String key, String ciphertext) -> String
 ///
 /// AES-256-GCM 解密，返回 UTF-8 明文
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeDecrypt(
     mut env: JNIEnv,
     _class: JClass,
@@ -243,7 +243,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeDecrypt(
 ///                  String bodySha256, String nonce, String clientPubKey) -> String
 ///
 /// HMAC-SHA256 签名，返回 hex 编码
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeSign(
     mut env: JNIEnv,
     _class: JClass,
@@ -293,7 +293,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeSign(
 /// Java: nativeSha256Hex(String data) -> String
 ///
 /// SHA-256 哈希，返回 hex 编码
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeSha256Hex(
     mut env: JNIEnv,
     _class: JClass,
@@ -313,7 +313,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeSha256Hex(
 /// Java: nativeGenerateNonce() -> String
 ///
 /// 生成随机 nonce（base64url 编码，12 字节）
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeGenerateNonce(
     mut env: JNIEnv,
     _class: JClass,

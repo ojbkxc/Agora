@@ -1,4 +1,4 @@
-// RustEmbeddingClient JNI 桥接层
+﻿// RustEmbeddingClient JNI 桥接层
 //
 // 对应 Kotlin `com.newoether.agora.api.RustEmbeddingClient`
 // 实现 nativeComputeEmbedding / nativeComputeEmbeddings
@@ -19,7 +19,7 @@ use crate::jni::util;
 /// Java: nativeComputeEmbedding(String text, String apiKey, String model, String baseUrl) -> String
 ///
 /// 计算单个文本的 embedding 向量，返回 JSON: {"embedding": [0.1, 0.2, ...]}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_api_RustEmbeddingClient_nativeComputeEmbedding(
     mut env: JNIEnv,
     _class: JClass,
@@ -65,7 +65,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustEmbeddingClient_nativeCo
 /// Java: nativeComputeEmbeddings(String texts, String apiKey, String model, String baseUrl) -> String
 ///
 /// 计算批量文本的 embedding 向量，返回 JSON: {"embeddings": [[0.1, ...], [0.2, ...]]}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_api_RustEmbeddingClient_nativeComputeEmbeddings(
     mut env: JNIEnv,
     _class: JClass,

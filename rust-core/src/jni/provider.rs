@@ -1,4 +1,4 @@
-// RustProvider JNI 桥接层
+﻿// RustProvider JNI 桥接层
 //
 // 对应 Kotlin `com.newoether.agora.api.RustProvider`
 // 实现 nativeCreateProvider / nativeGenerate / nativeFetchModels / nativeDestroyProvider
@@ -65,7 +65,7 @@ fn remove_provider(handle: i64) {
 ///
 /// 创建 Rust 侧 Provider 实例，返回 opaque handle。
 /// 返回负值表示错误码。
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreateProvider(
     mut env: JNIEnv,
     _class: JClass,
@@ -128,7 +128,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
 /// Java: nativeGenerate(long handle, String messagesJson, String configJson, RustStreamCallback callback) -> String
 ///
 /// 执行流式生成，通过回调实时推送事件。返回最终 JSON 摘要。
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
     mut env: JNIEnv,
     _class: JClass,
@@ -300,7 +300,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
 /// Java: nativeFetchModels(long handle, String apiKey, String baseUrl) -> String
 ///
 /// 获取可用模型列表，返回 JSON 字符串。
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeFetchModels(
     mut env: JNIEnv,
     _class: JClass,
@@ -355,7 +355,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeFetchMode
 /// Java: nativeDestroyProvider(long handle)
 ///
 /// 释放 Provider 实例及其关联资源。
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeDestroyProvider(
     _env: JNIEnv,
     _class: JClass,

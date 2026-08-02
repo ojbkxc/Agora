@@ -1,4 +1,4 @@
-// RustShell JNI 桥接层
+﻿// RustShell JNI 桥接层
 //
 // 对应 Kotlin `com.newoether.agora.util.RustShell`
 // 实现 nativeCreateShellClient / nativeFetchPublicKey / nativeExecuteCommand
@@ -43,7 +43,7 @@ fn next_shell_handle() -> i64 {
 /// Java: nativeCreateShellClient(String serverUrl, String apiKey, String cachedKey) -> long
 ///
 /// 创建 Shell 客户端，返回 opaque handle。负值表示错误。
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeCreateShellClient(
     mut env: JNIEnv,
     _class: JClass,
@@ -82,7 +82,7 @@ fn clone_shell_client(handle: jlong) -> Option<Arc<Mutex<ShellClient>>> {
 /// Java: nativeFetchPublicKey(long handle) -> boolean
 ///
 /// 获取并验证服务端公钥。
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFetchPublicKey(
     _env: JNIEnv,
     _class: JClass,
@@ -107,7 +107,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFetchPublic
 /// Java: nativeExecuteCommand(long handle, String command, int timeoutMs, String workdir) -> String
 ///
 /// 执行远程命令，返回 JSON: {"output": "...", "exit_code": N}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeExecuteCommand(
     mut env: JNIEnv,
     _class: JClass,
@@ -157,7 +157,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeExecuteComm
 /// Java: nativeFileRead(long handle, String path, long offset, long limit) -> String
 ///
 /// 读取远程文件，返回 JSON: {"content": "...", "lines": N, "totalLines": M}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileRead(
     mut env: JNIEnv,
     _class: JClass,
@@ -197,7 +197,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileRead(
 /// Java: nativeFileWrite(long handle, String path, String content) -> String
 ///
 /// 写入远程文件，返回 JSON: {} 或 {"error": "..."}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileWrite(
     mut env: JNIEnv,
     _class: JClass,
@@ -245,7 +245,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileWrite(
 /// Java: nativeFileGlob(long handle, String pattern, String basePath) -> String
 ///
 /// Glob 文件搜索，返回 JSON: {"files": [...]}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGlob(
     mut env: JNIEnv,
     _class: JClass,
@@ -287,7 +287,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGlob(
 /// Java: nativeFileGrep(long handle, String pattern, String basePath) -> String
 ///
 /// Grep 文件内容搜索，返回 JSON: {"matches": [{"path": "...", "line": N, "content": "..."}]}
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGrep(
     mut env: JNIEnv,
     _class: JClass,
@@ -329,7 +329,7 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGrep(
 /// Java: nativeDestroyShellClient(long handle)
 ///
 /// 释放 Shell 客户端。
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeDestroyShellClient(
     _env: JNIEnv,
     _class: JClass,
