@@ -1221,9 +1221,8 @@ impl LlmProvider for AnthropicProvider {
             });
             break;
         }
-    }
 
-    Err(last_error
+        Err(last_error
             .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string())))
     }
 
