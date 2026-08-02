@@ -77,8 +77,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build F-Droid Release APK (arm64-v8a)
-        run: chmod +x ./gradlew && ./gradlew assembleFdroidRelease
+      - name: Build Release APKs (fdroid + play, arm64-v8a)
+        run: chmod +x ./gradlew && ./gradlew assembleFdroidRelease assemblePlayRelease
 
       - name: Determine version
         id: ver
@@ -91,11 +91,13 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
-      - name: Package APK with version + arch in filename
+      - name: Package APKs with version + flavor + arch in filename
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/fdroid/release/app-fdroid-release.apk \
-             "dist/Agora-v${{ steps.ver.outputs.version }}-android-arm64-v8a.apk"
+             "dist/Agora-v${{ steps.ver.outputs.version }}-fdroid-android-arm64-v8a.apk"
+          cp app/build/outputs/apk/play/release/app-play-release.apk \
+             "dist/Agora-v${{ steps.ver.outputs.version }}-play-android-arm64-v8a.apk"
           ls -lh dist/
 
       - name: Upload Release
