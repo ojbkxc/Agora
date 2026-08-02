@@ -89,7 +89,7 @@ object RustShell {
      * Glob for files matching [pattern] under [basePath].
      *
      * @param handle   from [nativeCreateShellClient]
-     * @param pattern  glob pattern (e.g. "**/*.kt")
+     * @param pattern  glob pattern (e.g. "*.kt")
      * @param basePath root directory to search (may be empty)
      * @return JSON: `{"files": [...]}` or `{"error": "..."}`
      */
