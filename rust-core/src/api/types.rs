@@ -75,6 +75,33 @@ pub enum GenerationError {
         provider: String,
         violations: Vec<String>,
     },
+    #[serde(rename = "sse_parse")]
+    SseParse {
+        raw_line: String,
+        cause: String,
+    },
+    #[serde(rename = "tool_execution")]
+    ToolExecution {
+        tool_name: String,
+        arguments: String,
+        message: String,
+    },
+    #[serde(rename = "transcription")]
+    Transcription {
+        image_path: String,
+        message: String,
+    },
+    #[serde(rename = "embedding")]
+    Embedding {
+        model_id: String,
+        message: String,
+    },
+    #[serde(rename = "local_model")]
+    LocalModel { message: String },
+    #[serde(rename = "configuration")]
+    Configuration { message: String },
+    #[serde(rename = "cancelled")]
+    Cancelled,
     #[serde(rename = "unknown")]
     Unknown { message: String },
 }
@@ -86,6 +113,19 @@ impl GenerationError {
             GenerationError::Network { message, .. } => message.clone(),
             GenerationError::Timeout => "Request timed out".to_string(),
             GenerationError::RequestFormat { violations, .. } => violations.join("; "),
+            GenerationError::SseParse { .. } => "Failed to parse server response.".to_string(),
+            GenerationError::ToolExecution { tool_name, message, .. } => {
+                format!("Tool '{}' failed: {}", tool_name, message)
+            }
+            GenerationError::Transcription { message, .. } => {
+                format!("Image transcription failed: {}", message)
+            }
+            GenerationError::Embedding { message, .. } => {
+                format!("Embedding failed: {}", message)
+            }
+            GenerationError::LocalModel { message } => message.clone(),
+            GenerationError::Configuration { message } => message.clone(),
+            GenerationError::Cancelled => "Generation cancelled.".to_string(),
             GenerationError::Unknown { message } => message.clone(),
         }
     }

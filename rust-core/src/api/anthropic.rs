@@ -218,6 +218,37 @@ fn encode_image_to_base64(image_path: &str) -> Option<(String, String)> {
 // 消息转换
 // ============================================================
 
+/// 检查工具消息是否与 Anthropic 的签名思考兼容。
+///
+/// 对应 Kotlin AnthropicProvider.isAnthropicToolRoundCompatible。
+/// 当 thinking 启用时，带有思考内容的工具消息必须携带有效签名。
+fn is_anthropic_tool_round_compatible(msg: &ChatMessage) -> bool {
+    // 如果没有思考内容，则兼容
+    let thoughts = match &msg.thoughts {
+        Some(t) if !t.trim().is_empty() => t,
+        _ => return true,
+    };
+
+    // 检查签名：从 tool_call_json 中提取签名
+    if let Some(ref tcj) = msg.tool_call_json {
+        if let Ok(tc) = serde_json::from_str::<serde_json::Value>(tcj) {
+            if let Some(sig) = tc
+                .get("signature")
+                .or_else(|| tc.get("thought_signature"))
+                .and_then(|v| v.as_str())
+            {
+                if !sig.is_empty() {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // 有思考内容但没有有效签名 → 不兼容
+    let _ = thoughts; // thoughts is non-empty here
+    false
+}
+
 /// 合并连续的 result_ 消息（Anthropic 要求将连续工具结果合并为单个用户消息）
 ///
 /// 对应 Kotlin AnthropicProvider.coalesceAnthropicMessages
@@ -1049,8 +1080,27 @@ impl LlmProvider for AnthropicProvider {
             }
         }
 
+        // ── 过滤不兼容的工具消息（对应 Kotlin isAnthropicToolRoundCompatible）──
+        // 当 thinking 启用时，带有思考内容的工具消息必须携带有效签名。
+        let signed_thinking_required = thinking_config.is_some();
+        let filtered_messages: Vec<ChatMessage> = if signed_thinking_required {
+            prepared_messages
+                .iter()
+                .filter(|msg| {
+                    if msg.id.starts_with("tool_") {
+                        is_anthropic_tool_round_compatible(msg)
+                    } else {
+                        true
+                    }
+                })
+                .cloned()
+                .collect()
+        } else {
+            prepared_messages
+        };
+
         // ── Anthropic 消息合并（coalesce）──
-        let message_groups = coalesce_anthropic_messages(&prepared_messages);
+        let message_groups = coalesce_anthropic_messages(&filtered_messages);
 
         // ── 消息转换（使用消息组）──
         let api_messages: Vec<AnthropicApiMessage> = message_groups
