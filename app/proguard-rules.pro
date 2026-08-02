@@ -23,6 +23,11 @@
 # ============================================================================
 # JNI bridge classes — native methods and class names must be preserved.
 # Rust/C++ JNI side looks up classes and methods by their original names.
+# Keep ALL Rust* classes (providers, custom variants, shared types) because:
+#  1. native methods must not be renamed;
+#  2. RustSharedTypes data classes are @Serializable and their JSON field
+#     names map to Rust-side structs — R8 must not touch their fields or
+#     the generated $$serializer companions, or chat generation crashes.
 # ============================================================================
 -keep class com.newoether.agora.util.RustShell { *; }
 -keep class com.newoether.agora.util.RustShell$* { *; }
@@ -32,11 +37,43 @@
 -keep class com.newoether.agora.api.RustProvider$* { *; }
 -keep class com.newoether.agora.api.RustEmbeddingClient { *; }
 -keep class com.newoether.agora.api.RustEmbeddingClient$* { *; }
+-keep class com.newoether.agora.api.RustOpenAiProvider { *; }
+-keep class com.newoether.agora.api.RustAnthropicProvider { *; }
+-keep class com.newoether.agora.api.RustGeminiProvider { *; }
+-keep class com.newoether.agora.api.RustOllamaProvider { *; }
+-keep class com.newoether.agora.api.RustCustomOpenAiProvider { *; }
+-keep class com.newoether.agora.api.RustCustomAnthropicProvider { *; }
+-keep class com.newoether.agora.api.RustCustomGeminiProvider { *; }
 -keep class com.newoether.agora.api.LlamaEngine { *; }
 -keep class com.newoether.agora.api.LlamaChatEngine { *; }
 -keep class com.newoether.agora.api.LlamaChatEngine$* { *; }
 -keep class com.newoether.agora.api.ChatTemplateMessage { *; }
+# RustSharedTypes.kt — every @Serializable data class (RustProviderConfig,
+# RustChatMessage, RustStreamEvent, RustStreamEventData, RustGenerationError,
+# RustToolCallRequest, RustModelListResponse, ...) is the JSON wire format
+# between Kotlin and Rust; keep fields + serializers untouched.
+-keep class com.newoether.agora.api.RustSharedTypes { *; }
+-keep class com.newoether.agora.api.RustSharedTypes$* { *; }
+-keep class com.newoether.agora.api.RustProviderConfig { *; }
+-keep class com.newoether.agora.api.RustChatMessage { *; }
+-keep class com.newoether.agora.api.RustStreamEvent { *; }
+-keep class com.newoether.agora.api.RustStreamEventData { *; }
+-keep class com.newoether.agora.api.RustGenerationError { *; }
+-keep class com.newoether.agora.api.RustToolCallRequest { *; }
+-keep class com.newoether.agora.api.RustModelListResponse { *; }
 -keepclasseswithmembernames class * { native <methods>; }
+
+# ============================================================================
+# App model data classes — @Serializable, used by JSON import/export and
+# must keep field names to avoid breaking persisted/conversation data.
+# ============================================================================
+-keep @kotlinx.serialization.Serializable class com.newoether.agora.** { *; }
+-keepclassmembers class com.newoether.agora.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.newoether.agora.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
 
 # ============================================================================
 # OkHttp & Okio
