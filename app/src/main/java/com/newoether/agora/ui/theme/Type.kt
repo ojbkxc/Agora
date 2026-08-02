@@ -16,13 +16,10 @@ val MonoFamily = FontFamily(
     Font(R.font.jetbrains_mono_bolditalic, FontWeight.Bold, FontStyle.Italic),
 )
 
-val OutfitFamily = FontFamily(
-    Font(R.font.mioutfit_extralight, FontWeight.ExtraLight),
-    Font(R.font.mioutfit_light, FontWeight.Light),
-    Font(R.font.mioutfit_regular, FontWeight.Normal),
-    Font(R.font.mioutfit_medium, FontWeight.Medium),
-    Font(R.font.mioutfit_bold, FontWeight.Bold),
-)
+// Default UI font is the system font family. The bundled "mioutfit" TTFs were
+// removed to shrink the APK (~38 MB of fonts); users who want a custom look can
+// still pick "custom" in Settings and point it at any font file on device.
+val OutfitFamily = FontFamily.Default
 
 // Geometric (modular) type scale: every distinct size is a term of a geometric
 // sequence anchored at body = 16sp with common ratio r = 1.2 (minor third).
