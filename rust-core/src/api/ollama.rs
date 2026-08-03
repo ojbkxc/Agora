@@ -99,6 +99,10 @@ impl LlmProvider for OllamaProvider {
 
         // 消息准备管道 + 构建 Ollama 消息列表
         let prepared_messages = message_pipeline::prepare_messages(messages, config.max_context_window);
+        let prepared_messages = message_pipeline::project_assistant_images_to_latest_user_message(
+            &prepared_messages,
+            config.include_images,
+        );
         let api_messages = build_ollama_messages(&prepared_messages, config)?;
 
         // 构建 options
@@ -346,9 +350,17 @@ fn build_ollama_messages(
                 .images
                 .iter()
                 .filter_map(|path| {
-                    std::fs::read(path)
-                        .ok()
-                        .map(|bytes| base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes))
+                    if path.starts_with("data:") {
+                        // data URL: 提取 base64 部分
+                        path.split(";base64,")
+                            .nth(1)
+                            .map(|b64| b64.to_string())
+                    } else {
+                        // 文件路径: 读取并编码为 base64
+                        std::fs::read(path)
+                            .ok()
+                            .map(|bytes| base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes))
+                    }
                 })
                 .collect();
             if encoded.is_empty() {
@@ -365,7 +377,11 @@ fn build_ollama_messages(
             content,
             images,
             tool_calls: None,
-            thinking: None,
+            thinking: if msg.participant != Participant::User {
+                msg.thoughts.clone()
+            } else {
+                None
+            },
             tool_name: None,
         });
     }

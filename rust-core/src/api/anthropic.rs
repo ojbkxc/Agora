@@ -52,7 +52,7 @@ struct AnthropicContentBlock {
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_use_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    content: Option<String>,
+    content: Option<serde_json::Value>,
 }
 
 /// Anthropic 消息（内部 wire 格式）
@@ -471,9 +471,7 @@ fn convert_result_message(msg: &ChatMessage) -> AnthropicApiMessage {
                     content: if tool_result_content.is_empty() {
                         None
                     } else {
-                        Some(serde_json::to_string(&tool_result_content).unwrap_or_else(|_| {
-                            format!(r#"[{{"type":"text","text":"{}"}}]"#, result)
-                        }))
+                        Some(serde_json::Value::Array(tool_result_content))
                     },
                 });
             }
@@ -569,9 +567,7 @@ fn convert_message_group(group: &[ChatMessage], include_images: bool) -> Anthrop
                             thinking: None,
                             signature: None,
                             tool_use_id: Some(tool_call_id.to_string()),
-                            content: Some(
-                                serde_json::to_string(&tool_result_content).unwrap_or_default(),
-                            ),
+                            content: Some(serde_json::Value::Array(tool_result_content)),
                         });
                     }
                 }
@@ -621,7 +617,36 @@ fn convert_message(msg: &ChatMessage, include_images: bool) -> AnthropicApiMessa
     // 图像（仅用户消息）
     if include_images && matches!(msg.participant, Participant::User) {
         for image_path in &msg.images {
-            if let Some((mime_type, base64_data)) = encode_image_to_base64(image_path) {
+            if image_path.is_empty() {
+                continue;
+            }
+            if image_path.starts_with("data:") {
+                // data URL: 解析 MIME 和 base64
+                if let Some(rest) = image_path.strip_prefix("data:") {
+                    if let Some(semi) = rest.find(';') {
+                        let mime_type = &rest[..semi];
+                        if let Some(b64) = rest.find("base64,") {
+                            let data = rest[b64 + 7..].to_string();
+                            parts.push(AnthropicContentBlock {
+                                block_type: "image".to_string(),
+                                source: Some(AnthropicImageSource {
+                                    source_type: "base64".to_string(),
+                                    media_type: mime_type.to_string(),
+                                    data,
+                                }),
+                                text: None,
+                                id: None,
+                                name: None,
+                                input: None,
+                                thinking: None,
+                                signature: None,
+                                tool_use_id: None,
+                                content: None,
+                            });
+                        }
+                    }
+                }
+            } else if let Some((mime_type, base64_data)) = encode_image_to_base64(image_path) {
                 parts.push(AnthropicContentBlock {
                     block_type: "image".to_string(),
                     source: Some(AnthropicImageSource {
@@ -658,6 +683,35 @@ fn convert_message(msg: &ChatMessage, include_images: bool) -> AnthropicApiMessa
         });
     }
 
+    // 思考内容（assistant 消息的 thinking replay，用于多轮对话保持思考上下文）
+    if let Some(ref thoughts) = msg.thoughts {
+        if !thoughts.is_empty() && msg.participant != Participant::User {
+            let signature = msg.tool_call_json.as_ref().and_then(|tcj| {
+                serde_json::from_str::<serde_json::Value>(tcj).ok().and_then(|v| {
+                    v.get("signature")
+                        .or_else(|| v.get("thought_signature"))
+                        .and_then(|s| s.as_str())
+                        .map(|s| s.to_string())
+                })
+            });
+            // 仅在有签名时添加 thinking 块（Anthropic 要求签名）
+            if let Some(sig) = signature {
+                parts.push(AnthropicContentBlock {
+                    block_type: "thinking".to_string(),
+                    text: None,
+                    source: None,
+                    id: None,
+                    name: None,
+                    input: None,
+                    thinking: Some(thoughts.clone()),
+                    signature: Some(sig),
+                    tool_use_id: None,
+                    content: None,
+                });
+            }
+        }
+    }
+
     // 如果没有任何内容块，添加 "Continue"
     if parts.is_empty() {
         parts.push(AnthropicContentBlock {
@@ -685,6 +739,17 @@ fn convert_message(msg: &ChatMessage, include_images: bool) -> AnthropicApiMessa
     }
 }
 
+/// 将 ToolProperty 递归转换为 JSON Schema 对象
+fn tool_property_to_schema(prop: &ToolProperty) -> serde_json::Value {
+    let mut schema = serde_json::Map::new();
+    schema.insert("type".to_string(), serde_json::Value::String(prop.r#type.clone()));
+    schema.insert("description".to_string(), serde_json::Value::String(prop.description.clone()));
+    if let Some(ref items) = prop.items {
+        schema.insert("items".to_string(), tool_property_to_schema(items));
+    }
+    serde_json::Value::Object(schema)
+}
+
 /// 将 ToolDefinition 转换为 Anthropic 格式
 fn convert_tools(tools: &[ToolDefinition]) -> Vec<AnthropicTool> {
     tools
@@ -693,31 +758,7 @@ fn convert_tools(tools: &[ToolDefinition]) -> Vec<AnthropicTool> {
             let params = &td.function.parameters;
             let mut properties_map = serde_json::Map::new();
             for (name, prop) in &params.properties {
-                let mut prop_obj = serde_json::Map::new();
-                prop_obj.insert(
-                    "type".to_string(),
-                    serde_json::Value::String(prop.r#type.clone()),
-                );
-                prop_obj.insert(
-                    "description".to_string(),
-                    serde_json::Value::String(prop.description.clone()),
-                );
-                if let Some(ref items) = prop.items {
-                    let mut items_obj = serde_json::Map::new();
-                    items_obj.insert(
-                        "type".to_string(),
-                        serde_json::Value::String(items.r#type.clone()),
-                    );
-                    items_obj.insert(
-                        "description".to_string(),
-                        serde_json::Value::String(items.description.clone()),
-                    );
-                    prop_obj.insert(
-                        "items".to_string(),
-                        serde_json::Value::Object(items_obj),
-                    );
-                }
-                properties_map.insert(name.clone(), serde_json::Value::Object(prop_obj));
+                properties_map.insert(name.clone(), tool_property_to_schema(prop));
             }
 
             let required: Vec<serde_json::Value> = params
@@ -1064,6 +1105,12 @@ impl LlmProvider for AnthropicProvider {
 
         // ── 消息准备管道（对应 Kotlin prepareMessages）──
         let prepared_messages = message_pipeline::prepare_messages(messages, config.max_context_window);
+
+        // ── 助手图像投影到最新用户消息
+        let prepared_messages = message_pipeline::project_assistant_images_to_latest_user_message(
+            &prepared_messages,
+            config.include_images,
+        );
 
         // ── 工具定义验证（对应 Kotlin validateToolDefinitions）──
         if let Some(ref tools) = config.tools {

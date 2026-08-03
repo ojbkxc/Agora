@@ -262,10 +262,8 @@ impl OpenAiProvider {
             }
 
             // 普通消息
-            let role = match msg.participant {
-                Participant::User => "user",
-                _ => "assistant",
-            };
+            let is_user = matches!(msg.participant, Participant::User);
+            let role = if is_user { "user" } else { "assistant" };
 
             let mut parts = Vec::new();
 
@@ -276,7 +274,7 @@ impl OpenAiProvider {
             }
 
             // 图像（仅用户消息）
-            if include_images && matches!(msg.participant, Participant::User) {
+            if include_images && is_user {
                 for image in &msg.images {
                     if image.is_empty() {
                         continue;
@@ -307,12 +305,19 @@ impl OpenAiProvider {
 
             let content = serde_json::Value::Array(parts);
 
+            // assistant 消息传递 reasoning_content (thoughts)，支持 DeepSeek/Qwen 等兼容 API
+            let reasoning = if !is_user {
+                msg.thoughts.clone()
+            } else {
+                None
+            };
+
             api_messages.push(OpenAiMessage {
                 role: role.to_string(),
                 content: Some(content),
                 tool_calls: None,
                 tool_call_id: None,
-                reasoning_content: None,
+                reasoning_content: reasoning,
             });
         }
 

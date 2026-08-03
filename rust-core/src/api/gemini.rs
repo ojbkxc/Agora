@@ -10,6 +10,7 @@ use futures::StreamExt;
 use crate::api::http_client::AgoraHttpClient;
 use crate::api::message_pipeline;
 use crate::api::provider::{LlmProvider, StreamCallback};
+use crate::api::request_validator;
 use crate::api::sse::{append_utf8_safe, strip_sse_field, take_sse_block};
 use crate::api::types::*;
 use crate::error::AgoraError;
@@ -62,8 +63,12 @@ impl LlmProvider for GeminiProvider {
 
         let clean_model = config.model_id.trim_start_matches("models/");
 
-        // 1. 消息准备管道 + 转换消息为 Gemini 格式
+        // 1. 消息准备管道 + 助手图像投影 + 转换消息为 Gemini 格式
         let prepared_messages = message_pipeline::prepare_messages(messages, config.max_context_window);
+        let prepared_messages = message_pipeline::project_assistant_images_to_latest_user_message(
+            &prepared_messages,
+            config.include_images,
+        );
         let contents = build_contents(&prepared_messages, config)?;
 
         // 2. 构建 system_instruction
@@ -74,6 +79,7 @@ impl LlmProvider for GeminiProvider {
                 inline_data: None,
                 function_call: None,
                 function_response: None,
+                thought_signature: None,
             }],
         });
 
@@ -116,6 +122,20 @@ impl LlmProvider for GeminiProvider {
                 base_url, clean_model
             )
         };
+
+        // 5.5 工具定义验证
+        if let Some(ref tools) = config.tools {
+            let violations = request_validator::validate_tool_definitions(tools);
+            if !violations.is_empty() {
+                on_event(StreamEvent::Error {
+                    error: GenerationError::RequestFormat {
+                        provider: "gemini".to_string(),
+                        violations,
+                    },
+                });
+                return Ok(());
+            }
+        }
 
         // 6. 构建 headers
         let mut headers = HashMap::new();
@@ -278,6 +298,7 @@ fn build_contents(
                 inline_data: None,
                 function_call: None,
                 function_response: None,
+                thought_signature: None,
             });
         }
 
@@ -296,12 +317,42 @@ fn build_contents(
                 inline_data: None,
                 function_call: None,
                 function_response: None,
+                thought_signature: None,
             });
         }
 
+        // 提取 thought_signature 用于 Gemini thinking 连续性
+        let signature = msg.tool_call_json.as_ref().and_then(|tcj| {
+            serde_json::from_str::<serde_json::Value>(tcj).ok().and_then(|v| {
+                v.get("signature")
+                    .or_else(|| v.get("thought_signature"))
+                    .and_then(|s| s.as_str())
+                    .map(|s| s.to_string())
+            })
+        });
+
         contents.push(GeminiContent {
             role: role.to_string(),
-            parts,
+            parts: if role == "model" && signature.is_some() {
+                let mut parts = parts;
+                if let Some(ref sig) = signature {
+                    if let Some(last) = parts.last_mut() {
+                        last.thought_signature = Some(sig.clone());
+                    } else if parts.is_empty() {
+                        // 空 parts 但有签名：添加一个空 text part 来承载签名
+                        parts.push(GeminiPart {
+                            text: Some(String::new()),
+                            inline_data: None,
+                            function_call: None,
+                            function_response: None,
+                            thought_signature: Some(sig.clone()),
+                        });
+                    }
+                }
+                parts
+            } else {
+                parts
+            },
         });
     }
 
@@ -328,9 +379,6 @@ fn build_tool_call_content(tool_call_json: &str) -> Option<GeminiContent> {
     if !id.is_empty() {
         fc["id"] = serde_json::Value::String(id.to_string());
     }
-    if let Some(sig) = signature {
-        fc["thought_signature"] = serde_json::Value::String(sig.to_string());
-    }
 
     Some(GeminiContent {
         role: "model".to_string(),
@@ -339,6 +387,7 @@ fn build_tool_call_content(tool_call_json: &str) -> Option<GeminiContent> {
             inline_data: None,
             function_call: Some(fc),
             function_response: None,
+            thought_signature: signature.map(|s| s.to_string()),
         }],
     })
 }
@@ -375,8 +424,30 @@ fn build_tool_result_content(tool_call_json: &str) -> Option<GeminiContent> {
     })
 }
 
-/// 从文件路径构建图片 inline_data part
+/// 从文件路径或 data URL 构建图片 inline_data part
 fn build_image_part(path: &str) -> Result<GeminiPart, AgoraError> {
+    if path.starts_with("data:") {
+        // data URL: 解析 MIME 和 base64
+        if let Some(rest) = path.strip_prefix("data:") {
+            if let Some(semi) = rest.find(';') {
+                let mime_type = &rest[..semi];
+                if let Some(b64) = rest.find("base64,") {
+                    let data = rest[b64 + 7..].to_string();
+                    return Ok(GeminiPart {
+                        text: None,
+                        inline_data: Some(GeminiInlineData {
+                            mime_type: mime_type.to_string(),
+                            data,
+                        }),
+                        function_call: None,
+                        function_response: None,
+                        thought_signature: None,
+                    });
+                }
+            }
+        }
+        return Err(AgoraError::Io("Invalid data URL format".to_string()));
+    }
     let data = std::fs::read(path)
         .map_err(|e| AgoraError::Io(format!("Failed to read image {}: {}", path, e)))?;
     let b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &data);
@@ -390,12 +461,24 @@ fn build_image_part(path: &str) -> Result<GeminiPart, AgoraError> {
         }),
         function_call: None,
         function_response: None,
+        thought_signature: None,
     })
 }
 
 // ============================================================
 // Tools 构建
 // ============================================================
+
+/// 将 ToolProperty 递归转换为 Gemini JSON Schema 对象
+fn tool_property_to_schema(prop: &ToolProperty) -> serde_json::Value {
+    let mut schema = serde_json::Map::new();
+    schema.insert("type".to_string(), serde_json::Value::String(prop.r#type.clone()));
+    schema.insert("description".to_string(), serde_json::Value::String(prop.description.clone()));
+    if let Some(ref items) = prop.items {
+        schema.insert("items".to_string(), tool_property_to_schema(items));
+    }
+    serde_json::Value::Object(schema)
+}
 
 fn build_tools(config: &ProviderConfig) -> Option<Vec<serde_json::Value>> {
     let mut tools: Vec<serde_json::Value> = Vec::new();
@@ -414,31 +497,7 @@ fn build_tools(config: &ProviderConfig) -> Option<Vec<serde_json::Value>> {
             .map(|td| {
                 let mut props = serde_json::Map::new();
                 for (key, prop) in &td.function.parameters.properties {
-                    let mut prop_obj = serde_json::Map::new();
-                    prop_obj.insert(
-                        "type".to_string(),
-                        serde_json::Value::String(prop.r#type.clone()),
-                    );
-                    prop_obj.insert(
-                        "description".to_string(),
-                        serde_json::Value::String(prop.description.clone()),
-                    );
-                    if let Some(ref items) = prop.items {
-                        let mut items_obj = serde_json::Map::new();
-                        items_obj.insert(
-                            "type".to_string(),
-                            serde_json::Value::String(items.r#type.clone()),
-                        );
-                        items_obj.insert(
-                            "description".to_string(),
-                            serde_json::Value::String(items.description.clone()),
-                        );
-                        prop_obj.insert(
-                            "items".to_string(),
-                            serde_json::Value::Object(items_obj),
-                        );
-                    }
-                    props.insert(key.clone(), serde_json::Value::Object(prop_obj));
+                    props.insert(key.clone(), tool_property_to_schema(prop));
                 }
 
                 let required: Vec<serde_json::Value> = td
@@ -718,6 +777,10 @@ async fn parse_sse_stream(
                                             let sig = part
                                                 .get("thoughtSignature")
                                                 .and_then(|v| v.as_str())
+                                                .or_else(|| {
+                                                    fc.get("thoughtSignature")
+                                                        .and_then(|v| v.as_str())
+                                                })
                                                 .or_else(|| {
                                                     fc.get("thought_signature")
                                                         .and_then(|v| v.as_str())

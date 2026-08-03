@@ -604,6 +604,8 @@ pub struct GeminiPart {
     pub function_call: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub function_response: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thought_signature: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
