@@ -13,6 +13,7 @@ import com.newoether.agora.model.RunStatus
 import com.newoether.agora.data.local.migration.MIGRATION_16_17
 import com.newoether.agora.data.local.migration.MIGRATION_17_18
 import com.newoether.agora.data.local.migration.MIGRATION_18_19
+import com.newoether.agora.util.DebugLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -50,6 +51,7 @@ class MessageConverters {
             Json.decodeFromString<List<String>>(value)
         } catch (_: Exception) {
             // Backward compatibility: old format used "|||" delimiter
+            DebugLog.w("ChatDatabase", "Failed to decode JSON string list, falling back to legacy delimiter")
             value.split("|||")
         }
     }
@@ -1071,9 +1073,11 @@ abstract class ChatDatabase : RoomDatabase() {
             if (!dbPath.exists()) return 0
             return try {
                 val db = SQLiteDatabase.openDatabase(dbPath.path, null, SQLiteDatabase.OPEN_READONLY)
-                val version = db.version
-                db.close()
-                version
+                try {
+                    db.version
+                } finally {
+                    db.close()
+                }
             } catch (e: Exception) {
                 0
             }

@@ -425,9 +425,11 @@ class AnthropicProvider(
                                         }
                                     }
                                     "content_block_stop" -> {
-                                        if (toolUseId != null && toolUseName != null) {
+                                        val id = toolUseId
+                                        val name = toolUseName
+                                        if (id != null && name != null) {
                                             emit(StreamEvent.ToolCallRequest(
-                                                toolUseId!!, toolUseName!!, toolUseArgs.toString()
+                                                id, name, toolUseArgs.toString()
                                             ))
                                             toolUseId = null
                                             toolUseName = null

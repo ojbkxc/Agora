@@ -457,8 +457,14 @@ class GeminiProvider(
                                 try {
                                     val response = json.decodeFromString<ApiStreamResponse>(jsonStr)
 
+                                    val parts = response.candidates?.firstOrNull()?.content?.parts ?: emptyList()
+                                    // Pre-scan for thought markers to correctly classify text parts
+                                    // regardless of part ordering within the event
+                                    val eventHasThoughtMarker = parts.any { part ->
+                                        part.thought != null || part.reasoningContent != null || part.thoughtSignature != null
+                                    }
                                     inThoughtBlock = false
-                                    response.candidates?.firstOrNull()?.content?.parts?.forEach { part ->
+                                    parts.forEach { part ->
                                         var isPartOfThought = false
 
                                         part.thought?.let { thoughtElement ->

@@ -160,7 +160,7 @@ class ShellClient(
         return String(ShellCrypto.decrypt(key, encryptedData), Charsets.UTF_8)
     }
 
-    fun getSessionKey(): ByteArray? = currentAesKey
+    fun getSessionKey(): ByteArray? = currentAesKey?.copyOf()
 
     private fun buildJsonBody(command: String, timeoutMs: Int, workdir: String): String {
         return buildJsonObject {

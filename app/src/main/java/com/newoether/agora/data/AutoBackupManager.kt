@@ -61,22 +61,20 @@ class AutoBackupManager(
         if (now - lastBackup < periodMs) return BackupResult.NOT_DUE
 
         // Acquire mutex for the actual backup
-        backupMutex.withLock {
+        val result = backupMutex.withLock {
             // Re-check after acquiring lock (another thread may have just backed up)
             val freshLastBackup = settingsManager.lastBackupTimestamp.safeRead(0L)
-            if (now - freshLastBackup < periodMs) return BackupResult.NOT_DUE
+            if (now - freshLastBackup < periodMs) return@withLock BackupResult.NOT_DUE
 
             val file = performBackup()
             if (file != null) {
                 runCatching { settingsManager.saveLastBackupTimestamp(now) }
                 cleanupOldBackups()
-                return BackupResult.SUCCESS
+                return@withLock BackupResult.SUCCESS
             }
-            return BackupResult.FAILED
+            return@withLock BackupResult.FAILED
         }
-        // unreachable — withLock handles the return above
-        @Suppress("UNREACHABLE_CODE")
-        return BackupResult.NOT_DUE
+        return result
     }
 
     fun destroy() {
@@ -121,10 +119,18 @@ class AutoBackupManager(
                 DebugLog.d("AutoBackup", "Backup created: ${file.absolutePath}")
                 file
             } else {
-                // renameTo may fail across filesystems — try direct write as fallback
-                tmpFile.delete()
-                sendFailureNotification("Failed to finalize backup file")
-                null
+                // renameTo may fail across filesystems — try copy+delete as fallback
+                try {
+                    tmpFile.copyTo(file, overwrite = true)
+                    tmpFile.delete()
+                    DebugLog.d("AutoBackup", "Backup created via copy: ${file.absolutePath}")
+                    file
+                } catch (e: Exception) {
+                    DebugLog.e("AutoBackup", "Failed to finalize backup file", e)
+                    tmpFile.delete()
+                    sendFailureNotification("Failed to finalize backup file")
+                    null
+                }
             }
         } catch (e: Exception) {
             DebugLog.e("AutoBackup", "Backup failed", e)

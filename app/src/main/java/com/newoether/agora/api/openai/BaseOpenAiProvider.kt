@@ -233,8 +233,17 @@ abstract class BaseOpenAiProvider : LlmProvider {
         // Read timeouts are tolerated for long thinking pauses (read timeout = 5 min), but a
         // silently-dead connection (NAT drop with no RST) must not hang forever: give up after
         // 3 consecutive timeouts (~15 min without a single byte).
+        // Also enforce an overall wall-clock deadline (30 min) as a safety net against
+        // infinite hangs from heartbeat-only connections.
+        val streamStartNanos = System.nanoTime()
+        val maxStreamDurationNanos = java.util.concurrent.TimeUnit.MINUTES.toNanos(30)
         var consecutiveReadTimeouts = 0
         while (currentCoroutineContext().isActive) {
+            // Overall wall-clock safety net
+            if (System.nanoTime() - streamStartNanos > maxStreamDurationNanos) {
+                emit(StreamEvent.Error(GenerationError.Timeout))
+                break
+            }
             terminalDeadlineNanos?.let { deadline ->
                 val remainingNanos = deadline - System.nanoTime()
                 if (remainingNanos <= 0L) break

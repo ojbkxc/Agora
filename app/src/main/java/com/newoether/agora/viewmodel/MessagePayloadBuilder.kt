@@ -71,6 +71,8 @@ class MessagePayloadBuilder(
                         }
                         localVideoUri = "file://${videoFile.absolutePath}"
                     } catch (_: Exception) {
+                        // Clean up incomplete temp file on copy failure
+                        runCatching { videoFile.delete() }
                         // Fallback: keep original content URI (may expire)
                         localVideoUri = att.uri
                     }

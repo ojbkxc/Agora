@@ -42,8 +42,14 @@ class ModelManager(
         scope.launch(Dispatchers.IO) {
             val model = settings.localChatModels.value.find { it.id == uuid }
             if (model != null) {
-                if (model.localFilePath.isNotBlank()) java.io.File(model.localFilePath).delete()
-                if (model.mmprojPath.isNotBlank()) java.io.File(model.mmprojPath).delete()
+                if (model.localFilePath.isNotBlank()) {
+                    val f = java.io.File(model.localFilePath)
+                    if (!f.delete()) DebugLog.w("ModelManager", "Failed to delete model file: ${f.absolutePath}")
+                }
+                if (model.mmprojPath.isNotBlank()) {
+                    val f = java.io.File(model.mmprojPath)
+                    if (!f.delete()) DebugLog.w("ModelManager", "Failed to delete mmproj file: ${f.absolutePath}")
+                }
             }
             val models = settings.localChatModels.value.filter { it.id != uuid }
             settings.saveLocalChatModels(models)
@@ -64,7 +70,8 @@ class ModelManager(
             if (isLocalModelIdTaken(newModelId, excludeId = uuid)) return@launch
             val oldModel = settings.localChatModels.value.find { it.id == uuid } ?: return@launch
             if (oldModel.mmprojPath.isNotBlank() && oldModel.mmprojPath != mmprojPath) {
-                java.io.File(oldModel.mmprojPath).delete()
+                val f = java.io.File(oldModel.mmprojPath)
+                if (!f.delete()) DebugLog.w("ModelManager", "Failed to delete old mmproj file: ${f.absolutePath}")
             }
             val models = settings.localChatModels.value.map {
                 if (it.id == uuid) it.copy(modelId = newModelId, alias = newAlias, nCtx = nCtx, temperature = temperature, topP = topP, maxTokens = maxTokens, mmprojPath = mmprojPath)

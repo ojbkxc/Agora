@@ -818,9 +818,11 @@ impl ThinkTagStateMachine {
 /// 检查 buffer 是否以 target 的部分前缀结尾
 fn is_partial_match(buffer: &str, target: &str) -> bool {
     for len in 1..target.len() {
-        let prefix = &target[..len];
-        if buffer.ends_with(prefix) {
-            return true;
+        // 使用 get() 避免在非 UTF-8 字符边界处 panic
+        if let Some(prefix) = target.get(..len) {
+            if buffer.ends_with(prefix) {
+                return true;
+            }
         }
     }
     false
@@ -829,9 +831,10 @@ fn is_partial_match(buffer: &str, target: &str) -> bool {
 /// 获取 buffer 结尾与 target 匹配的最长前缀长度
 fn longest_partial_prefix(buffer: &str, target: &str) -> usize {
     for len in (1..target.len()).rev() {
-        let prefix = &target[..len];
-        if buffer.ends_with(prefix) {
-            return len;
+        if let Some(prefix) = target.get(..len) {
+            if buffer.ends_with(prefix) {
+                return len;
+            }
         }
     }
     0

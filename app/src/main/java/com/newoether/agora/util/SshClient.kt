@@ -8,6 +8,7 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
 import com.jcraft.jsch.UserInfo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.nio.file.FileSystems
@@ -126,7 +127,10 @@ class SshClient(
                 timedOut = true
                 break
             }
-            try { Thread.sleep(100) } catch (_: InterruptedException) { break }
+            try { delay(100) } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                break
+            }
         }
         val exitCode = if (channel.isClosed) channel.exitStatus else -1
         channel.disconnect()
