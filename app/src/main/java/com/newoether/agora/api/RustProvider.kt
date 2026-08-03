@@ -1,5 +1,8 @@
 package com.newoether.agora.api
 
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+
 /**
  * JNI bridge to the `agora_rs` native library.
  *
@@ -11,6 +14,14 @@ object RustProvider {
     init {
         System.loadLibrary("agora_rs")
     }
+
+    /**
+     * Tracks which handles have been destroyed to prevent double-destroy.
+     * [nativeDestroyProvider] is safe to call multiple times on the Rust side,
+     * but the Kotlin [callbackFlow] had two cleanup paths (finally + awaitClose)
+     * that could race. This guard ensures only one path actually calls native.
+     */
+    private val destroyedHandles = ConcurrentHashMap<Long, AtomicBoolean>()
 
     /**
      * Create a Rust-side provider instance.
@@ -53,9 +64,22 @@ object RustProvider {
 
     /**
      * Release the Rust-side provider and free associated resources.
-     * Safe to call multiple times; no-op for invalid handles.
+     * Safe to call multiple times; no-op for invalid or already-destroyed handles.
+     * Uses an [AtomicBoolean] per handle to ensure the destroy is called exactly once
+     * even when the [callbackFlow]'s `finally` block and `awaitClose` race.
      */
-    external fun nativeDestroyProvider(handle: Long)
+    fun destroyProvider(handle: Long) {
+        if (handle <= 0) return
+        val guard = destroyedHandles.computeIfAbsent(handle) { AtomicBoolean(false) }
+        if (guard.compareAndSet(false, true)) {
+            nativeDestroyProvider(handle)
+        }
+    }
+
+    /**
+     * Native destroy — called by [destroyProvider] which guards against double-destroy.
+     */
+    private external fun nativeDestroyProvider(handle: Long)
 
     /**
      * Callback interface for streaming generation events.

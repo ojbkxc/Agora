@@ -1,13 +1,25 @@
 # ============================================================================
 # kotlinx.serialization
 # ============================================================================
--keepattributes *Annotation*, InnerClasses
+-keepattributes *Annotation*, InnerClasses, RuntimeVisibleAnnotations, AnnotationDefault, Signature
 -dontnote kotlinx.serialization.AnnotationsKt
 -keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
 -keepclasseswithmembers class kotlinx.serialization.json.** { kotlinx.serialization.KSerializer serializer(...); }
 -keep,includedescriptorclasses class com.newoether.agora.**$$serializer { *; }
 -keepclassmembers class com.newoether.agora.** { *** Companion; }
 -keepclasseswithmembers class com.newoether.agora.** { kotlinx.serialization.KSerializer serializer(...); }
+
+# Explicitly keep @SerialName annotations on all @Serializable classes so R8
+# does not strip the field-name mapping metadata. Without this, R8 can remove
+# the annotation and the generated serializer falls back to Kotlin property
+# names (which may be obfuscated), producing JSON the Rust side can't parse.
+-keepclassmembers @kotlinx.serialization.Serializable class com.newoether.agora.** {
+    @kotlinx.serialization.SerialName <fields>;
+}
+-keepclassmembers @kotlinx.serialization.Serializable class com.newoether.agora.** {
+    *** Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
 
 # ============================================================================
 # Room

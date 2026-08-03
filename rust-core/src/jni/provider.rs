@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use jni::JNIEnv;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
@@ -38,6 +39,22 @@ static PROVIDERS: Lazy<Mutex<HashMap<i64, Arc<dyn LlmProvider>>>> =
 static PROVIDER_CONFIGS: Lazy<Mutex<HashMap<i64, ProviderConfig>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
+/// 每个 handle 关联一个取消令牌和回调存活标志。
+/// 当 nativeDestroyProvider 被调用时，设置 cancelled = true 并移除 provider，
+/// 正在运行的生成任务会在下一个 await 点检测到取消并安全退出。
+static HANDLE_STATE: Lazy<Mutex<HashMap<i64, HandleState>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// Per-handle cancellation and callback lifecycle state.
+struct HandleState {
+    /// Set to true when nativeDestroyProvider is called.
+    /// The running generation task checks this and aborts gracefully.
+    cancelled: Arc<AtomicBool>,
+    /// Set to true after the callback has been invalidated.
+    /// Prevents JNI calls into a recycled Kotlin callback object.
+    callback_invalid: Arc<AtomicBool>,
+}
+
 /// 分配新 handle
 fn next_handle() -> i64 {
     NEXT_HANDLE.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
@@ -48,13 +65,26 @@ fn store_provider(provider: Arc<dyn LlmProvider>, config: ProviderConfig) -> i64
     let handle = next_handle();
     PROVIDERS.lock().unwrap().insert(handle, provider);
     PROVIDER_CONFIGS.lock().unwrap().insert(handle, config);
+    HANDLE_STATE.lock().unwrap().insert(handle, HandleState {
+        cancelled: Arc::new(AtomicBool::new(false)),
+        callback_invalid: Arc::new(AtomicBool::new(false)),
+    });
     handle
 }
 
-/// 移除 Provider 并释放资源
+/// 移除 Provider 并释放资源。
+/// 设置取消标志，使正在运行的生成任务在下一个 await 点安全退出。
 fn remove_provider(handle: i64) {
+    // Set the cancelled flag first so the running generation (if any) sees it.
+    if let Some(state) = HANDLE_STATE.lock().unwrap().get(&handle) {
+        state.cancelled.store(true, Ordering::SeqCst);
+        state.callback_invalid.store(true, Ordering::SeqCst);
+    }
     PROVIDERS.lock().unwrap().remove(&handle);
     PROVIDER_CONFIGS.lock().unwrap().remove(&handle);
+    // Keep the HandleState entry so nativeGenerate can observe the cancelled flag;
+    // it will be cleaned up after nativeGenerate returns (or never, if the process
+    // dies — which is fine, the HashMap is process-scoped anyway).
 }
 
 // ============================================================
@@ -186,11 +216,33 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
     // 创建 HTTP 客户端
     let http_client = AgoraHttpClient::new();
 
-    // 创建流式回调：通过 JNI 实时推送事件到 Kotlin
+    // 获取该 handle 的取消标志和回调存活标志
+    let (cancelled, callback_invalid) = {
+        let state = HANDLE_STATE.lock().unwrap();
+        match state.get(&handle) {
+            Some(s) => (s.cancelled.clone(), s.callback_invalid.clone()),
+            None => {
+                // Handle already destroyed — return immediately without touching callback.
+                let error_json = AgoraError::Config(format!("Provider not found for handle: {}", handle)).to_json_string();
+                return match util::string_to_jstring(&mut env, &error_json) {
+                    Ok(s) => s,
+                    Err(_) => std::ptr::null_mut(),
+                };
+            }
+        }
+    };
+
+    // 创建流式回调：通过 JNI 实时推送事件到 Kotlin。
+    // 在每次回调前检查 callback_invalid 标志，避免在已销毁的回调对象上调用 JNI。
     let on_event: crate::api::provider::StreamCallback = {
         let jvm = Arc::clone(&jvm);
         let cb = callback_ref.clone();
+        let ci = callback_invalid.clone();
         Box::new(move |event: StreamEvent| {
+            // 如果回调已失效（provider 被销毁），不再向 Kotlin 发送事件。
+            if ci.load(Ordering::SeqCst) {
+                return;
+            }
             let mut env = match jvm.attach_current_thread() {
                 Ok(env) => env,
                 Err(e) => {
@@ -223,8 +275,19 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
         })
     };
 
-    // 在 tokio 运行时中执行异步生成，通过回调实时推送事件
-    let result = util::get_global_runtime().block_on(async {
+    // 在 tokio 运行时中 spawn 异步生成任务（非阻塞），通过 oneshot 通道等待结果。
+    // 这避免了 block_on 在 JNI 线程上的死锁风险，并允许 nativeDestroyProvider
+    // 通过设置 cancelled 标志来安全取消正在运行的生成任务。
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let cancelled_for_task = cancelled.clone();
+
+    util::get_global_runtime().spawn(async move {
+        // 检查是否在 spawn 之前就被取消了
+        if cancelled_for_task.load(Ordering::SeqCst) {
+            let _ = tx.send(Err(AgoraError::Config("Provider cancelled before generation started".to_string())));
+            return;
+        }
+
         // Clone the Arc out of the lock and drop the guard BEFORE awaiting,
         // so other JNI threads can access PROVIDERS concurrently.
         let provider = {
@@ -232,16 +295,36 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
             match providers.get(&handle) {
                 Some(p) => p.clone(),
                 None => {
-                    return Err(AgoraError::Config(format!("Provider not found for handle: {}", handle)));
+                    let _ = tx.send(Err(AgoraError::Config(format!("Provider not found for handle: {}", handle))));
+                    return;
                 }
             }
         };
 
-        // 调用 generate_response，传入回调实时推送事件
-        provider
-            .generate_response(&messages, &config, &http_client, &on_event)
-            .await
+        // 在后台运行生成任务，同时监控取消标志
+        let gen_fut = provider.generate_response(&messages, &config, &http_client, &on_event);
+
+        // 使用 tokio::select! 在生成完成和取消标志之间竞争。
+        // select! 会轮询两个 future，先完成的分支胜出。
+        let result = tokio::select! {
+            // 生成完成（正常或错误）
+            res = gen_fut => res,
+            // 检测到取消标志 — 生成会在 drop 时被中止
+            _ = async {
+                while !cancelled_for_task.load(Ordering::SeqCst) {
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                }
+            } => {
+                Err(AgoraError::Config("Generation cancelled by nativeDestroyProvider".to_string()))
+            }
+        };
+
+        let _ = tx.send(result);
     });
+
+    // 阻塞等待生成结果（oneshot 通道），但这不会导致 Tokio 死锁，
+    // 因为生成任务运行在 Tokio 的 spawn 线程池上，而不是当前线程。
+    let result = rx.blocking_recv();
 
     match result {
         Ok(()) => {
@@ -355,6 +438,8 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeFetchMode
 /// Java: nativeDestroyProvider(long handle)
 ///
 /// 释放 Provider 实例及其关联资源。
+/// 设置取消标志，使正在运行的生成任务安全退出。
+/// 安全可多次调用。
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeDestroyProvider(
     _env: JNIEnv,

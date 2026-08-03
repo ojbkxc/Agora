@@ -102,7 +102,7 @@ open class RustOpenAiProvider : LlmProvider {
             trySend(StreamEvent.Error(GenerationError.Unknown(e)))
         } finally {
             withContext(Dispatchers.IO) {
-                RustProvider.nativeDestroyProvider(handle)
+                RustProvider.destroyProvider(handle)
             }
             close()
         }
@@ -110,7 +110,7 @@ open class RustOpenAiProvider : LlmProvider {
         awaitClose {
             // Ensure native handle is destroyed if the flow is cancelled upstream
             runCatching {
-                RustProvider.nativeDestroyProvider(handle)
+                RustProvider.destroyProvider(handle)
             }
         }
     }
@@ -132,7 +132,7 @@ open class RustOpenAiProvider : LlmProvider {
                     val result = RustProvider.nativeFetchModels(handle, apiKey, baseUrl ?: "")
                     parseModelList(result)
                 } finally {
-                    RustProvider.nativeDestroyProvider(handle)
+                    RustProvider.destroyProvider(handle)
                 }
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModels failed", e)

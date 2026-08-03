@@ -101,14 +101,14 @@ open class RustGeminiProvider : LlmProvider {
             trySend(StreamEvent.Error(GenerationError.Unknown(e)))
         } finally {
             withContext(Dispatchers.IO) {
-                RustProvider.nativeDestroyProvider(handle)
+                RustProvider.destroyProvider(handle)
             }
             close()
         }
 
         awaitClose {
             runCatching {
-                RustProvider.nativeDestroyProvider(handle)
+                RustProvider.destroyProvider(handle)
             }
         }
     }
@@ -130,7 +130,7 @@ open class RustGeminiProvider : LlmProvider {
                     val result = RustProvider.nativeFetchModels(handle, apiKey, baseUrl ?: "")
                     parseModelList(result)
                 } finally {
-                    RustProvider.nativeDestroyProvider(handle)
+                    RustProvider.destroyProvider(handle)
                 }
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModels failed", e)

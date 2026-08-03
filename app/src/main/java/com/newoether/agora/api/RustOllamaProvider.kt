@@ -109,14 +109,14 @@ open class RustOllamaProvider : LlmProvider {
             trySend(StreamEvent.Error(GenerationError.Unknown(e)))
         } finally {
             withContext(Dispatchers.IO) {
-                RustProvider.nativeDestroyProvider(handle)
+                RustProvider.destroyProvider(handle)
             }
             close()
         }
 
         awaitClose {
             runCatching {
-                RustProvider.nativeDestroyProvider(handle)
+                RustProvider.destroyProvider(handle)
             }
         }
     }
@@ -139,7 +139,7 @@ open class RustOllamaProvider : LlmProvider {
                     val result = RustProvider.nativeFetchModels(handle, apiKey, effectiveBaseUrl)
                     parseModelList(result)
                 } finally {
-                    RustProvider.nativeDestroyProvider(handle)
+                    RustProvider.destroyProvider(handle)
                 }
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModels failed", e)
