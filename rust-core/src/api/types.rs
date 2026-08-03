@@ -217,7 +217,7 @@ fn default_object_type() -> String { "object".to_string() }
 pub struct ToolProperty {
     pub r#type: String,
     pub description: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub items: Option<Box<ToolProperty>>,
 }
 
