@@ -114,7 +114,9 @@ impl AgoraError {
     /// 转换为 JNI 可传递的 JSON 字符串
     pub fn to_json_string(&self) -> String {
         serde_json::to_string(self).unwrap_or_else(|_| {
-            format!("{{\"type\":\"Unknown\",\"message\":\"{}\"}}", self)
+            // 安全的回退：手动构建 JSON，对 message 进行转义
+            let msg = self.to_string().replace('\\', "\\\\").replace('"', "\\\"");
+            format!("{{\"type\":\"Unknown\",\"message\":\"{}\"}}", msg)
         })
     }
 

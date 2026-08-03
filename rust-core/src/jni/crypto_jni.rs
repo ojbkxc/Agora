@@ -1,4 +1,4 @@
-﻿// RustCrypto JNI 桥接层
+// RustCrypto JNI 桥接层
 //
 // 对应 Kotlin `com.newoether.agora.util.RustCrypto`
 // 实现 nativeGenerateKeyPair / nativeDeriveAesKey / nativeEncrypt / nativeDecrypt
@@ -178,7 +178,13 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeEncrypt(
         }
     };
 
-    let encrypted = aes_gcm::encrypt(&key_bytes, plaintext.as_bytes());
+    let encrypted = match aes_gcm::encrypt(&key_bytes, plaintext.as_bytes()) {
+        Ok(s) => s,
+        Err(e) => {
+            util::handle_error(&mut env, e);
+            return std::ptr::null_mut();
+        }
+    };
     match util::string_to_jstring(&mut env, &encrypted) {
         Ok(s) => s,
         Err(_) => std::ptr::null_mut(),

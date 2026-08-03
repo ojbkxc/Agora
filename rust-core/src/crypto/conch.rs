@@ -76,7 +76,7 @@ impl ConchSession {
         self.aes_key = hkdf::derive_aes_key_default(shared.as_bytes())?;
 
         // 加密请求体
-        let encrypted_body = aes_gcm::encrypt(&self.aes_key, body.as_bytes());
+        let encrypted_body = aes_gcm::encrypt(&self.aes_key, body.as_bytes())?;
 
         // 计算签名
         let body_sha256 = hmac::sha256_hex(encrypted_body.as_bytes());

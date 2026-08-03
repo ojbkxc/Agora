@@ -299,15 +299,10 @@ class GeminiProvider(
                 parts.add(ApiRequestPart(text = msg.text))
             }
             if (config.includeImages && msg.participant == Participant.USER) for (imagePath in msg.images) {
-                try {
-                    val file = File(imagePath)
-                    if (file.exists()) {
-                        val bytes = file.readBytes()
-                        val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-                        parts.add(ApiRequestPart(inlineData = ApiInlineData(mimeType = com.newoether.agora.api.util.imageMimeType(imagePath), data = base64)))
-                    }
-                } catch (e: Exception) {
-                    DebugLog.e("AgoraAPI", "Failed to encode image: $imagePath", e)
+                val encoded = com.newoether.agora.api.util.encodeImageToBase64(imagePath)
+                if (encoded != null) {
+                    val (mimeType, base64) = encoded
+                    parts.add(ApiRequestPart(inlineData = ApiInlineData(mimeType = mimeType, data = base64)))
                 }
             }
             if (parts.isEmpty()) parts.add(ApiRequestPart(text = "[Attachment unavailable]"))
@@ -427,7 +422,7 @@ class GeminiProvider(
             DebugLog.d("AgoraAPI", "[Gemini] REQ → $finalUrlString | model=$cleanModelName | msgs=${apiContents.size} | thinking=${config.thinkingEnabled} | tools=${tools.size}")
             DebugLog.d("AgoraAPI", "[Gemini] BODY: ${requestJson.take(4000)}")
             val maxAttempts = 3
-            val retryableCodes = setOf(401, 429, 502, 503, 504)
+            val retryableCodes = setOf(429, 502, 503, 504)
             var attempt = 0
             var done = false
 

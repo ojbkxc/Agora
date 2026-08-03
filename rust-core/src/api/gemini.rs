@@ -170,7 +170,7 @@ impl LlmProvider for GeminiProvider {
             }
 
             // 可重试状态码
-            let retryable = matches!(stream_resp.code, 401 | 429 | 502 | 503 | 504);
+            let retryable = matches!(stream_resp.code, 429 | 502 | 503 | 504);
             if retryable && attempt < max_attempts {
                 on_event(StreamEvent::Retrying {
                     attempt: attempt as i32,

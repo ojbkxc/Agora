@@ -37,6 +37,17 @@ fun imageMimeType(imagePath: String): String = when {
 
 fun encodeImageToBase64(imagePath: String): Pair<String, String>? {
     return try {
+        // Handle data: URLs (already base64 encoded)
+        if (imagePath.startsWith("data:")) {
+            val semi = imagePath.indexOf(';')
+            val b64 = imagePath.indexOf("base64,")
+            if (semi > 0 && b64 > semi) {
+                val mimeType = imagePath.substring(5, semi)
+                val data = imagePath.substring(b64 + 7)
+                return mimeType to data
+            }
+            return null
+        }
         val file = File(imagePath)
         if (!file.exists()) return null
         val bytes = file.readBytes()

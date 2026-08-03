@@ -459,10 +459,16 @@ class AnthropicProvider(
                         delay(1000L * attempt)
                     } else {
                         val genError = try {
-                            val errorJson = json.decodeFromString<OpenAiErrorResponse>(errorRaw)
-                            GenerationError.Api(code = errorJson.error.code ?: handle.code.toString(), type = errorJson.error.type, message = errorJson.error.message)
+                            val errorJson = json.decodeFromString<AnthropicErrorResponse>(errorRaw)
+                            GenerationError.Api(code = errorJson.error.type ?: handle.code.toString(), type = errorJson.error.type, message = errorJson.error.message)
                         } catch (_: Exception) {
-                            GenerationError.Network(statusCode = handle.code, message = errorRaw)
+                            try {
+                                // Fallback to OpenAI format for proxy servers
+                                val oaiError = json.decodeFromString<OpenAiErrorResponse>(errorRaw)
+                                GenerationError.Api(code = oaiError.error.code ?: handle.code.toString(), type = oaiError.error.type, message = oaiError.error.message)
+                            } catch (_: Exception) {
+                                GenerationError.Network(statusCode = handle.code, message = errorRaw)
+                            }
                         }
                         emit(StreamEvent.Error(genError))
                     }
@@ -590,6 +596,17 @@ class AnthropicProvider(
         }
     }
 }
+
+@Serializable
+internal data class AnthropicErrorResponse(
+    val error: AnthropicErrorDetail
+)
+
+@Serializable
+internal data class AnthropicErrorDetail(
+    val type: String? = null,
+    val message: String
+)
 
 @Serializable
 internal data class AnthropicModelsResponse(

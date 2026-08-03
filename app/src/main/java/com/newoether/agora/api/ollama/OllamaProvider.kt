@@ -146,13 +146,9 @@ class OllamaProvider : LlmProvider {
             }
 
             val images = if (config.includeImages && msg.participant == Participant.USER) msg.images.mapNotNull { imagePath ->
-                try {
-                    val file = File(imagePath)
-                    if (file.exists()) {
-                        android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP)
-                    } else null
-                } catch (e: Exception) { null }
-            } else null
+                val encoded = com.newoether.agora.api.util.encodeImageToBase64(imagePath)
+                encoded?.second
+            }.takeIf { it.isNotEmpty() } else null
 
             // Normal message: text + images only
             entries.add(OllamaMessage(
@@ -196,7 +192,7 @@ class OllamaProvider : LlmProvider {
             DebugLog.d("AgoraAPI", "[Ollama] REQ → $baseUrl/api/chat | model=${config.modelId} | msgs=${apiMessages.size} | tools=${config.tools?.size ?: 0}")
             DebugLog.d("AgoraAPI", "[Ollama] BODY: ${requestBodyJson.take(4000)}")
             val maxAttempts = 3
-            val retryableCodes = setOf(401, 429, 502, 503, 504)
+            val retryableCodes = setOf(429, 502, 503, 504)
             var attempt = 0
             var done = false
 

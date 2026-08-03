@@ -96,7 +96,7 @@ pub fn export_agora(
 /// Import user data from a .agora zip file
 pub fn import_agora(
     zip_data: &[u8],
-    strategy: ImportStrategy,
+    _strategy: ImportStrategy,
 ) -> AgoraResult<String> {
     let cursor = std::io::Cursor::new(zip_data);
     let mut archive = zip::ZipArchive::new(cursor)?;
