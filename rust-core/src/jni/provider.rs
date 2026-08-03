@@ -327,7 +327,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
     let result = rx.blocking_recv();
 
     match result {
-        Ok(()) => {
+        Ok(Ok(())) => {
             // 返回完成状态
             let summary = serde_json::json!({
                 "status": "completed"
@@ -338,7 +338,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
                 Err(_) => std::ptr::null_mut(),
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             // 推送错误事件
             let error_event = serde_json::json!({
                 "type": "error",
@@ -372,6 +372,43 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
 
             // 返回错误 JSON
             let error_json = e.to_json_string();
+            match util::string_to_jstring(&mut env, &error_json) {
+                Ok(s) => s,
+                Err(_) => std::ptr::null_mut(),
+            }
+        }
+        Err(_) => {
+            // oneshot 发送端异常关闭（生成任务 panic 或被丢弃）
+            log::error!("[JNI] Generation task dropped without sending a result");
+            let error_event = serde_json::json!({
+                "type": "error",
+                "data": {
+                    "error": {
+                        "type": "unknown",
+                        "message": "Generation task terminated unexpectedly"
+                    }
+                }
+            });
+            {
+                let mut env = match jvm.attach_current_thread() {
+                    Ok(env) => env,
+                    Err(_) => {
+                        return std::ptr::null_mut();
+                    }
+                };
+                if let Ok(jstr) = env.new_string(&error_event.to_string()) {
+                    let _ = env.call_method(
+                        callback_ref.as_obj(),
+                        "onEvent",
+                        "(Ljava/lang/String;)V",
+                        &[JValue::Object(&jstr)],
+                    );
+                }
+            }
+            let error_json = AgoraError::Config(
+                "Generation task terminated unexpectedly".to_string(),
+            )
+            .to_json_string();
             match util::string_to_jstring(&mut env, &error_json) {
                 Ok(s) => s,
                 Err(_) => std::ptr::null_mut(),
