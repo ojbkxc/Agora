@@ -56,22 +56,55 @@ object EmbeddingClient {
         baseUrl: String = "https://api.openai.com/v1"
     ): List<FloatArray?> {
         if (texts.isEmpty()) return emptyList()
-        return try {
-            val url = "$baseUrl/embeddings"
-            val body = json.encodeToString(BatchEmbeddingRequest(input = texts, model = model))
-            val headers = buildMap {
-                put("Content-Type", "application/json")
-                if (apiKey.isNotBlank()) put("Authorization", "Bearer $apiKey")
+        // Transient failures (429 / 5xx / network blips) used to surface as a
+        // silent null batch, which marked every message in the page as "failed"
+        // and forced the user into a manual re-cache. Retry with exponential
+        // backoff so a brief rate-limit doesn't poison a whole embedding page.
+        val maxAttempts = 3
+        var lastError: Exception? = null
+        repeat(maxAttempts) { attempt ->
+            try {
+                val url = "$baseUrl/embeddings"
+                val body = json.encodeToString(BatchEmbeddingRequest(input = texts, model = model))
+                val headers = buildMap {
+                    put("Content-Type", "application/json")
+                    if (apiKey.isNotBlank()) put("Authorization", "Bearer $apiKey")
+                }
+                val response = HttpClient.post(url, body, headers)
+                if (response == null) {
+                    lastError = IllegalStateException("Embedding request returned no response")
+                    backoff(attempt)
+                    return@repeat
+                }
+                val parsed = json.parseToJsonElement(response).jsonObject
+                val data = parsed["data"]?.jsonArray
+                if (data == null) {
+                    lastError = IllegalStateException("Embedding response missing 'data' field")
+                    backoff(attempt)
+                    return@repeat
+                }
+                return data.map { item ->
+                    val embedding = item.jsonObject["embedding"]?.jsonArray ?: return@map null
+                    FloatArray(embedding.size) { i -> embedding[i].jsonPrimitive.float }
+                }
+            } catch (e: Exception) {
+                lastError = e
+                if (attempt < maxAttempts - 1) backoff(attempt)
             }
-            val response = HttpClient.post(url, body, headers) ?: return texts.map { null }
-            val parsed = json.parseToJsonElement(response).jsonObject
-            val data = parsed["data"]?.jsonArray ?: return texts.map { null }
-            data.map { item ->
-                val embedding = item.jsonObject["embedding"]?.jsonArray ?: return@map null
-                FloatArray(embedding.size) { i -> embedding[i].jsonPrimitive.float }
-            }
-        } catch (e: Exception) {
-            texts.map { null }
+        }
+        DebugLog.e("EmbeddingClient", "computeEmbeddings failed after $maxAttempts attempts", lastError)
+        return texts.map { null }
+    }
+
+    private fun backoff(attempt: Int) {
+        // attempt is 0-based; 200ms, 400ms, 800ms … with a small jitter to avoid
+        // synchronized retry storms when a batch page races many parallel calls.
+        val base = 200L * (1L shl attempt)
+        val jitter = (Math.random() * 80L).toLong()
+        try {
+            Thread.sleep(base + jitter)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
         }
     }
 }

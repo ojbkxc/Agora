@@ -179,15 +179,19 @@ class SshClient(
         limit: Long = 0
     ): String = withSftp { sftp ->
         try {
+            // Hard ceiling: 1MB. Without it, `readBytes()` on a multi-GB remote
+            // file (e.g. /var/log/syslog, a database dump) would buffer the entire
+            // file into the JVM heap and OOM the app. A caller passing an explicit
+            // smaller `limit` gets that; one passing 0 gets the safe default.
+            val hardCap = 1_048_576L
+            val effectiveLimit = if (limit > 0) minOf(limit, hardCap) else hardCap
             val inputStream = sftp.get(path)
-            val bytes = inputStream.readBytes()
-            inputStream.close()
+            val bytes = inputStream.use { it.readBytes() }
             val start = offset.coerceIn(0, bytes.size.toLong()).toInt()
-            val end = if (limit > 0) {
-                minOf(start + limit, bytes.size.toLong()).toInt()
-            } else {
-                bytes.size
-            }
+            val end = minOf(
+                start + effectiveLimit.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                bytes.size,
+            )
             String(bytes, start, end - start, Charsets.UTF_8)
         } catch (e: Exception) {
             throw IllegalStateException("SFTP read failed: ${e.message}")

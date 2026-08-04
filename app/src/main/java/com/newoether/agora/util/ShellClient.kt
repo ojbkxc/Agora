@@ -269,7 +269,10 @@ class ShellClient(
         encryptedPost(path, payload)
 
     suspend fun fileRead(path: String, offset: Long = 0, limit: Long = 0): FileReadResult {
-        val limitVal = if (limit > 0) limit else 1048576
+        // Hard ceiling: 1MB. A caller passing 0 gets the safe default; one passing
+        // a larger value is clamped so a pathological request can't pull a huge
+        // encrypted blob into the JVM heap and OOM the app.
+        val limitVal = if (limit > 0) minOf(limit, 1_048_576L) else 1_048_576L
         val payload = buildJsonBodyFileMixed(mapOf(
             "path" to path,
             "offset" to offset,
