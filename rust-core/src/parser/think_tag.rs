@@ -165,7 +165,7 @@ impl StreamingThinkTagParser {
         // 注意：drain 过程中 self.pending 不能被修改（除了最后截断）
         // 使用索引遍历
         let pending_len = self.pending.len();
-        let pending_bytes = self.pending.as_bytes();
+        let _pending_bytes = self.pending.as_bytes();
 
         while index < pending_len {
             let remainder = &self.pending[index..];

@@ -1,8 +1,5 @@
 ﻿// RustProvider JNI 桥接层
 //
-// 对应 Kotlin `com.newoether.agora.api.RustProvider`
-// 实现 nativeCreateProvider / nativeGenerate / nativeFetchModels / nativeDestroyProvider
-
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};

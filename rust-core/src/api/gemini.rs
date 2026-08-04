@@ -420,6 +420,7 @@ fn build_tool_result_content(tool_call_json: &str) -> Option<GeminiContent> {
             inline_data: None,
             function_call: None,
             function_response: Some(fr),
+            thought_signature: None,
         }],
     })
 }

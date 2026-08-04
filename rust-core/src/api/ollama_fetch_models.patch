@@ -1,0 +1,11 @@
+--- a/rust-core/src/api/ollama.rs
++++ b/rust-core/src/api/ollama.rs
+@@ -240,7 +240,8 @@ impl LlmProvider for OllamaProvider {
+
+     async fn fetch_models(
+         &self,
++        api_key: &str,
+         base_url: Option<&str>,
+         client: &AgoraHttpClient,
+     ) -> Result<Vec<String>, AgoraError> {
+         let effective_url = base_url

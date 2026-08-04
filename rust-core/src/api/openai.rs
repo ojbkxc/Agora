@@ -897,7 +897,7 @@ impl LlmProvider for OpenAiProvider {
             while endpoint_index < endpoint_urls.len() {
                 let endpoint_url = &endpoint_urls[endpoint_index];
 
-                let mut stream_response =
+                let stream_response =
                     match client.stream_post(endpoint_url, &json_body, &headers).await {
                         Ok(resp) => resp,
                         Err(e) => {
