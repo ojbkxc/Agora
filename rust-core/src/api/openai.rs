@@ -911,8 +911,8 @@ impl LlmProvider for OpenAiProvider {
                         }
                     };
 
-                // 如果 HTTP 状态码是 200，解析流（实时回调）
-                if stream_response.code == 200 {
+                // 如果 HTTP 状态码是成功，解析流（实时回调）
+                if stream_response.is_success() {
                     return self.parse_sse_stream(stream_response, config, on_event).await;
                 }
 

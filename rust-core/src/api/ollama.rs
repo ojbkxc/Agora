@@ -178,8 +178,8 @@ impl LlmProvider for OllamaProvider {
                 }
             };
 
-            // 如果 HTTP 状态码是 200，解析流
-            if stream_resp.code == 200 {
+            // 如果 HTTP 状态码是成功，解析流
+            if stream_resp.is_success() {
                 match parse_ollama_stream(stream_resp.stream(), config.thinking_enabled, on_event).await {
                     Ok(()) => return Ok(()),
                     Err(e) => {
@@ -189,14 +189,8 @@ impl LlmProvider for OllamaProvider {
                 break;
             }
 
-            // 收集错误体
-            let mut error_body = String::new();
-            let stream = stream_resp.stream();
-            while let Some(chunk) = stream.next().await {
-                if let Ok(bytes) = chunk {
-                    error_body.push_str(&String::from_utf8_lossy(&bytes));
-                }
-            }
+            // 读取错误体（from error_body 字段，stream_post 已将错误体填充到 error_body）
+            let error_body = stream_resp.error_body.unwrap_or_default();
 
             // 可重试状态码
             let retryable = matches!(stream_resp.code, 429 | 502 | 503 | 504);

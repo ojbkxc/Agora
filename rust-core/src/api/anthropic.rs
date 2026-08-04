@@ -1230,8 +1230,8 @@ impl LlmProvider for AnthropicProvider {
                 }
             };
 
-            // 如果 HTTP 状态码是 200，解析流（实时回调）
-            if stream_response.code == 200 {
+            // 如果 HTTP 状态码是成功，解析流（实时回调）
+            if stream_response.is_success() {
                 return Self::parse_sse_stream(&mut stream_response, on_event).await;
             }
 

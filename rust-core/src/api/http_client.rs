@@ -111,6 +111,11 @@ impl StreamResponse {
             // 消费并丢弃
         }
     }
+
+    /// 判断是否为成功响应（无错误体）
+    pub fn is_success(&self) -> bool {
+        self.error_body.is_none()
+    }
 }
 
 // ============================================================
@@ -282,15 +287,10 @@ impl AgoraHttpClient {
         let code = status.as_u16();
 
         if !status.is_success() {
-            // 读取错误响应体
+            // 读取错误响应体，返回 Ok(StreamResponse::with_error) 而非 Err，
+            // 使调用方（Provider）能根据 HTTP 状态码实现重试逻辑和友好错误消息。
             let body = response.text().await.unwrap_or_default();
-            return Err(match Self::check_status(status, &body) {
-                Err(e) => e,
-                Ok(()) => AgoraError::Network {
-                    status_code: code as i32,
-                    message: body,
-                },
-            });
+            return Ok(StreamResponse::with_error(code, body));
         }
 
         let byte_stream = response.bytes_stream();

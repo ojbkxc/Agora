@@ -158,8 +158,8 @@ impl LlmProvider for GeminiProvider {
                 }
             };
 
-            // 如果 HTTP 状态码是 200，解析流
-            if stream_resp.code == 200 {
+            // 如果 HTTP 状态码是成功，解析流
+            if stream_resp.is_success() {
                 match parse_sse_stream(stream_resp.stream(), on_event).await {
                     Ok(()) => return Ok(()),
                     Err(e) => {

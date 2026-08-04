@@ -52,6 +52,12 @@ struct HandleState {
     callback_invalid: Arc<AtomicBool>,
 }
 
+/// 安全获取 Mutex 锁，即使互斥锁被毒化也恢复数据。
+/// 避免因其他线程 panic 导致当前线程也 panic（连锁崩溃）。
+fn safe_lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 /// 分配新 handle
 fn next_handle() -> i64 {
     NEXT_HANDLE.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
@@ -60,9 +66,9 @@ fn next_handle() -> i64 {
 /// 存储 Provider 实例并返回 handle
 fn store_provider(provider: Arc<dyn LlmProvider>, config: ProviderConfig) -> i64 {
     let handle = next_handle();
-    PROVIDERS.lock().unwrap().insert(handle, provider);
-    PROVIDER_CONFIGS.lock().unwrap().insert(handle, config);
-    HANDLE_STATE.lock().unwrap().insert(handle, HandleState {
+    safe_lock(&PROVIDERS).insert(handle, provider);
+    safe_lock(&PROVIDER_CONFIGS).insert(handle, config);
+    safe_lock(&HANDLE_STATE).insert(handle, HandleState {
         cancelled: Arc::new(AtomicBool::new(false)),
         callback_invalid: Arc::new(AtomicBool::new(false)),
     });
@@ -73,12 +79,12 @@ fn store_provider(provider: Arc<dyn LlmProvider>, config: ProviderConfig) -> i64
 /// 设置取消标志，使正在运行的生成任务在下一个 await 点安全退出。
 fn remove_provider(handle: i64) {
     // Set the cancelled flag first so the running generation (if any) sees it.
-    if let Some(state) = HANDLE_STATE.lock().unwrap().get(&handle) {
+    if let Some(state) = safe_lock(&HANDLE_STATE).get(&handle) {
         state.cancelled.store(true, Ordering::SeqCst);
         state.callback_invalid.store(true, Ordering::SeqCst);
     }
-    PROVIDERS.lock().unwrap().remove(&handle);
-    PROVIDER_CONFIGS.lock().unwrap().remove(&handle);
+    safe_lock(&PROVIDERS).remove(&handle);
+    safe_lock(&PROVIDER_CONFIGS).remove(&handle);
     // Keep the HandleState entry so nativeGenerate can observe the cancelled flag;
     // it will be cleaned up after nativeGenerate returns (or never, if the process
     // dies — which is fine, the HashMap is process-scoped anyway).
@@ -182,7 +188,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
 
     // 获取 Provider 配置
     let config = {
-        let configs = PROVIDER_CONFIGS.lock().unwrap();
+        let configs = safe_lock(&PROVIDER_CONFIGS);
         match configs.get(&handle) {
             Some(c) => c.clone(),
             None => {
@@ -215,7 +221,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
 
     // 获取该 handle 的取消标志和回调存活标志
     let (cancelled, callback_invalid) = {
-        let state = HANDLE_STATE.lock().unwrap();
+        let state = safe_lock(&HANDLE_STATE);
         match state.get(&handle) {
             Some(s) => (s.cancelled.clone(), s.callback_invalid.clone()),
             None => {
@@ -288,7 +294,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
         // Clone the Arc out of the lock and drop the guard BEFORE awaiting,
         // so other JNI threads can access PROVIDERS concurrently.
         let provider = {
-            let providers = PROVIDERS.lock().unwrap();
+            let providers = safe_lock(&PROVIDERS);
             match providers.get(&handle) {
                 Some(p) => p.clone(),
                 None => {
@@ -438,7 +444,7 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeFetchMode
     let result = util::get_global_runtime().block_on(async {
         // Clone the Arc out of the lock and drop the guard BEFORE awaiting.
         let provider = {
-            let providers = PROVIDERS.lock().unwrap();
+            let providers = safe_lock(&PROVIDERS);
             match providers.get(&handle) {
                 Some(p) => p.clone(),
                 None => {
