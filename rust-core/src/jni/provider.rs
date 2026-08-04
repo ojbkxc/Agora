@@ -141,7 +141,21 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
                 _ => Arc::new(OpenAiProvider::new_openai()),
             }
         }
-        "anthropic" => Arc::new(AnthropicProvider::new()),
+        "anthropic" => {
+            // 如果配置了自定义 base_url，使用 new_custom 创建自定义 Anthropic 兼容提供商
+            if let Some(ref base_url) = config.base_url {
+                if !base_url.is_empty() && !base_url.starts_with("https://api.anthropic.com") {
+                    Arc::new(AnthropicProvider::new_custom(
+                        "Custom Anthropic".to_string(),
+                        base_url.clone(),
+                    ))
+                } else {
+                    Arc::new(AnthropicProvider::new())
+                }
+            } else {
+                Arc::new(AnthropicProvider::new())
+            }
+        }
         "gemini" => Arc::new(GeminiProvider::new()),
         "ollama" => Arc::new(OllamaProvider::new()),
         _ => {

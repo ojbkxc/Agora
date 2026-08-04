@@ -798,6 +798,14 @@ impl AnthropicProvider {
         }
     }
 
+    /// 创建自定义 Anthropic 兼容提供商（用于 cf-ai-gw 等兼容端点）
+    pub fn new_custom(name: String, base_url: String) -> Self {
+        Self {
+            name,
+            default_base_url: base_url,
+        }
+    }
+
     /// 构建请求 headers
     fn build_headers(api_key: &str) -> HashMap<String, String> {
         let mut headers = HashMap::new();
@@ -919,8 +927,38 @@ impl AnthropicProvider {
                                                     });
                                                 }
                                             }
+                                            "text_delta" => {
+                                                // cf-ai-gw 的 Anthropic 流式转换产生 text_delta 事件
+                                                if let Some(text) = delta
+                                                    .get("text")
+                                                    .and_then(|v| v.as_str())
+                                                {
+                                                    on_event(StreamEvent::TextChunk {
+                                                        text: text.to_string(),
+                                                    });
+                                                }
+                                            }
+                                            "thinking_delta" => {
+                                                // 思考增量（Claude 模型的 extended thinking）
+                                                if let Some(thinking) = delta
+                                                    .get("thinking")
+                                                    .and_then(|v| v.as_str())
+                                                {
+                                                    if let Some(sig) = delta
+                                                        .get("signature")
+                                                        .and_then(|v| v.as_str())
+                                                    {
+                                                        thinking_signature = Some(sig.to_string());
+                                                    }
+                                                    on_event(StreamEvent::ThoughtChunk {
+                                                        thought: thinking.to_string(),
+                                                        title: None,
+                                                        signature: thinking_signature.clone(),
+                                                    });
+                                                }
+                                            }
                                             _ => {
-                                                // text_delta 或 thinking_delta
+                                                // 未知 delta 类型：尝试 text 和 thinking 字段作为回退
                                                 if let Some(text) = delta
                                                     .get("text")
                                                     .and_then(|v| v.as_str())
@@ -1272,8 +1310,15 @@ impl LlmProvider for AnthropicProvider {
             break;
         }
 
-        Err(last_error
-            .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string())))
+        // 推送最终错误事件（与 OpenAI Provider 一致，确保 UI 能收到错误信息）
+        let err = last_error
+            .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string()));
+        on_event(StreamEvent::Error {
+            error: GenerationError::Unknown {
+                message: err.to_string(),
+            },
+        });
+        Err(err)
     }
 
     async fn fetch_models(
