@@ -92,7 +92,8 @@ object EmbeddingClient {
                 if (attempt < maxAttempts - 1) backoff(attempt)
             }
         }
-        DebugLog.e("EmbeddingClient", "computeEmbeddings failed after $maxAttempts attempts", lastError)
+        lastError?.let { DebugLog.e("EmbeddingClient", "computeEmbeddings failed after $maxAttempts attempts", it) }
+            ?: DebugLog.e("EmbeddingClient", "computeEmbeddings failed after $maxAttempts attempts")
         return texts.map { null }
     }
 
