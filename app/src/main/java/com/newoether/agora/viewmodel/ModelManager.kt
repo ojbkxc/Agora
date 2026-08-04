@@ -3,6 +3,7 @@ package com.newoether.agora.viewmodel
 import com.newoether.agora.data.LocalChatModelConfig
 import com.newoether.agora.data.repository.SettingsRepository
 import com.newoether.agora.util.Constants
+import com.newoether.agora.util.DebugLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
