@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.TextFieldState
@@ -25,11 +26,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.newoether.agora.R
 import com.newoether.agora.model.SelectedAttachment
 import com.newoether.agora.ui.common.LocalAgoraHaptics
+import com.newoether.agora.ui.theme.AgoraColors
+import com.newoether.agora.ui.theme.LocalAgoraColors
+import com.newoether.agora.ui.theme.LocalAgoraGradients
 import com.newoether.agora.viewmodel.SendAcceptance
 import kotlinx.coroutines.launch
 
@@ -88,6 +95,16 @@ internal fun ComposerSendButton(
     val canSend = (textFieldState.text.isNotBlank() || composer.selectedAttachments.isNotEmpty()) && isModelValid && !isSwitching && !isStopping && !isSubmitting
             && composer.selectedAttachments.none { it.localPath == null && (it.type == "image" || it.type == "file") }
     val isActionable = (isLoading || canSend || composer.pendingSend) && !isSwitching && !isStopping
+    // 渐变发送按钮：send 状态用渐变+光晕，stop 状态用红色，其他用 surfaceVariant
+    val agoraColors = LocalAgoraColors.current
+    val gradients = LocalAgoraGradients.current
+    val useGradient = isActionable && !showStop && !isStopping && !isSubmitting && !composer.pendingSend
+    val fabBackground = when {
+        useGradient -> gradients.gradient
+        showStop -> SolidColor(AgoraColors.danger)
+        isActionable -> SolidColor(MaterialTheme.colorScheme.primary)
+        else -> SolidColor(MaterialTheme.colorScheme.surfaceVariant)
+    }
     FloatingActionButton(
         onClick = {
             if (isSwitching || isStopping) return@FloatingActionButton
@@ -126,9 +143,11 @@ internal fun ComposerSendButton(
                 }
             }
         },
-        containerColor = animateColorAsState(if (isActionable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, tween(400), label = "fabContainer").value,
-        contentColor = animateColorAsState(if (isActionable) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, tween(400), label = "fabContent").value,
-        modifier = Modifier.size(46.dp),
+        containerColor = Color.Transparent,
+        contentColor = if (isActionable) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(46.dp).then(
+            if (useGradient) Modifier.shadow(8.dp, CircleShape, spotColor = agoraColors.accent.copy(alpha = 0.4f), ambientColor = agoraColors.accent.copy(alpha = 0.15f)) else Modifier
+        ).background(fabBackground, CircleShape),
         shape = CircleShape,
         elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
     ) {

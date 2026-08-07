@@ -54,7 +54,9 @@ import com.newoether.agora.model.MessageStatus
 import com.newoether.agora.model.Participant
 import com.newoether.agora.model.ToolCallDisplayModes
 import com.newoether.agora.ui.common.LocalAgoraHaptics
+import com.newoether.agora.ui.theme.AgoraColors
 import com.newoether.agora.ui.theme.ChatType
+import com.newoether.agora.ui.theme.LocalAgoraColors
 import org.intellij.markdown.flavours.MarkdownFlavourDescriptor
 import kotlinx.coroutines.launch
 
@@ -326,21 +328,29 @@ internal fun AssistantMessageContent(
                         .noOpBringIntoView()
                 ) {
                     if (isError) {
-                        Surface(color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), contentColor = MaterialTheme.colorScheme.onErrorContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Surface(color = AgoraColors.danger.copy(alpha = 0.15f), contentColor = AgoraColors.danger, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                                Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp).padding(top = 2.dp), tint = AgoraColors.danger)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 SelectionContainer {
                                     Text(
                                         debouncedText.ifEmpty { stringResource(R.string.failed_to_generate) },
                                         style = ChatType.errorBody,
-                                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                        color = AgoraColors.danger
                                     )
                                 }
                             }
                         }
                     } else if (debouncedText.isNotEmpty() && !useTimelineSegments) {
-                        Box {
+                        // AI 消息玻璃气泡：半透明 cardBg + 20dp 圆角
+                        val aiBubbleColors = LocalAgoraColors.current
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(aiBubbleColors.cardBg, RoundedCornerShape(20.dp))
+                                .padding(12.dp)
+                        ) {
                             SelectionContainer {
                                 StreamingMarkdownDocument(
                                     content = debouncedText,

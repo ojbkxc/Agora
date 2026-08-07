@@ -1,5 +1,6 @@
 package com.newoether.agora.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +27,9 @@ import com.newoether.agora.R
 import com.newoether.agora.data.ApiKeyEntry
 
 import com.newoether.agora.ui.components.CustomEndpointProtocolSelector
+import com.newoether.agora.ui.components.GradientButton
 import com.newoether.agora.ui.components.clearFocusOnTap
+import com.newoether.agora.ui.theme.LocalAgoraColors
 import com.newoether.agora.util.Constants
 import com.newoether.agora.util.noOpBringIntoView
 import com.newoether.agora.viewmodel.ChatViewModel
@@ -117,11 +121,16 @@ fun SettingsProviderDetailPage(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(stringResource(R.string.provider_base_url), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onSurface)
                                         Box(modifier = Modifier.noOpBringIntoView().padding(top = 8.dp)) {
+                                            // Glass-style input: translucent background + 12dp corners.
+                                            // Focus colour stays the theme primary (indigo) which harmonises
+                                            // with the cf-ai-gw purple accent.
                                             OutlinedTextField(
                                                 state = baseUrlState,
                                                 placeholder = { Text(providerInstance?.defaultBaseUrl ?: "", style = MaterialTheme.typography.bodyMedium) },
-                                                shape = RoundedCornerShape(16.dp),
-                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(LocalAgoraColors.current.inputBg, RoundedCornerShape(12.dp)),
                                                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             )
                                         }
@@ -171,13 +180,15 @@ fun SettingsProviderDetailPage(
                                 )
                             }
                             add {
-                                Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showKeyDialog = ApiKeyEntry(name = "", key = "", provider = providerName) }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(stringResource(R.string.provider_add_key), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                                    }
-                                }
+                                // Gradient "add key" CTA (cf-ai-gw primary-gradient).
+                                GradientButton(
+                                    text = stringResource(R.string.provider_add_key),
+                                    onClick = { showKeyDialog = ApiKeyEntry(name = "", key = "", provider = providerName) },
+                                    icon = {
+                                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
                         }
                     )
@@ -208,13 +219,15 @@ fun SettingsProviderDetailPage(
                                 }
                             }
                             add {
-                                Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showKeyDialog = ApiKeyEntry(name = "", key = "", provider = providerName) }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(stringResource(R.string.provider_add_key), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                                    }
-                                }
+                                // Gradient "add key" CTA (cf-ai-gw primary-gradient).
+                                GradientButton(
+                                    text = stringResource(R.string.provider_add_key),
+                                    onClick = { showKeyDialog = ApiKeyEntry(name = "", key = "", provider = providerName) },
+                                    icon = {
+                                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
                         }
                     )
@@ -233,11 +246,18 @@ fun SettingsProviderDetailPage(
         val isEdit = apiKeys.any { it.id == entry.id }
         AlertDialog(modifier = Modifier.clearFocusOnTap(), containerColor = MaterialTheme.colorScheme.surfaceContainer, onDismissRequest = { showKeyDialog = null }, title = { Text(if (isEdit) stringResource(R.string.provider_edit_key) else stringResource(R.string.provider_add_key_title), fontWeight = FontWeight.Bold) }, text = {
             Column(Modifier.fillMaxWidth()) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.provider_key_name_hint)) }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().noOpBringIntoView())
+                // Glass-style inputs: translucent background + 12dp corners.
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.provider_key_name_hint)) }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().noOpBringIntoView().background(LocalAgoraColors.current.inputBg, RoundedCornerShape(12.dp)))
                 Spacer(modifier = Modifier.height(8.dp))
-                Box(modifier = Modifier.noOpBringIntoView()) { OutlinedTextField(value = key, onValueChange = { key = it }, label = { Text("${providerName} API Key") }, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) }
+                Box(modifier = Modifier.noOpBringIntoView()) { OutlinedTextField(value = key, onValueChange = { key = it }, label = { Text("${providerName} API Key") }, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().background(LocalAgoraColors.current.inputBg, RoundedCornerShape(12.dp))) }
             }
-        }, confirmButton = { TextButton(onClick = { if (name.isNotBlank() && key.isNotBlank()) { if (isEdit) viewModel.settings.updateApiKey(entry.id, name, key) else viewModel.settings.addApiKey(name, key, providerName); showKeyDialog = null } }) { Text(if (isEdit) stringResource(R.string.provider_save) else stringResource(R.string.provider_add)) } }, dismissButton = { TextButton(onClick = { showKeyDialog = null }) { Text(stringResource(R.string.cancel)) } })
+        }, confirmButton = {
+            // Gradient save/add button (cf-ai-gw primary-gradient CTA).
+            GradientButton(
+                text = if (isEdit) stringResource(R.string.provider_save) else stringResource(R.string.provider_add),
+                onClick = { if (name.isNotBlank() && key.isNotBlank()) { if (isEdit) viewModel.settings.updateApiKey(entry.id, name, key) else viewModel.settings.addApiKey(name, key, providerName); showKeyDialog = null } },
+            )
+        }, dismissButton = { TextButton(onClick = { showKeyDialog = null }) { Text(stringResource(R.string.cancel)) } })
     }
 
     // Delete key confirm

@@ -22,7 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.newoether.agora.R
 import com.newoether.agora.model.ChatConversation
+import com.newoether.agora.ui.components.GradientText
 import com.newoether.agora.ui.theme.ChatType
+import com.newoether.agora.ui.theme.LocalAgoraGradients
 
 /**
  * The chat screen's top bar: a title capsule (drawer menu + brand/conversation
@@ -91,11 +93,9 @@ internal fun ChatTopBar(
                         }
                         Spacer(modifier = Modifier.width(5.dp))
                         if (showBrandTitle) {
-                            Text(
+                            GradientText(
                                 text = stringResource(R.string.app_name),
                                 style = ChatType.brandTitle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 180.dp)
                             )
                         } else {
@@ -104,7 +104,7 @@ internal fun ChatTopBar(
                                     text = resolvedTitle,
                                     // Single-line (no token subtitle) uses a slightly-smaller-than-brand
                                     // solo size; with the token subtitle stacked below, the compact size.
-                                    style = if (totalTokens > 0) ChatType.conversationTitle else ChatType.conversationTitleSolo,
+                                    style = (if (totalTokens > 0) ChatType.conversationTitle else ChatType.conversationTitleSolo).copy(brush = LocalAgoraGradients.current.gradient),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

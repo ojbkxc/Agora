@@ -56,6 +56,7 @@ import com.newoether.agora.model.Participant
 import com.newoether.agora.ui.chat.bottombar.ChatBottomBar
 import com.newoether.agora.ui.chat.message.hasActiveAnswerSegment
 import com.newoether.agora.ui.components.AnimatedBlobBackground
+import com.newoether.agora.ui.components.BackgroundOrbs
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.components.TypewriterText
 import com.newoether.agora.ui.common.LocalAgoraHaptics
@@ -694,6 +695,8 @@ fun ChatApp(
             val ca by animateFloatAsState(targetCa, tween(800))
             val qa by animateFloatAsState(targetQa, tween(800))
             AnimatedBlobBackground(centerAlpha = ca, quarterAlpha = qa, blurRadius = 40f, dark = dark, blurEnabled = blurEffectsEnabled)
+            // cf-ai-gw ambient orbs — indigo + pink blurred circles behind content.
+            BackgroundOrbs(modifier = Modifier.fillMaxSize())
 
             Scaffold(
                 containerColor = Color.Transparent,

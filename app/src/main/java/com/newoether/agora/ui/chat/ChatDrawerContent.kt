@@ -75,6 +75,8 @@ import com.newoether.agora.ui.chat.search.rememberDrawerSearchState
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.common.LocalAgoraHaptics
 import com.newoether.agora.ui.theme.ChatType
+import com.newoether.agora.ui.theme.LocalAgoraColors
+import com.newoether.agora.ui.theme.LocalAgoraGradients
 import com.newoether.agora.util.verticalEdgeFade
 import com.newoether.agora.viewmodel.ChatViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -114,8 +116,8 @@ internal fun ChatDrawerContent(
 
     ModalDrawerSheet(
         drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
-        drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerTonalElevation = 1.dp,
+        drawerContainerColor = LocalAgoraColors.current.cardBg,
+        drawerTonalElevation = 0.dp,
         modifier = Modifier
             .width(drawerWidth)
             .onGloballyPositioned { coords ->
@@ -180,16 +182,8 @@ internal fun ChatDrawerContent(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 val newChatDisabled = isSwitching
-                val newChatContainer by animateColorAsState(
-                    if (newChatDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                    else MaterialTheme.colorScheme.primary,
-                    tween(300), label = "newChatContainer"
-                )
-                val newChatContent by animateColorAsState(
-                    if (newChatDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    else MaterialTheme.colorScheme.onPrimary,
-                    tween(300), label = "newChatContent"
-                )
+                // 渐变新建对话按钮：135° indigo→violet→pink，disabled 时灰色
+                val newChatGradient = LocalAgoraGradients.current.gradient
                 Button(
                     onClick = {
                         if (!newChatDisabled) {
@@ -201,12 +195,15 @@ internal fun ChatDrawerContent(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                    modifier = Modifier.fillMaxWidth().height(42.dp).then(
+                        if (newChatDisabled) Modifier.background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), CircleShape)
+                        else Modifier.background(newChatGradient, CircleShape)
+                    ),
                     enabled = true,
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = newChatContainer,
-                        contentColor = newChatContent
+                        containerColor = Color.Transparent,
+                        contentColor = if (newChatDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else Color.White
                     )
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp))

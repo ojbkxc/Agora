@@ -53,6 +53,7 @@ import com.newoether.agora.ui.common.LocalAgoraHaptics
 import com.newoether.agora.ui.common.ThinkingControlPanel
 import com.newoether.agora.ui.common.thinkingControlShortLabel
 import com.newoether.agora.ui.theme.ChatType
+import com.newoether.agora.ui.theme.LocalAgoraColors
 import com.newoether.agora.util.noOpBringIntoView
 import com.newoether.agora.viewmodel.SendAcceptance
 import androidx.compose.ui.graphics.Color
@@ -187,6 +188,7 @@ fun ChatBottomBar(
         )
 
         Box(modifier = Modifier.fillMaxWidth().then(if (isExpanded) Modifier.weight(1f) else Modifier).noOpBringIntoView()) {
+            val agoraColors = LocalAgoraColors.current
             TextField(
                 state = textFieldState,
                 scrollState = scrollState,
@@ -206,13 +208,13 @@ fun ChatBottomBar(
                 lineLimits = TextFieldLineLimits.MultiLine(1, if (isExpanded) Int.MAX_VALUE else 6),
                 contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedIndicatorColor = agoraColors.accent.copy(alpha = 0.6f),
+                    unfocusedIndicatorColor = agoraColors.border,
                     disabledIndicatorColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = agoraColors.inputBg,
+                    unfocusedContainerColor = agoraColors.inputBg.copy(alpha = 0.6f),
                     disabledContainerColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.primary
+                    cursorColor = agoraColors.accent
                 ),
                 textStyle = ChatType.input.copy(color = MaterialTheme.colorScheme.onSurface)
             )
@@ -229,7 +231,7 @@ fun ChatBottomBar(
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(48.dp).background(MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp), RoundedCornerShape(100)).padding(horizontal = 8.dp, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(48.dp).background(LocalAgoraColors.current.cardBg, RoundedCornerShape(100)).padding(horizontal = 8.dp, vertical = 4.dp)) {
                 var showAddMenu by remember { mutableStateOf(false) }
                 var lastAddDismissTime by remember { mutableLongStateOf(0L) }
                 ExposedDropdownMenuBox(

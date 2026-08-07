@@ -69,6 +69,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -82,6 +83,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -91,10 +93,14 @@ import androidx.media3.ui.PlayerView
 import com.newoether.agora.R
 import com.newoether.agora.data.CustomEndpointProtocol
 
+import com.newoether.agora.ui.components.BackgroundOrbs
 import com.newoether.agora.ui.components.CustomEndpointProtocolSelector
+import com.newoether.agora.ui.components.GlassCard
+import com.newoether.agora.ui.components.GradientButton
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.components.providerIcon
 import com.newoether.agora.model.apiModelName
+import com.newoether.agora.ui.theme.LocalAgoraGradients
 import com.newoether.agora.util.Constants
 import com.newoether.agora.viewmodel.ChatViewModel
 import kotlin.math.absoluteValue
@@ -288,6 +294,8 @@ fun WelcomeScreen(
 
     AnimatedVisibility(visible = !exiting, exit = fadeOut(tween(300))) {
         Box(modifier = Modifier.fillMaxSize().clearFocusOnTap()) {
+            // Ambient cf-ai-gw glow — sits behind all onboarding content.
+            BackgroundOrbs()
             // No imePadding here: onboarding keeps a stable centered layout while
             // the keyboard is open; chat and settings surfaces handle IME insets.
             Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -390,7 +398,11 @@ fun WelcomeScreen(
                             val anim = isCurrent && index !in typedPages
                             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                                 val delay = if (index == 0) 2000 else 0
-                                TypeInText(text = title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, speedMs = 50, initialDelayMs = if (anim) delay else 0, animate = anim, showText = show)
+                                // Brand wordmark gets the indigo→violet→pink gradient + tight
+                                // -0.5sp tracking; body copy stays a solid muted colour.
+                                val titleBrush = LocalAgoraGradients.current.gradient
+                                val titleStyle = MaterialTheme.typography.headlineMedium.copy(letterSpacing = (-0.5).sp)
+                                TypeInText(text = title, style = titleStyle, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, speedMs = 50, initialDelayMs = if (anim) delay else 0, animate = anim, showText = show, brush = titleBrush)
                                 Spacer(Modifier.height(8.dp))
                                 TypeInText(text = desc, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, speedMs = 30, initialDelayMs = if (anim) delay + 200 else 0, animate = anim, showText = show, onDone = { if (anim) typedPages.add(index) })
                             }
@@ -413,17 +425,20 @@ fun WelcomeScreen(
                 // Continue / Get Started
                 Box(Modifier.fillMaxWidth().padding(horizontal = 32.dp).padding(bottom = 48.dp).navigationBarsPadding().alpha(contentAlpha)) {
                     val last = pagerState.currentPage == pages.size - 1
-                    Button(onClick = {
-                        if (last) { exiting = true }
-                        else {
-                            // Credentials are saved by the page-leave effect (covers both
-                            // swipe and this button), so we only advance here.
-                            if (pagerState.currentPage == PAGE_PROVIDER && selectedProvider != null) apiKeyText = ""
-                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1, animationSpec = tween<Float>(500, easing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f))) }
-                        }
-                    }, Modifier.fillMaxWidth(), shape = RoundedCornerShape(50), enabled = showContent, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
-                        Text(if (last) stringResource(R.string.onboarding_get_started) else stringResource(R.string.onboarding_continue), modifier = Modifier.padding(vertical = 4.dp))
-                    }
+                    GradientButton(
+                        text = if (last) stringResource(R.string.onboarding_get_started) else stringResource(R.string.onboarding_continue),
+                        onClick = {
+                            if (last) { exiting = true }
+                            else {
+                                // Credentials are saved by the page-leave effect (covers both
+                                // swipe and this button), so we only advance here.
+                                if (pagerState.currentPage == PAGE_PROVIDER && selectedProvider != null) apiKeyText = ""
+                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1, animationSpec = tween<Float>(500, easing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f))) }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = showContent,
+                    )
                 }
             }
         }
@@ -452,11 +467,9 @@ private fun ProviderPage(providers: List<String>, selected: String?, onSelect: (
     val scrollState = rememberScrollState()
     val trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
     val thumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-    Surface(
+    GlassCard(
         modifier = modifier.heightIn(max = 340.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp
+        showGradientBorder = true,
     ) {
         Box(Modifier.fillMaxWidth().drawBehind {
             if (scrollState.maxValue > 0) {
@@ -504,7 +517,7 @@ private fun ApiKeyPage(
     apiKeyVisible: Boolean, onToggleVisibility: () -> Unit,
     modifier: Modifier
 ) {
-    Surface(modifier, RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 2.dp) {
+    GlassCard(modifier, showGradientBorder = true) {
         if (provider == null) {
             Column(Modifier.padding(32.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.onboarding_no_provider), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -595,7 +608,7 @@ private fun ApiKeyPage(
 
 @Composable
 private fun ModelPage(models: List<String>, modelAliases: Map<String, String>, selectedId: String?, isLoading: Boolean, onSelect: (String) -> Unit, modifier: Modifier) {
-    Surface(modifier, RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 2.dp) {
+    GlassCard(modifier, showGradientBorder = true) {
         if (models.isEmpty()) {
             // While a fetch is in flight show a quiet spinner instead of the empty
             // state, so the list never flashes "no models" then jumps into view.
@@ -649,7 +662,7 @@ private fun ModelPage(models: List<String>, modelAliases: Map<String, String>, s
 }
 
 @Composable
-private fun TypeInText(text: String, modifier: Modifier = Modifier, style: TextStyle, color: Color, fontWeight: FontWeight? = null, textAlign: TextAlign? = null, speedMs: Int = 50, initialDelayMs: Int = 0, animate: Boolean = true, onDone: () -> Unit = {}, showText: Boolean = true) {
+private fun TypeInText(text: String, modifier: Modifier = Modifier, style: TextStyle, color: Color, fontWeight: FontWeight? = null, textAlign: TextAlign? = null, speedMs: Int = 50, initialDelayMs: Int = 0, animate: Boolean = true, onDone: () -> Unit = {}, showText: Boolean = true, brush: Brush? = null) {
     var startMs by remember(text) { mutableStateOf(0L) }
     var started by remember(text) { mutableStateOf(false) }
     var visible by remember(text, animate) { mutableStateOf(if (animate) 0 else text.length) }
@@ -676,12 +689,16 @@ private fun TypeInText(text: String, modifier: Modifier = Modifier, style: TextS
     val typed = remember(text, visible) {
         if (visible >= codePointCount) text else text.substring(0, text.offsetByCodePoints(0, visible))
     }
+    // When a gradient brush is supplied, render via style.copy(brush) with an unspecified
+    // color so the brush wins over the solid color. Keeps the type-in animation intact.
+    val visibleStyle = if (brush != null) style.copy(brush = brush) else style
+    val visibleColor = if (brush != null) Color.Unspecified else color
     Box(modifier.fillMaxWidth()) {
         // Invisible full text anchors layout — always present
         Text(text = text, style = style, fontWeight = fontWeight, color = Color.Transparent, textAlign = textAlign, modifier = Modifier.fillMaxWidth())
         // Visible typed text — only when showText is true
         if (showText) {
-            Text(text = typed + if (!done) "|" else "", style = style, fontWeight = fontWeight, color = color, textAlign = textAlign, modifier = Modifier.fillMaxWidth())
+            Text(text = typed + if (!done) "|" else "", style = visibleStyle, fontWeight = fontWeight, color = visibleColor, textAlign = textAlign, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -705,7 +722,7 @@ private fun LoopVideo(player: ExoPlayer) {
 
 @Composable
 private fun AutoBackupPage(enabled: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier) {
-    Surface(modifier, RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 2.dp) {
+    GlassCard(modifier, showGradientBorder = true) {
         Column(Modifier.padding(32.dp).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Schedule, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(36.dp))

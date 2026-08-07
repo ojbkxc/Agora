@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.newoether.agora.R
 import com.newoether.agora.data.CustomEndpointProtocol
+import com.newoether.agora.ui.components.GradientButton
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.components.CustomEndpointProtocolSelector
 import com.newoether.agora.ui.components.displayName
@@ -146,13 +147,20 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     }
                                 }
                                 add {
-                                    Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showAddCustomDialog = true }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(stringResource(R.string.custom_provider_add_title), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                                        }
-                                    }
+                                    // Gradient "add provider" button (cf-ai-gw primary-gradient CTA).
+                                    GradientButton(
+                                        text = stringResource(R.string.custom_provider_add_title),
+                                        onClick = { showAddCustomDialog = true },
+                                        icon = {
+                                            Icon(
+                                                Icons.Default.Add,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                                tint = androidx.compose.ui.graphics.Color.White,
+                                            )
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
                                 }
                             })
 

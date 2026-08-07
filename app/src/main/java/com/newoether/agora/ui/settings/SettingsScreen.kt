@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.annotation.StringRes
 import com.newoether.agora.R
+import com.newoether.agora.ui.components.GlassCard
 import com.newoether.agora.ui.settings.datacontrol.SettingsDataControlPage
 import com.newoether.agora.viewmodel.ChatViewModel
 
@@ -77,21 +78,13 @@ fun SettingsGroup(
         Column(modifier = Modifier.fillMaxWidth()) {
             items.forEachIndexed { index, item ->
                 if (index > 0) {
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                val isFirst = index == 0
-                val isLast = index == items.lastIndex
-                val shape = when {
-                    items.size == 1 -> RoundedCornerShape(24.dp)
-                    isFirst -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-                    isLast -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                    else -> RoundedCornerShape(5.dp)
-                }
-                Surface(
-                    shape = shape,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
+                // Glassmorphism card (cf-ai-gw aesthetic): translucent slate + 20dp corners
+                // with a hover gradient top-border.
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    showGradientBorder = true,
                 ) {
                     item()
                 }
@@ -283,24 +276,14 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 }
                                 group.items.forEachIndexed { index, cat ->
                                     if (index > 0) {
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
                                     }
-                                    val isFirst = index == 0
-                                    val isLast = index == group.items.lastIndex
-                                    val shape = when {
-                                        group.items.size == 1 -> RoundedCornerShape(24.dp)
-                                        isFirst -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-                                        isLast -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                                        else -> RoundedCornerShape(5.dp)
-                                    }
-                                    Surface(
-                                        shape = shape,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        tonalElevation = 1.dp,
+                                    // Glassmorphism card with hover gradient top-border.
+                                    GlassCard(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clip(shape)
-                                            .clickable { selectedCategory = cat.key }
+                                            .clickable { selectedCategory = cat.key },
+                                        showGradientBorder = true,
                                     ) {
                                         Row(
                                             modifier = Modifier

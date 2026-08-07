@@ -19,7 +19,16 @@ val MonoFamily = FontFamily(
 // Default UI font is the system font family. The bundled "mioutfit" TTFs were
 // removed to shrink the APK (~38 MB of fonts); users who want a custom look can
 // still pick "custom" in Settings and point it at any font file on device.
+//
+// cf-ai-gw design calls for two typefaces — Outfit (500/600/700, display & titles)
+// and Inter (300/400/500/600, body & UI). To honour that hierarchy WITHOUT
+// shipping new font assets (which would bloat the APK), both names alias
+// FontFamily.Default and the hierarchy is carried by FontWeight alone: callers
+// use OutfitFamily for Bold/SemiBold headings and InterFamily for Normal/Medium
+// body text. If real Inter/Outfit assets are added later, only these two vals
+// need to change.
 val OutfitFamily = FontFamily.Default
+val InterFamily = FontFamily.Default
 
 // Geometric (modular) type scale: every distinct size is a term of a geometric
 // sequence anchored at body = 16sp with common ratio r = 1.2 (minor third).

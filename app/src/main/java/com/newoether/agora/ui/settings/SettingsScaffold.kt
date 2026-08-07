@@ -51,7 +51,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.newoether.agora.R
+import com.newoether.agora.ui.components.BackgroundOrbs
 import com.newoether.agora.ui.components.CircularBackButton
+import com.newoether.agora.ui.components.GradientText
 import com.newoether.agora.ui.components.clearFocusOnTap
 
 // ── Shared geometry for the iOS-style collapsing large title, used by the
@@ -145,13 +147,9 @@ internal fun CollapsingSettingsTitleBar(
         // offset() and the default TopStart alignment both mirror for RTL, so the title docks
         // beside the back arrow on the correct side. Only the scale anchor must be flipped:
         // pin the start edge (top-left in LTR, top-right in RTL) so it grows out from the arrow.
-        Text(
+        // GradientText renders the title with the cf-ai-gw indigo→violet→pink brush.
+        GradientText(
             text = title,
-            fontWeight = FontWeight.Bold,
-            fontSize = expandedFont,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
                 .widthIn(max = availableTitleWidth)
                 .offset(x = titleX, y = titleY)
@@ -159,7 +157,13 @@ internal fun CollapsingSettingsTitleBar(
                     scaleX = titleScale
                     scaleY = titleScale
                     transformOrigin = TransformOrigin(if (isRtl) 1f else 0f, 0f)
-                }
+                },
+            style = TextStyle(
+                fontWeight = FontWeight.Bold,
+                fontSize = expandedFont,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            ),
         )
     }
 }
@@ -191,6 +195,8 @@ fun CollapsingSettingsScaffold(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // Ambient indigo/pink orbs behind the glass content (cf-ai-gw aesthetic).
+        BackgroundOrbs()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -258,6 +264,8 @@ fun CollapsingSettingsLazyScaffold(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // Ambient indigo/pink orbs behind the glass content (cf-ai-gw aesthetic).
+        BackgroundOrbs()
         LazyColumn(
             state = listState,
             modifier = Modifier

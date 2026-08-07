@@ -1,5 +1,6 @@
 package com.newoether.agora.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -22,7 +23,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.newoether.agora.R
 import com.newoether.agora.api.ProviderDefaults
+import com.newoether.agora.ui.components.GradientButton
 import com.newoether.agora.ui.components.clearFocusOnTap
+import com.newoether.agora.ui.theme.LocalAgoraColors
 import com.newoether.agora.util.Constants
 import com.newoether.agora.viewmodel.ChatViewModel
 
@@ -311,19 +314,18 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         }
                     }
                     add {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            TextButton(onClick = {
+                        // Gradient "add remote model" CTA (cf-ai-gw primary-gradient).
+                        GradientButton(
+                            text = stringResource(R.string.add_remote_model),
+                            onClick = {
                                 remoteState.prepareForNew(
                                     embeddingProviders[0],
                                     viewModel.resolveEmbeddingKeyForProviderExact(Constants.PROVIDER_OPENAI)?.key ?: ""
                                 )
                                 showRemoteDialog = true
-                            }) { Text(stringResource(R.string.add_remote_model)) }
-
-                        }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
                     }
                 }
             )
@@ -360,11 +362,17 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(top = 4.dp)
                                     )
+                                    // Purple-accent slider (cf-ai-gw accent #a855f7).
                                     Slider(
                                         value = searchContextWindow.toFloat(),
                                         onValueChange = { viewModel.settings.setSearchContextWindow(it.toInt()) },
                                         valueRange = 4f..32f,
                                         steps = 6,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = LocalAgoraColors.current.accent,
+                                            activeTrackColor = LocalAgoraColors.current.accent,
+                                            inactiveTrackColor = LocalAgoraColors.current.accent.copy(alpha = 0.3f),
+                                        ),
                                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                                     )
                                 }
@@ -400,11 +408,17 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(top = 4.dp)
                                     )
+                                    // Purple-accent slider (cf-ai-gw accent #a855f7).
                                     Slider(
                                         value = searchMatchLimit.toFloat(),
                                         onValueChange = { viewModel.settings.setSearchMatchLimit(it.toInt()) },
                                         valueRange = 5f..30f,
                                         steps = 4,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = LocalAgoraColors.current.accent,
+                                            activeTrackColor = LocalAgoraColors.current.accent,
+                                            inactiveTrackColor = LocalAgoraColors.current.accent.copy(alpha = 0.3f),
+                                        ),
                                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                                     )
                                 }
@@ -440,11 +454,17 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(top = 4.dp)
                                     )
+                                    // Purple-accent slider (cf-ai-gw accent #a855f7).
                                     Slider(
                                         value = localThreshold,
                                         onValueChange = { localThreshold = it },
                                         onValueChangeFinished = { viewModel.settings.setRagThreshold(localThreshold) },
                                         valueRange = 0f..1f,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = LocalAgoraColors.current.accent,
+                                            activeTrackColor = LocalAgoraColors.current.accent,
+                                            inactiveTrackColor = LocalAgoraColors.current.accent.copy(alpha = 0.3f),
+                                        ),
                                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
@@ -518,13 +538,14 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.edit), fontWeight = FontWeight.Bold) },
                 text = {
                     Column {
+                        // Glass-style inputs: translucent background + 12dp corners.
                         OutlinedTextField(
                             value = renameText,
                             onValueChange = { renameText = it },
                             label = { Text(stringResource(R.string.model_name_label)) },
                             singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().background(LocalAgoraColors.current.inputBg, RoundedCornerShape(12.dp))
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
@@ -533,18 +554,22 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             label = { Text(stringResource(R.string.embedding_batch_size)) },
                             supportingText = { Text(stringResource(R.string.embedding_batch_size_desc)) },
                             singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().background(LocalAgoraColors.current.inputBg, RoundedCornerShape(12.dp))
                         )
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        if (renameText.isNotBlank()) {
-                            viewModel.renameEmbeddingModel(modelId, renameText, editBatchSize.toIntOrNull() ?: 8)
-                            showRenameDialog = null
-                        }
-                    }) { Text(stringResource(R.string.save)) }
+                    // Gradient save button (cf-ai-gw primary-gradient CTA).
+                    GradientButton(
+                        text = stringResource(R.string.save),
+                        onClick = {
+                            if (renameText.isNotBlank()) {
+                                viewModel.renameEmbeddingModel(modelId, renameText, editBatchSize.toIntOrNull() ?: 8)
+                                showRenameDialog = null
+                            }
+                        },
+                    )
                 },
                 dismissButton = {
                     TextButton(onClick = { showRenameDialog = null }) { Text(stringResource(R.string.cancel)) }

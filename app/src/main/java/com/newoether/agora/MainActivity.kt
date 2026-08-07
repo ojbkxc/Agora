@@ -69,6 +69,7 @@ import com.newoether.agora.service.AppForegroundTracker
 import com.newoether.agora.data.local.ChatDatabase
 import com.newoether.agora.ui.chat.ChatApp
 import com.newoether.agora.ui.chat.FullScreenMediaViewer
+import com.newoether.agora.ui.components.BackgroundOrbs
 import com.newoether.agora.ui.onboarding.WelcomeScreen
 import com.newoether.agora.ui.settings.SettingsScreen
 import com.newoether.agora.ui.theme.AgoraTheme
@@ -206,60 +207,64 @@ class MainActivity : ComponentActivity() {
                 fontPreference = fontPreference,
                 customFontPath = customFontPath
             ) {
-                val activity = LocalActivity.current
+                // Global cf-ai-gw ambient glow — lowest z-layer, behind every screen.
+                Box(Modifier.fillMaxSize()) {
+                    BackgroundOrbs()
+                    val activity = LocalActivity.current
 
-                if (needsErrorDialog) {
-                    AlertDialog(
-                        onDismissRequest = { activity?.finish() },
-                        title = { Text(stringResource(R.string.database_incompatible), fontWeight = FontWeight.Bold) },
-                        text = { Text(stringResource(R.string.database_incompatible_desc)) },
-                        dismissButton = {
-                            TextButton(onClick = { activity?.finish() }) { Text(stringResource(R.string.quit)) }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                applicationContext.deleteDatabase(ChatDatabase.DB_NAME)
-                                activity?.recreate()
-                            }) { Text(stringResource(R.string.clear_database)) }
+                    if (needsErrorDialog) {
+                        AlertDialog(
+                            onDismissRequest = { activity?.finish() },
+                            title = { Text(stringResource(R.string.database_incompatible), fontWeight = FontWeight.Bold) },
+                            text = { Text(stringResource(R.string.database_incompatible_desc)) },
+                            dismissButton = {
+                                TextButton(onClick = { activity?.finish() }) { Text(stringResource(R.string.quit)) }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    applicationContext.deleteDatabase(ChatDatabase.DB_NAME)
+                                    activity?.recreate()
+                                }) { Text(stringResource(R.string.clear_database)) }
+                            }
+                        )
+                    } else {
+                        var showOnboarding by remember { mutableStateOf<Boolean?>(null) }
+                        val onboardingScope = rememberCoroutineScope()
+
+                        LaunchedEffect(Unit) {
+                            showOnboarding = !settingsManager.onboardingCompleted.first()
                         }
-                    )
-                } else {
-                    var showOnboarding by remember { mutableStateOf<Boolean?>(null) }
-                    val onboardingScope = rememberCoroutineScope()
 
-                    LaunchedEffect(Unit) {
-                        showOnboarding = !settingsManager.onboardingCompleted.first()
-                    }
+                        // Create ViewModel via the process-scoped DI container (owned by AgoraApplication),
+                        // so the same shared singletons back both the UI and background task execution.
+                        val container = (application as AgoraApplication).container
+                        val factory = remember { container.chatViewModelFactory() }
+                        val viewModel: ChatViewModel = viewModel(factory = factory)
 
-                    // Create ViewModel via the process-scoped DI container (owned by AgoraApplication),
-                    // so the same shared singletons back both the UI and background task execution.
-                    val container = (application as AgoraApplication).container
-                    val factory = remember { container.chatViewModelFactory() }
-                    val viewModel: ChatViewModel = viewModel(factory = factory)
-
-                    when (showOnboarding) {
-                        null -> { /* loading — splash screen covers this */ }
-                        true -> {
-                            WelcomeScreen(
-                                onComplete = {
-                                    onboardingScope.launch {
-                                        settingsManager.saveOnboardingCompleted(true)
-                                    }
-                                    showOnboarding = false
-                                },
-                                isDarkTheme = isDark,
-                                viewModel = viewModel
-                            )
-                        }
-                        false -> {
-                            MainNavigation(
-                                viewModel = viewModel,
-                                settingsManager = settingsManager,
-                                notificationConversationId = notificationConversationId,
-                                onNotificationConversationConsumed = { expectedId ->
-                                    consumeNotificationTarget(notificationConversationId, expectedId)
-                                },
-                            )
+                        when (showOnboarding) {
+                            null -> { /* loading — splash screen covers this */ }
+                            true -> {
+                                WelcomeScreen(
+                                    onComplete = {
+                                        onboardingScope.launch {
+                                            settingsManager.saveOnboardingCompleted(true)
+                                        }
+                                        showOnboarding = false
+                                    },
+                                    isDarkTheme = isDark,
+                                    viewModel = viewModel
+                                )
+                            }
+                            false -> {
+                                MainNavigation(
+                                    viewModel = viewModel,
+                                    settingsManager = settingsManager,
+                                    notificationConversationId = notificationConversationId,
+                                    onNotificationConversationConsumed = { expectedId ->
+                                        consumeNotificationTarget(notificationConversationId, expectedId)
+                                    },
+                                )
+                            }
                         }
                     }
                 }

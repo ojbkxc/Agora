@@ -22,6 +22,8 @@ import com.newoether.agora.model.StableModelAliases
 import com.newoether.agora.model.ToolCallDisplayModes
 import com.newoether.agora.ui.common.LocalAgoraHaptics
 import com.newoether.agora.ui.components.*
+import com.newoether.agora.ui.theme.AgoraColors
+import com.newoether.agora.ui.theme.LocalAgoraColors
 import com.mikepenz.markdown.compose.components.markdownComponents
 
 private const val STREAMING_MARKDOWN_FLUSH_MS = 250L
@@ -95,15 +97,15 @@ fun MessageItem(
     }
 
     val backgroundColor = when (message.participant) {
-        Participant.USER -> MaterialTheme.colorScheme.primaryContainer
+        Participant.USER -> Color.Transparent // 渐变背景由 UserMessageBubble 渲染
         Participant.MODEL -> Color.Transparent
-        Participant.ERROR -> MaterialTheme.colorScheme.errorContainer
+        Participant.ERROR -> AgoraColors.danger.copy(alpha = 0.15f)
     }
 
     val textColor = when (message.participant) {
-        Participant.USER -> MaterialTheme.colorScheme.onPrimaryContainer
-        Participant.MODEL -> MaterialTheme.colorScheme.onSurface
-        Participant.ERROR -> MaterialTheme.colorScheme.onErrorContainer
+        Participant.USER -> Color.White // 白色文字配合渐变背景
+        Participant.MODEL -> LocalAgoraColors.current.textMain
+        Participant.ERROR -> AgoraColors.danger
     }
 
     val shape = when (message.participant) {

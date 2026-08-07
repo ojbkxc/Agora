@@ -2,21 +2,107 @@ package com.newoether.agora.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.provides
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import java.io.File
 
 enum class ThemeMode { LIGHT, DARK, FOLLOW_DEVICE }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AgoraShapes — cf-ai-gw corner radii.
+//  · card   20dp (glass cards, modals)
+//  · button 10dp (gradient buttons)
+//  · input  10dp (glass text fields)
+// ─────────────────────────────────────────────────────────────────────────────
+
+object AgoraShapes {
+    val cardShape = RoundedCornerShape(20.dp)
+    val buttonShape = RoundedCornerShape(10.dp)
+    val inputShape = RoundedCornerShape(10.dp)
+    /** Modal / dialog shape — same 20dp as cards but kept distinct for future tuning. */
+    val modalShape = RoundedCornerShape(20.dp)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AgoraColorScheme — theme-aware view onto AgoraColors.
+//
+// AgoraColors itself is a static object holding BOTH dark and light tokens (so
+// the raw constants are reachable without a CompositionLocal). AgoraColorScheme
+// is the per-theme projection consumed by components via LocalAgoraColors.current,
+// which avoids every call site having to branch on isSystemInDarkTheme().
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Immutable
+data class AgoraColorScheme(
+    val bg: Color,
+    val cardBg: Color,
+    val border: Color,
+    val textMain: Color,
+    val textMuted: Color,
+    val inputBg: Color,
+    val orb1: Color,
+    val orb2: Color,
+    val accent: Color,
+    val isDark: Boolean,
+)
+
+/** Dark-theme projection of [AgoraColors]. */
+fun darkAgoraColorScheme(): AgoraColorScheme = AgoraColorScheme(
+    bg = AgoraColors.darkBg,
+    cardBg = AgoraColors.darkCardBg,
+    border = AgoraColors.darkBorder,
+    textMain = AgoraColors.darkTextMain,
+    textMuted = AgoraColors.darkTextMuted,
+    inputBg = AgoraColors.darkInputBg,
+    orb1 = AgoraColors.darkOrb1,
+    orb2 = AgoraColors.darkOrb2,
+    accent = AgoraColors.accent,
+    isDark = true,
+)
+
+/** Light-theme projection of [AgoraColors]. */
+fun lightAgoraColorScheme(): AgoraColorScheme = AgoraColorScheme(
+    bg = AgoraColors.lightBg,
+    cardBg = AgoraColors.lightCardBg,
+    border = AgoraColors.lightBorder,
+    textMain = AgoraColors.lightTextMain,
+    textMuted = AgoraColors.lightTextMuted,
+    inputBg = AgoraColors.lightInputBg,
+    orb1 = AgoraColors.lightOrb1,
+    orb2 = AgoraColors.lightOrb2,
+    accent = AgoraColors.accentLight,
+    isDark = false,
+)
+
+/**
+ * CompositionLocal exposing the current theme's [AgoraColorScheme].
+ * Defaults to the dark scheme so previews / off-tree composition still resolve.
+ */
+val LocalAgoraColors = compositionLocalOf { darkAgoraColorScheme() }
+
+/**
+ * CompositionLocal exposing the [AgoraGradients] brush provider.
+ * AgoraGradients' getters are already @Composable + theme-aware, so this Local
+ * mainly exists to allow tests/previews to swap in a fixed brush set.
+ */
+val LocalAgoraGradients = compositionLocalOf { AgoraGradients }
 
 /**
  * Returns the effective [FontFamily] for non-mono typography based on the font preference.
@@ -103,9 +189,20 @@ fun AgoraTheme(
     chatFontFamily = fontFamily
     val typography = remember(fontFamily) { typographyWithFont(fontFamily) }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography,
-        content = content
-    )
+    // Project the static AgoraColors onto a theme-aware scheme for components.
+    val agoraColors = remember(darkTheme) {
+        if (darkTheme) darkAgoraColorScheme() else lightAgoraColorScheme()
+    }
+    val agoraGradients = AgoraGradients
+
+    CompositionLocalProvider(
+        LocalAgoraColors provides agoraColors,
+        LocalAgoraGradients provides agoraGradients,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typography,
+            content = content
+        )
+    }
 }

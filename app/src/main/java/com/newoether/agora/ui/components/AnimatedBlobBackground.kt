@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.newoether.agora.ui.theme.LocalAgoraColors
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -39,9 +40,9 @@ private data class BlobSpec(
 @Composable
 fun AnimatedBlobBackground(
     modifier: Modifier = Modifier,
-    blurRadius: Float = 40f,
-    centerAlpha: Float = 0.10f,
-    quarterAlpha: Float = 0.05f,
+    blurRadius: Float = 90f,
+    centerAlpha: Float = 0.15f,
+    quarterAlpha: Float = 0.07f,
     edgeAlpha: Float = 0.0f,
     dark: Boolean = true,
     // When false, neither the RenderEffect blur nor the ~16ms animation loop run. This is the
@@ -53,19 +54,12 @@ fun AnimatedBlobBackground(
     blurEnabled: Boolean = true,
 ) {
     val density = LocalDensity.current
-    val cs = MaterialTheme.colorScheme
-    val blobColor = if (dark) Color(
-        red = lerp(cs.primaryContainer.red, cs.primary.red, 0.3f) * 0.5f,
-        green = lerp(cs.primaryContainer.green, cs.primary.green, 0.3f) * 0.5f,
-        blue = lerp(cs.primaryContainer.blue, cs.primary.blue, 0.3f) * 0.5f,
-        alpha = cs.primaryContainer.alpha,
-    ) else Color(
-        red = lerp(cs.background.red, cs.primary.red, 0.2f),
-        green = lerp(cs.background.green, cs.primary.green, 0.2f),
-        blue = lerp(cs.background.blue, cs.primary.blue, 0.2f),
-        alpha = cs.background.alpha,
-    )
-    val blobColors = List(4) { blobColor }
+    // cf-ai-gw palette: indigo orb1 (rgba(99,102,241,0.15)) + pink orb2 (rgba(236,72,153,0.12)).
+    // Alternate blobs between the two so the ambient glow reads as indigo→pink rather than a
+    // single hue. The theme already bakes the right alpha into orb1/orb2; we keep the radial
+    // gradient stops (center/quarter/edge) as multipliers on top.
+    val agoraColors = LocalAgoraColors.current
+    val blobColors = listOf(agoraColors.orb1, agoraColors.orb2, agoraColors.orb1, agoraColors.orb2)
 
     val blobs = remember {
         val rng = Random(System.nanoTime())

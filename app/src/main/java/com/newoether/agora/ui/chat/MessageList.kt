@@ -35,6 +35,7 @@ import com.newoether.agora.model.StableMessageList
 import com.newoether.agora.model.StableModelAliases
 import com.newoether.agora.model.ToolCallDisplayModes
 import com.newoether.agora.ui.chat.message.MessageItem
+import com.newoether.agora.ui.components.BackgroundOrbs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -368,6 +369,8 @@ fun MessageList(
     }
 
     Box(modifier = modifier) {
+        // Ambient gradient orbs — cf-ai-gw glow, sits behind the message list.
+        BackgroundOrbs(modifier = Modifier.fillMaxSize())
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,

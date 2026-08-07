@@ -40,6 +40,7 @@ import com.newoether.agora.ui.chat.findMetaForIndex
 import com.newoether.agora.ui.chat.resolveAttachmentType
 import com.newoether.agora.ui.common.LocalAgoraHaptics
 import com.newoether.agora.ui.theme.ChatType
+import com.newoether.agora.ui.theme.LocalAgoraGradients
 
 /**
  * The right-aligned user message bubble: attachment thumbnails, the message text
@@ -79,13 +80,15 @@ internal fun UserMessageBubble(
     var showMenu by remember { mutableStateOf(false) }
 
     Column(horizontalAlignment = Alignment.End) {
-        Surface(
-            shape = shape,
-            color = backgroundColor,
+        // 渐变气泡：135° indigo→violet→pink，20dp 圆角，右对齐
+        val gradients = LocalAgoraGradients.current
+        Box(
             modifier = Modifier
                 .widthIn(max = 300.dp)
                 .then(contextAlpha)
                 .then(if (shouldAnimate) Modifier.animateContentSize(animationSpec = tween(500)) else Modifier)
+                .clip(shape)
+                .background(gradients.gradient, shape)
         ) {
             if (isEditing) {
                 val editState = rememberTextFieldState(message.text)
