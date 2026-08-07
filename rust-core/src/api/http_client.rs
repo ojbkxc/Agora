@@ -133,8 +133,23 @@ pub struct AgoraHttpClient {
 
 impl AgoraHttpClient {
     /// 创建新的 HTTP 客户端（无代理）
+    ///
+    /// 仅用于非 JNI 路径（如内部工具/测试）。JNI 入口应直接调用
+    /// `new_with_proxy(None)` 并 match 处理失败，避免 expect panic
+    /// 跨越 FFI 边界导致 JVM 立即闪退（panic=abort 不产生 Java 异常栈）。
     pub fn new() -> Self {
-        Self::new_with_proxy(None).expect("default client creation should never fail")
+        Self::new_with_proxy(None)
+            .unwrap_or_else(|e| {
+                log::error!("[HTTP] Failed to create default client: {}; falling back to bare builder", e);
+                // 最后的兜底：跳过所有自定义配置，仅构建最朴素的 Client。
+                // 这条路径理论上不会触发（reqwest 默认 builder 几乎不会失败），
+                // 但若 TLS backend 初始化失败等极端情况发生，宁可让请求失败
+                // 也不能让进程 abort。
+                reqwest::Client::builder()
+                    .build()
+                    .map(|client| Self { client })
+                    .expect("bare reqwest::Client::build() must succeed")
+            })
     }
 
     /// 创建新的 HTTP 客户端

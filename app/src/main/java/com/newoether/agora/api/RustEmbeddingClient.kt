@@ -91,6 +91,10 @@ object RustEmbeddingClient {
         } catch (e: Exception) {
             DebugLog.e(TAG, "computeEmbedding failed", e)
             null
+        } catch (e: Throwable) {
+            // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+            DebugLog.e(TAG, "Native computeEmbedding error", e)
+            null
         }
     }
 
@@ -125,6 +129,10 @@ object RustEmbeddingClient {
             }
         } catch (e: Exception) {
             DebugLog.e(TAG, "computeEmbeddings failed", e)
+            texts.map { null }
+        } catch (e: Throwable) {
+            // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+            DebugLog.e(TAG, "Native computeEmbeddings error", e)
             texts.map { null }
         }
     }

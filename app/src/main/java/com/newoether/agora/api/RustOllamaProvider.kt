@@ -69,9 +69,17 @@ open class RustOllamaProvider : LlmProvider {
                 )
                 RustProvider.nativeCreateProvider("ollama", providerConfigJson)
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             DebugLog.e(TAG, "Failed to create Ollama provider", e)
             trySend(StreamEvent.Error(GenerationError.Unknown(e)))
+            close()
+            return@callbackFlow
+        } catch (e: Throwable) {
+            // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+            DebugLog.e(TAG, "Native error creating Ollama provider", e)
+            trySend(StreamEvent.Error(GenerationError.Unknown(RuntimeException(e))))
             close()
             return@callbackFlow
         }
@@ -97,6 +105,9 @@ open class RustOllamaProvider : LlmProvider {
                         }
                     } catch (e: Exception) {
                         DebugLog.e(TAG, "Failed to parse stream event: $eventJson", e)
+                    } catch (e: Throwable) {
+                        // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+                        DebugLog.e(TAG, "Native error parsing stream event: $eventJson", e)
                     }
                 }
             }
@@ -109,6 +120,10 @@ open class RustOllamaProvider : LlmProvider {
         } catch (e: Exception) {
             DebugLog.e(TAG, "Generation failed", e)
             trySend(StreamEvent.Error(GenerationError.Unknown(e)))
+        } catch (e: Throwable) {
+            // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退
+            DebugLog.e(TAG, "Native generation error", e)
+            trySend(StreamEvent.Error(GenerationError.Unknown(RuntimeException(e))))
         } finally {
             withContext(Dispatchers.IO) {
                 RustProvider.destroyProvider(handle)
@@ -144,8 +159,14 @@ open class RustOllamaProvider : LlmProvider {
                 } finally {
                     RustProvider.destroyProvider(handle)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModels failed", e)
+                emptyList()
+            } catch (e: Throwable) {
+                // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退
+                DebugLog.e(TAG, "Native fetchModels error", e)
                 emptyList()
             }
         }
@@ -156,6 +177,10 @@ open class RustOllamaProvider : LlmProvider {
             response.models.sorted()
         } catch (e: Exception) {
             DebugLog.e(TAG, "Failed to parse model list: $jsonStr", e)
+            emptyList()
+        } catch (e: Throwable) {
+            // 捕获逃逸的 Error 防止闪退
+            DebugLog.e(TAG, "Native error parsing model list: $jsonStr", e)
             emptyList()
         }
     }

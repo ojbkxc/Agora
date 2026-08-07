@@ -302,6 +302,9 @@ class GenerationManager(
             throw e
         } catch (e: Exception) {
             "Error executing tool '$name': ${e.localizedMessage ?: "Unknown error"}"
+        } catch (e: Throwable) {
+            // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退
+            "Error executing tool '$name': ${e.localizedMessage ?: "Native error"}"
         }
     }
 
@@ -569,6 +572,9 @@ class GenerationManager(
                 // The gate already advanced, so a transient failure retries on the next interval
                 // instead of logging once per token.
                 DebugLog.e("AgoraVM", "Failed to persist streaming checkpoint", e)
+            } catch (e: Throwable) {
+                // 捕获逃逸的 Error 防止闪退
+                DebugLog.e("AgoraVM", "Native error persisting streaming checkpoint", e)
             }
         }
 
@@ -1091,6 +1097,17 @@ class GenerationManager(
             if (!isCancelled) {
                 totalText = "Error: ${e.localizedMessage ?: "An unexpected error occurred."}"
             }
+        } catch (e: Throwable) {
+            // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退。
+            // CancellationException 已在前面的 catch 中处理并 rethrow，
+            // 不会到达这里。
+            adoptIncompleteTranscriptionSnapshot()
+            val isCancelled = generationJob?.isCancelled == true
+            currentStatus = if (isCancelled) MessageStatus.STOPPED else MessageStatus.ERROR
+            if (!isCancelled) {
+                totalText = "Error: ${e.localizedMessage ?: "A native error occurred."}"
+                DebugLog.e("AgoraVM", "Generation crashed with Error", e)
+            }
         } finally {
             // Critical non-cancellable section: only the terminal DB upsert (and the
             // image drain that feeds it). A stopped/superseded generation MUST still
@@ -1181,6 +1198,9 @@ class GenerationManager(
                     }
                 } catch (e: Exception) {
                     DebugLog.e("AgoraVM", "Failed to persist message to DB", e)
+                } catch (e: Throwable) {
+                    // 捕获逃逸的 Error 防止闪退
+                    DebugLog.e("AgoraVM", "Native error persisting message to DB", e)
                 }
             }
             // Movable tail (cancellable, no suspension points): runs to completion even
@@ -1192,6 +1212,7 @@ class GenerationManager(
                     onMessagePersisted?.invoke(modelMessageId, totalText)
                 }
             } catch (_: Exception) { /* indexing must never break terminal cleanup */ }
+            catch (_: Throwable) { /* 捕获逃逸的 Error，indexing 不能破坏 terminal cleanup */ }
             // Terminal UI cleanup. Token-gated at the sink (in ChatViewModel), so they
             // no-op when this generation was stopped/superseded — only the still-current
             // generation resets the loading/streaming/generating-id UI state.

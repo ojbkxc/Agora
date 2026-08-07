@@ -231,7 +231,13 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
     };
 
     // 创建 HTTP 客户端
-    let http_client = AgoraHttpClient::new();
+    let http_client = match AgoraHttpClient::new_with_proxy(None) {
+        Ok(c) => c,
+        Err(e) => {
+            util::handle_error(&mut env, AgoraError::Config(format!("Failed to create HTTP client: {}", e)));
+            return std::ptr::null_mut();
+        }
+    };
 
     // 获取该 handle 的取消标志和回调存活标志
     let (cancelled, callback_invalid) = {
@@ -298,7 +304,15 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeGenerate(
     let (tx, rx) = tokio::sync::oneshot::channel();
     let cancelled_for_task = cancelled.clone();
 
-    util::get_global_runtime().spawn(async move {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    runtime.spawn(async move {
         // 检查是否在 spawn 之前就被取消了
         if cancelled_for_task.load(Ordering::SeqCst) {
             let _ = tx.send(Err(AgoraError::Config("Provider cancelled before generation started".to_string())));
@@ -452,10 +466,24 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeFetchMode
         return std::ptr::null_mut();
     };
 
-    let http_client = AgoraHttpClient::new();
+    let http_client = match AgoraHttpClient::new_with_proxy(None) {
+        Ok(c) => c,
+        Err(e) => {
+            util::handle_error(&mut env, AgoraError::Config(format!("Failed to create HTTP client: {}", e)));
+            return std::ptr::null_mut();
+        }
+    };
     let base_url_opt = if base_url.is_empty() { None } else { Some(base_url.as_str()) };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         // Clone the Arc out of the lock and drop the guard BEFORE awaiting.
         let provider = {
             let providers = safe_lock(&PROVIDERS);

@@ -41,9 +41,23 @@ pub extern "system" fn Java_com_newoether_agora_api_RustEmbeddingClient_nativeCo
         return std::ptr::null_mut();
     };
 
-    let client = AgoraHttpClient::new();
+    let client = match AgoraHttpClient::new_with_proxy(None) {
+        Ok(c) => c,
+        Err(e) => {
+            util::handle_error(&mut env, AgoraError::Config(format!("Failed to create HTTP client: {}", e)));
+            return std::ptr::null_mut();
+        }
+    };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         embedding::client::compute_embedding(&text, &api_key, &model, &base_url, &client).await
     });
 
@@ -96,9 +110,23 @@ pub extern "system" fn Java_com_newoether_agora_api_RustEmbeddingClient_nativeCo
         }
     };
 
-    let client = AgoraHttpClient::new();
+    let client = match AgoraHttpClient::new_with_proxy(None) {
+        Ok(c) => c,
+        Err(e) => {
+            util::handle_error(&mut env, AgoraError::Config(format!("Failed to create HTTP client: {}", e)));
+            return std::ptr::null_mut();
+        }
+    };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         embedding::client::compute_embeddings(&text_list, &api_key, &model, &base_url, &client).await
     });
 

@@ -182,9 +182,17 @@ object RustShell {
      *
      * @return true if key was obtained and verified
      */
-    suspend fun fetchPublicKey(handle: Long): Boolean = withContext(Dispatchers.IO) {
-        NativeLib.ensureLoaded()
-        nativeFetchPublicKey(handle)
+    suspend fun fetchPublicKey(handle: Long): Boolean = try {
+        withContext(Dispatchers.IO) {
+            NativeLib.ensureLoaded()
+            nativeFetchPublicKey(handle)
+        }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+        DebugLog.e(TAG, "Native fetchPublicKey error", e)
+        false
     }
 
     /**
@@ -195,15 +203,23 @@ object RustShell {
         command: String,
         timeoutMs: Int,
         workdir: String = ""
-    ): CommandResult = withContext(Dispatchers.IO) {
-        NativeLib.ensureLoaded()
-        val raw = nativeExecuteCommand(handle, command, timeoutMs, workdir)
-        try {
-            json.decodeFromString<CommandResult>(raw)
-        } catch (e: Exception) {
-            DebugLog.e(TAG, "Failed to parse command result: $raw", e)
-            CommandResult(error = raw)
+    ): CommandResult = try {
+        withContext(Dispatchers.IO) {
+            NativeLib.ensureLoaded()
+            val raw = nativeExecuteCommand(handle, command, timeoutMs, workdir)
+            try {
+                json.decodeFromString<CommandResult>(raw)
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "Failed to parse command result: $raw", e)
+                CommandResult(error = raw)
+            }
         }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+        DebugLog.e(TAG, "Native executeCommand error", e)
+        CommandResult(error = e.localizedMessage ?: "Native error")
     }
 
     /**
@@ -214,15 +230,23 @@ object RustShell {
         path: String,
         offset: Long = 0,
         limit: Long = 0
-    ): FileReadResult = withContext(Dispatchers.IO) {
-        NativeLib.ensureLoaded()
-        val raw = nativeFileRead(handle, path, offset, limit)
-        try {
-            json.decodeFromString<FileReadResult>(raw)
-        } catch (e: Exception) {
-            DebugLog.e(TAG, "Failed to parse file read result: $raw", e)
-            FileReadResult(error = raw)
+    ): FileReadResult = try {
+        withContext(Dispatchers.IO) {
+            NativeLib.ensureLoaded()
+            val raw = nativeFileRead(handle, path, offset, limit)
+            try {
+                json.decodeFromString<FileReadResult>(raw)
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "Failed to parse file read result: $raw", e)
+                FileReadResult(error = raw)
+            }
         }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+        DebugLog.e(TAG, "Native fileRead error", e)
+        FileReadResult(error = e.localizedMessage ?: "Native error")
     }
 
     /**
@@ -234,15 +258,23 @@ object RustShell {
         handle: Long,
         path: String,
         content: String
-    ): String? = withContext(Dispatchers.IO) {
-        NativeLib.ensureLoaded()
-        val raw = nativeFileWrite(handle, path, content)
-        try {
-            json.decodeFromString<FileWriteResult>(raw).error
-        } catch (e: Exception) {
-            DebugLog.e(TAG, "Failed to parse file write result: $raw", e)
-            raw
+    ): String? = try {
+        withContext(Dispatchers.IO) {
+            NativeLib.ensureLoaded()
+            val raw = nativeFileWrite(handle, path, content)
+            try {
+                json.decodeFromString<FileWriteResult>(raw).error
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "Failed to parse file write result: $raw", e)
+                raw
+            }
         }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+        DebugLog.e(TAG, "Native fileWrite error", e)
+        e.localizedMessage ?: "Native error"
     }
 
     /**
@@ -252,17 +284,25 @@ object RustShell {
         handle: Long,
         pattern: String,
         basePath: String = ""
-    ): Result<List<String>> = withContext(Dispatchers.IO) {
-        NativeLib.ensureLoaded()
-        val raw = nativeFileGlob(handle, pattern, basePath)
-        try {
-            val result = json.decodeFromString<FileGlobResult>(raw)
-            if (result.error != null) Result.failure(Exception(result.error))
-            else Result.success(result.files)
-        } catch (e: Exception) {
-            DebugLog.e(TAG, "Failed to parse glob result: $raw", e)
-            Result.failure(e)
+    ): Result<List<String>> = try {
+        withContext(Dispatchers.IO) {
+            NativeLib.ensureLoaded()
+            val raw = nativeFileGlob(handle, pattern, basePath)
+            try {
+                val result = json.decodeFromString<FileGlobResult>(raw)
+                if (result.error != null) Result.failure(Exception(result.error))
+                else Result.success(result.files)
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "Failed to parse glob result: $raw", e)
+                Result.failure(e)
+            }
         }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+        DebugLog.e(TAG, "Native fileGlob error", e)
+        Result.failure(e)
     }
 
     /**
@@ -272,17 +312,25 @@ object RustShell {
         handle: Long,
         pattern: String,
         basePath: String = ""
-    ): Result<List<GrepMatch>> = withContext(Dispatchers.IO) {
-        NativeLib.ensureLoaded()
-        val raw = nativeFileGrep(handle, pattern, basePath)
-        try {
-            val result = json.decodeFromString<FileGrepResult>(raw)
-            if (result.error != null) Result.failure(Exception(result.error))
-            else Result.success(result.matches)
-        } catch (e: Exception) {
-            DebugLog.e(TAG, "Failed to parse grep result: $raw", e)
-            Result.failure(e)
+    ): Result<List<GrepMatch>> = try {
+        withContext(Dispatchers.IO) {
+            NativeLib.ensureLoaded()
+            val raw = nativeFileGrep(handle, pattern, basePath)
+            try {
+                val result = json.decodeFromString<FileGrepResult>(raw)
+                if (result.error != null) Result.failure(Exception(result.error))
+                else Result.success(result.matches)
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "Failed to parse grep result: $raw", e)
+                Result.failure(e)
+            }
         }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        // 捕获 Error（UnsatisfiedLinkError 等）防止闪退
+        DebugLog.e(TAG, "Native fileGrep error", e)
+        Result.failure(e)
     }
 
     /**

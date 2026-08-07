@@ -453,6 +453,16 @@ class MessageGenerationController(
                     state = state,
                     error = e,
                 )
+            } catch (e: Throwable) {
+                // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退
+                failGenerationSetup(
+                    conversationId = genId,
+                    runId = runId,
+                    modelMessageId = setupModelMessageId,
+                    uiToken = myUiToken,
+                    state = state,
+                    error = RuntimeException(e),
+                )
             } finally {
                 releaseAndDrain(state, myUiToken, genId)
             }
@@ -538,6 +548,37 @@ class MessageGenerationController(
                             id = existing.id,
                             parentId = existing.parentId,
                             text = "Error: ${e.localizedMessage ?: "Failed to build the request."}",
+                            images = existing.images,
+                            thoughts = existing.thoughts,
+                            thoughtTitle = existing.thoughtTitle,
+                            tokenCount = existing.tokenCount,
+                            status = MessageStatus.ERROR,
+                            participant = existing.participant,
+                            timestamp = existing.timestamp,
+                            thoughtTimeMs = existing.thoughtTimeMs,
+                            modelName = existing.modelName,
+                            runId = existing.runId,
+                            runSequence = existing.runSequence,
+                        )
+                    )
+                }
+                convRepo.failRun(runId)
+            }
+            state.streamClear(uiToken)
+            state.loadingChange(uiToken, false)
+        } catch (e: Throwable) {
+            // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退。
+            // CancellationException 已在前面的 catch 中 rethrow，不会到达这里。
+            DebugLog.e("AgoraVM", "Generation crashed in $callerTag", e)
+            runCatching {
+                val existing = convRepo.getMessagesForConversationSnapshot(currentId)
+                    .find { it.id == modelMessageId }
+                if (existing != null && existing.status == MessageStatus.SENDING) {
+                    convRepo.updateStreamingMessageCheckpoint(
+                        ChatMessage(
+                            id = existing.id,
+                            parentId = existing.parentId,
+                            text = "Error: ${e.localizedMessage ?: "A native error occurred."}",
                             images = existing.images,
                             thoughts = existing.thoughts,
                             thoughtTitle = existing.thoughtTitle,
@@ -1310,8 +1351,14 @@ class MessageGenerationController(
                     if (event is StreamEvent.TextChunk) title += event.text
                     else if (event is StreamEvent.Error) DebugLog.e("AgoraVM", "Title generation error: ${event.message}")
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 DebugLog.e("AgoraVM", "Title generation failed for provider=$providerName model=$modelId", e)
+                return@launch
+            } catch (e: Throwable) {
+                // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退
+                DebugLog.e("AgoraVM", "Title generation native error for provider=$providerName model=$modelId", e)
                 return@launch
             }
 

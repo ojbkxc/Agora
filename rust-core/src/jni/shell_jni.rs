@@ -12,6 +12,7 @@ use jni::JNIEnv;
 use jni::objects::JClass;
 use jni::sys::{jboolean, jlong, jstring, JNI_TRUE, JNI_FALSE};
 
+use crate::error::AgoraError;
 use crate::jni::util;
 use crate::shell::client::ShellClient;
 
@@ -85,7 +86,7 @@ fn clone_shell_client(handle: jlong) -> Option<Arc<Mutex<ShellClient>>> {
 /// 获取并验证服务端公钥。
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFetchPublicKey(
-    _env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     handle: jlong,
 ) -> jboolean {
@@ -93,7 +94,15 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFetchPublic
         return JNI_FALSE;
     };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return JNI_FALSE;
+        }
+    };
+
+    let result = runtime.block_on(async {
         // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
         let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.fetch_public_key().await.unwrap_or(false)
@@ -133,7 +142,15 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeExecuteComm
         };
     };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
         let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.execute_command(&command, timeout_ms, &workdir).await
@@ -181,7 +198,15 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileRead(
         };
     };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
         let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_read(&path, offset, limit).await
@@ -224,7 +249,15 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileWrite(
         };
     };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
         let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_write(&path, &content).await
@@ -273,7 +306,15 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGlob(
         };
     };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
         let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_glob(&pattern, &base_path, None).await
@@ -316,7 +357,15 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGrep(
         };
     };
 
-    let result = util::get_global_runtime().block_on(async {
+    let runtime = match util::get_global_runtime() {
+        Some(rt) => rt,
+        None => {
+            util::handle_error(&mut env, AgoraError::Jni("Failed to get tokio runtime".to_string()));
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = runtime.block_on(async {
         // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
         let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_grep(&pattern, &base_path, "").await

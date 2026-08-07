@@ -8,14 +8,27 @@ use tokio::runtime::Runtime;
 
 use crate::error::AgoraError;
 
-/// 全局 tokio 多线程运行时，延迟初始化单例
-static RUNTIME: OnceLock<Runtime> = OnceLock::new();
+/// 全局 tokio 多线程运行时，延迟初始化单例。
+///
+/// 包裹在 `Option` 中：若 `Runtime::new()` 失败（极端环境，如线程/资源限制），
+/// 用 `None` 表示运行时不可用，避免 `expect` panic 跨越 FFI 边界导致 JVM 立即闪退
+/// （panic=abort 不产生 Java 异常栈）。所有调用方必须 match 处理 `None`。
+static RUNTIME: OnceLock<Option<Runtime>> = OnceLock::new();
 
-/// 获取全局 tokio 多线程运行时引用
-pub fn get_global_runtime() -> &'static Runtime {
-    RUNTIME.get_or_init(|| {
-        Runtime::new().expect("Failed to create tokio multi-thread runtime")
-    })
+/// 获取全局 tokio 多线程运行时引用。
+///
+/// 返回 `None` 表示运行时初始化失败，调用方应优雅降级（抛 Java 异常并返回 null）。
+/// 不会 panic。
+pub fn get_global_runtime() -> Option<&'static Runtime> {
+    RUNTIME
+        .get_or_init(|| match Runtime::new() {
+            Ok(rt) => Some(rt),
+            Err(e) => {
+                error!("[JNI] Failed to create tokio multi-thread runtime: {}", e);
+                None
+            }
+        })
+        .as_ref()
 }
 
 /// 将 Java JString 转换为 Rust String

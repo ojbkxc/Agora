@@ -502,12 +502,23 @@ impl OpenAiProvider {
                                     .map(|_| ());
 
                                 let pending = if existing.is_some() {
+                                    // 安全访问：tc.id 与 pending_tool_calls 中的条目
+                                    // 理论上一定存在（existing.is_some() 已校验），
+                                    // 但 API 响应可能在并发或异常情况下不一致，
+                                    // 用 match + continue 避免 unwrap panic 跨越 FFI 边界。
+                                    let tc_id = match tc.id.as_ref() {
+                                        Some(id) => id,
+                                        None => continue,
+                                    };
                                     let key = pending_tool_calls
                                         .iter()
-                                        .find(|(_, v)| v.id == *tc.id.as_ref().unwrap())
+                                        .find(|(_, v)| v.id == *tc_id)
                                         .map(|(k, _)| *k)
                                         .unwrap_or(idx);
-                                    pending_tool_calls.get_mut(&key).unwrap()
+                                    match pending_tool_calls.get_mut(&key) {
+                                        Some(p) => p,
+                                        None => continue,
+                                    }
                                 } else {
                                     pending_tool_calls
                                         .entry(idx)
