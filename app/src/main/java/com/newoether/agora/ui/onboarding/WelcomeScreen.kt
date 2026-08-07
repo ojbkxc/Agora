@@ -257,6 +257,7 @@ fun WelcomeScreen(
     var prevPage by remember { mutableIntStateOf(0) }
     var fetchJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var isFetchingModels by remember { mutableStateOf(false) }
+    var modelFetchError by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(pagerState.currentPage) {
         // Save provider credentials when leaving the API Key page (swipe or button).
         if (prevPage == PAGE_API_KEY) saveProviderCredentials()
@@ -272,12 +273,19 @@ fun WelcomeScreen(
         fetchJob?.cancel()
         if (pagerState.currentPage == PAGE_MODEL_CONFIG && selectedProvider != null) {
             isFetchingModels = true
+            modelFetchError = null
             fetchJob = scope.launch {
                 try {
                     kotlinx.coroutines.delay(300) // debounce swipe-through + let async key save commit
-                    viewModel.fetchModelsForProvider(selectedProvider!!)
-                } catch (_: Exception) {
-                    // Cancellation or network failure: keep whatever the list already shows.
+                    val models = viewModel.fetchModelsForProvider(selectedProvider!!)
+                    if (models.isEmpty()) {
+                        modelFetchError = "Model fetch returned empty — check API Key and Base URL"
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Network/native failure: surface the cause instead of silently keeping the old list.
+                    modelFetchError = e.message ?: "Model fetch failed"
                 } finally {
                     isFetchingModels = false
                 }
@@ -359,6 +367,7 @@ fun WelcomeScreen(
                                         modelAliases = modelAliases,
                                         selectedId = selectedModelId,
                                         isLoading = isFetchingModels,
+                                        errorText = modelFetchError,
                                         onSelect = applyModel,
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 36.dp).alpha(contentAlpha)
                                     )
@@ -607,7 +616,7 @@ private fun ApiKeyPage(
 }
 
 @Composable
-private fun ModelPage(models: List<String>, modelAliases: Map<String, String>, selectedId: String?, isLoading: Boolean, onSelect: (String) -> Unit, modifier: Modifier) {
+private fun ModelPage(models: List<String>, modelAliases: Map<String, String>, selectedId: String?, isLoading: Boolean, errorText: String? = null, onSelect: (String) -> Unit, modifier: Modifier) {
     GlassCard(modifier, showGradientBorder = true) {
         if (models.isEmpty()) {
             // While a fetch is in flight show a quiet spinner instead of the empty
@@ -619,6 +628,17 @@ private fun ModelPage(models: List<String>, modelAliases: Map<String, String>, s
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         if (loading) {
                             CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.primary)
+                        } else if (!errorText.isNullOrBlank()) {
+                            // Surface the concrete failure reason (native/network error) instead of
+                            // the generic "no models" copy so the user can act on it.
+                            Text(
+                                errorText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         } else {
                             Text(stringResource(R.string.onboarding_no_models), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                         }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.IOException
 
 /**
  * Rust-backed [LlmProvider] implementation for OpenAI-compatible endpoints.
@@ -154,6 +155,10 @@ open class RustOpenAiProvider : LlmProvider {
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
+            } catch (e: IOException) {
+                // Native 侧返回了 error，让异常传播以便上层能感知失败原因
+                DebugLog.e(TAG, "fetchModels native error", e)
+                throw e
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModels failed", e)
                 emptyList()
@@ -167,7 +172,15 @@ open class RustOpenAiProvider : LlmProvider {
     private fun parseModelList(jsonStr: String): List<String> {
         return try {
             val response = json.decodeFromString<RustModelListResponse>(jsonStr)
+            if (response.error != null) {
+                DebugLog.e(TAG, "Native fetchModels error: ${response.error}")
+                throw IOException("Native error: ${response.error}")
+            }
             response.models.sorted()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            throw e
         } catch (e: Exception) {
             DebugLog.e(TAG, "Failed to parse model list: $jsonStr", e)
             emptyList()

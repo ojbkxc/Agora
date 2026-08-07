@@ -1347,7 +1347,10 @@ class ChatViewModel(
                         } else {
                             failedProviders.add(name)
                         }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
                     } catch (e: Exception) {
+                        DebugLog.e("ChatViewModel", "fetchModels failed for $name: ${e.message}", e)
                         failedProviders.add(name)
                     }
                 }

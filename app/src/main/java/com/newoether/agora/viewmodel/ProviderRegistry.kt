@@ -15,11 +15,13 @@ import com.newoether.agora.data.CustomProviderConfig
 import com.newoether.agora.data.repository.SettingsRepository
 import com.newoether.agora.model.ModelId
 import com.newoether.agora.util.Constants
+import com.newoether.agora.util.DebugLog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 internal fun createCustomProvider(
@@ -251,20 +253,34 @@ class ProviderRegistry(
         }
 
         for (candidate in candidates) {
-            val raw = withTimeout(Constants.MODEL_FETCH_TIMEOUT_MS) { provider.fetchModels(activeKey, candidate) }
-            if (raw.isEmpty()) continue
-            if (customConfig != null && candidate != null && baseUrl != null) {
-                val resolution = CustomEndpointResolution(
-                    protocol = customConfig.protocol,
-                    configuredBaseUrl = baseUrl,
-                    effectiveBaseUrl = candidate,
-                )
-                runtimeEndpointResolutions[name] = resolution
-                settings.saveCustomEndpointResolution(name, resolution)
+            try {
+                val raw = withTimeout(Constants.MODEL_FETCH_TIMEOUT_MS) { provider.fetchModels(activeKey, candidate) }
+                if (raw.isEmpty()) continue
+                if (customConfig != null && candidate != null && baseUrl != null) {
+                    val resolution = CustomEndpointResolution(
+                        protocol = customConfig.protocol,
+                        configuredBaseUrl = baseUrl,
+                        effectiveBaseUrl = candidate,
+                    )
+                    runtimeEndpointResolutions[name] = resolution
+                    settings.saveCustomEndpointResolution(name, resolution)
+                }
+                val prefixed = raw.map { "$name:${it.removePrefix("models/")}" }
+                settings.saveAvailableModels(name, prefixed)
+                return prefixed
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                DebugLog.w(TAG, "fetchModelsForProvider($name) timed out after ${Constants.MODEL_FETCH_TIMEOUT_MS}ms for candidate $candidate", e)
+                continue
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: IOException) {
+                // Native 侧返回了 error，记录具体原因后继续尝试下一个 candidate
+                DebugLog.e(TAG, "fetchModelsForProvider($name) native error for candidate $candidate: ${e.message}", e)
+                continue
+            } catch (e: Exception) {
+                DebugLog.e(TAG, "fetchModelsForProvider($name) failed for candidate $candidate", e)
+                continue
             }
-            val prefixed = raw.map { "$name:${it.removePrefix("models/")}" }
-            settings.saveAvailableModels(name, prefixed)
-            return prefixed
         }
         return emptyList()
     }
@@ -343,5 +359,9 @@ class ProviderRegistry(
                     }
                 }
         }
+    }
+
+    companion object {
+        private const val TAG = "ProviderRegistry"
     }
 }
