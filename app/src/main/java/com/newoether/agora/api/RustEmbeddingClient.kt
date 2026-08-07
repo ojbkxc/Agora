@@ -1,6 +1,7 @@
 package com.newoether.agora.api
 
 import com.newoether.agora.util.DebugLog
+import com.newoether.agora.util.NativeLib
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -15,7 +16,7 @@ import kotlinx.serialization.json.Json
  */
 object RustEmbeddingClient {
     init {
-        System.loadLibrary("agora_rs")
+        NativeLib.load()
     }
 
     /**
@@ -78,6 +79,7 @@ object RustEmbeddingClient {
         baseUrl: String = "https://api.openai.com/v1"
     ): FloatArray? {
         return try {
+            NativeLib.ensureLoaded()
             val raw = nativeComputeEmbedding(text, apiKey, model, baseUrl)
             val result = json.decodeFromString<SingleEmbeddingResult>(raw)
             if (result.error != null) {
@@ -105,6 +107,7 @@ object RustEmbeddingClient {
     ): List<FloatArray?> {
         if (texts.isEmpty()) return emptyList()
         return try {
+            NativeLib.ensureLoaded()
             val textsJson = json.encodeToString(
                 kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<String>()),
                 texts

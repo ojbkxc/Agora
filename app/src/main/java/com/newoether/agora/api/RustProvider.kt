@@ -1,5 +1,6 @@
 package com.newoether.agora.api
 
+import com.newoether.agora.util.NativeLib
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -12,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 object RustProvider {
     init {
-        System.loadLibrary("agora_rs")
+        NativeLib.load()
     }
 
     /**
@@ -70,6 +71,7 @@ object RustProvider {
      */
     fun destroyProvider(handle: Long) {
         if (handle <= 0) return
+        if (!NativeLib.loaded) return
         val guard = destroyedHandles.computeIfAbsent(handle) { AtomicBoolean(false) }
         if (guard.compareAndSet(false, true)) {
             nativeDestroyProvider(handle)

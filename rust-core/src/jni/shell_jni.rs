@@ -62,9 +62,10 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeCreateShell
 
     let client = ShellClient::new(server_url, api_key, cached_key);
     let handle = next_shell_handle();
+    // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
     SHELL_CLIENTS
         .lock()
-        .unwrap()
+        .unwrap_or_else(|e| e.into_inner())
         .insert(handle, Arc::new(Mutex::new(client)));
 
     log::info!("[JNI] Created shell client with handle {}", handle);
@@ -74,7 +75,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeCreateShell
 /// 从全局 map 中克隆 Arc<Mutex<ShellClient>> 出来，在 await 之前释放全局锁。
 /// 返回 None 如果 handle 无效。
 fn clone_shell_client(handle: jlong) -> Option<Arc<Mutex<ShellClient>>> {
-    let clients = SHELL_CLIENTS.lock().unwrap();
+    // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+    let clients = SHELL_CLIENTS.lock().unwrap_or_else(|e| e.into_inner());
     clients.get(&handle).map(|c| c.clone())
 }
 
@@ -92,7 +94,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFetchPublic
     };
 
     let result = util::get_global_runtime().block_on(async {
-        let mut client = client_arc.lock().unwrap();
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.fetch_public_key().await.unwrap_or(false)
     });
 
@@ -131,7 +134,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeExecuteComm
     };
 
     let result = util::get_global_runtime().block_on(async {
-        let mut client = client_arc.lock().unwrap();
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.execute_command(&command, timeout_ms, &workdir).await
     });
 
@@ -178,7 +182,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileRead(
     };
 
     let result = util::get_global_runtime().block_on(async {
-        let mut client = client_arc.lock().unwrap();
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_read(&path, offset, limit).await
     });
 
@@ -220,7 +225,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileWrite(
     };
 
     let result = util::get_global_runtime().block_on(async {
-        let mut client = client_arc.lock().unwrap();
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_write(&path, &content).await
     });
 
@@ -268,7 +274,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGlob(
     };
 
     let result = util::get_global_runtime().block_on(async {
-        let mut client = client_arc.lock().unwrap();
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_glob(&pattern, &base_path, None).await
     });
 
@@ -310,7 +317,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeFileGrep(
     };
 
     let result = util::get_global_runtime().block_on(async {
-        let mut client = client_arc.lock().unwrap();
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        let mut client = client_arc.lock().unwrap_or_else(|e| e.into_inner());
         client.file_grep(&pattern, &base_path, "").await
     });
 
@@ -335,7 +343,11 @@ pub extern "system" fn Java_com_newoether_agora_util_RustShell_nativeDestroyShel
     handle: jlong,
 ) {
     if handle > 0 {
-        SHELL_CLIENTS.lock().unwrap().remove(&handle);
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        SHELL_CLIENTS
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&handle);
         log::info!("[JNI] Destroyed shell client with handle {}", handle);
     }
 }

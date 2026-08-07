@@ -2,7 +2,7 @@ package com.newoether.agora.automation
 
 import android.app.Application
 import android.content.Context
-import com.newoether.agora.api.local.LocalProvider
+
 import com.newoether.agora.data.MemoryManager
 import com.newoether.agora.data.local.MessageEntity
 import com.newoether.agora.data.local.RunEntity
@@ -38,8 +38,8 @@ import java.util.UUID
  * later phase (see `.claude/AUTOMATION_DESIGN.md` §3).
  *
  * Collaborators are the process-scoped singletons from `AppContainer`, so the
- * background engine shares the live provider map, the on-device llama engine, and
- * the conversation/settings repositories with the UI.
+ * background engine shares the live provider map and the conversation/settings
+ * repositories with the UI.
  */
 class TaskExecutionEngine(
     private val application: Application,
@@ -48,7 +48,6 @@ class TaskExecutionEngine(
     private val settings: SettingsRepository,
     private val memoryManager: MemoryManager,
     private val providerRegistry: ProviderRegistry,
-    localProvider: LocalProvider,
     sandboxFactory: SandboxManagerFactory?,
     private val appScope: CoroutineScope,
     private val executionCoordinator: ConversationExecutionCoordinator,
@@ -64,7 +63,7 @@ class TaskExecutionEngine(
     private val ragManager = RagManager(
         conversations = convRepo,
         settings = settings,
-        localProvider = localProvider,
+
         appContext = appContext,
         scope = appScope,
         emitSnackbar = {},
@@ -276,8 +275,7 @@ class TaskExecutionEngine(
                 foregroundServiceManagedExternally = foregroundServiceManagedExternally,
             )
 
-            // No global slot: local model work is serialized inside LocalProvider via
-            // LocalModelSerializer; remote generations run concurrently. A headless turn
+            // No global slot: remote generations run concurrently. A headless turn
             // therefore starts immediately and a Stop releases it without waiting on a
             // process-wide mutex.
             // GenerationManager owns ordered, throttled Room checkpoints for both foreground and

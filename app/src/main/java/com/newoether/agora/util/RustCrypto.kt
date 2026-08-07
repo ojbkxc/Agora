@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
  */
 object RustCrypto {
     init {
-        System.loadLibrary("agora_rs")
+        NativeLib.load()
     }
 
     /**
@@ -108,6 +108,7 @@ object RustCrypto {
      * Throws on native failure.
      */
     suspend fun generateKeyPair(): Pair<String, Long> = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         val result = json.decodeFromString<KeyPairResult>(nativeGenerateKeyPair())
         if (result.error != null) throw IllegalStateException("Key pair generation failed: ${result.error}")
         if (result.handle < 0) throw IllegalStateException("Key pair generation returned invalid handle")
@@ -120,6 +121,7 @@ object RustCrypto {
      */
     suspend fun deriveAesKey(handle: Long, serverPublicKey: String): String =
         withContext(Dispatchers.IO) {
+            NativeLib.ensureLoaded()
             val result = json.decodeFromString<AesKeyResult>(nativeDeriveAesKey(handle, serverPublicKey))
             if (result.error != null) throw IllegalStateException("AES key derivation failed: ${result.error}")
             result.key
@@ -129,6 +131,7 @@ object RustCrypto {
      * Encrypt plaintext and return the base64url-encoded ciphertext.
      */
     suspend fun encrypt(key: String, plaintext: String): String = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         nativeEncrypt(key, plaintext)
     }
 
@@ -136,6 +139,7 @@ object RustCrypto {
      * Decrypt a base64url-encoded ciphertext and return the plaintext.
      */
     suspend fun decrypt(key: String, ciphertext: String): String = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         nativeDecrypt(key, ciphertext)
     }
 
@@ -151,6 +155,7 @@ object RustCrypto {
         nonce: String,
         clientPubKey: String
     ): String = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         nativeSign(apiKey, timestamp, method, path, bodySha256, nonce, clientPubKey)
     }
 
@@ -158,6 +163,7 @@ object RustCrypto {
      * SHA-256 hash of a UTF-8 string, returned as lowercase hex.
      */
     suspend fun sha256Hex(data: String): String = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         nativeSha256Hex(data)
     }
 
@@ -165,6 +171,7 @@ object RustCrypto {
      * Generate a random nonce (base64url-encoded).
      */
     suspend fun generateNonce(): String = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         nativeGenerateNonce()
     }
 }

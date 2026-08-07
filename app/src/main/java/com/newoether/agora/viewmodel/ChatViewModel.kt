@@ -7,10 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.newoether.agora.R
 import com.newoether.agora.api.*
-import com.newoether.agora.api.LlamaEngine
 import com.newoether.agora.api.anthropic.*
 import com.newoether.agora.api.gemini.*
-import com.newoether.agora.api.local.*
 import com.newoether.agora.api.ollama.*
 import com.newoether.agora.api.openai.*
 import com.newoether.agora.data.AutoBackupManager
@@ -93,7 +91,7 @@ class ChatViewModel(
     conversationRepository: ConversationRepository,
     settingsRepository: SettingsRepository,
     // Process-scoped generation singletons, shared with background task execution.
-    private val localProvider: LocalProvider,
+
     private val providerRegistry: ProviderRegistry,
     // App-scoped automation orchestrator (task CRUD + run-now).
     private val taskManager: com.newoether.agora.automation.TaskManager,
@@ -125,7 +123,7 @@ class ChatViewModel(
     val ragManager = RagManager(
         conversations = convRepo,
         settings = settings,
-        localProvider = localProvider,
+
         appContext = appContext,
         scope = viewModelScope,
     ) { _snackbarMessage.emit(it) }
@@ -304,25 +302,10 @@ class ChatViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             try { autoBackupManager.checkAndBackup() } catch (e: Exception) { DebugLog.e("ChatViewModel", "Auto backup check failed", e) }
         }
-        // Sync local chat models into available models
-        viewModelScope.launch {
-            var lastLocalIds: List<String>? = null
-            var lastAliases: Map<String, String>? = null
-            settings.localChatModels.collect { models ->
-                val localIds = models.map { "Local:${it.modelId}" }
-                val currentAliases = settings.getModelAliases()
-                val aliases = currentAliases.toMutableMap()
-                models.forEach { aliases["Local:${it.modelId}"] = it.alias }
-                if (localIds != lastLocalIds) {
-                    settings.saveAvailableModels(Constants.PROVIDER_LOCAL, localIds)
-                    lastLocalIds = localIds
-                }
-                if (aliases != lastAliases) {
-                    settings.saveModelAliases(aliases)
-                    lastAliases = aliases
-                }
-            }
-        }
+        // Sync local chat models into available models — DISABLED: local (on-device GGUF)
+        // chat models were removed with the llama.cpp native layer. Any persisted
+        // Local:* entries are left as-is in DataStore for backward compatibility but are
+        // no longer registered as available models, so they can't be selected or used.
         // Provider map / model-list sync jobs now run on the process-scoped registry
         // (launched once in AppContainer), so they survive ViewModel recreation.
     }
@@ -661,7 +644,7 @@ class ChatViewModel(
             requestBuilder = requestBuilder,
             payloadBuilder = payloadBuilder,
             providerRegistry = providerRegistry,
-            localProvider = localProvider,
+
             executionCoordinator = conversationExecutionCoordinator,
             allMessages = _allMessages,
             selectedChildren = _selectedChildren,

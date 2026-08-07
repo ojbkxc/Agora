@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
  */
 object RustShell {
     init {
-        System.loadLibrary("agora_rs")
+        NativeLib.load()
     }
 
     /**
@@ -171,6 +171,7 @@ object RustShell {
         apiKey: String,
         cachedKey: String = ""
     ): Long = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         val handle = nativeCreateShellClient(serverUrl, apiKey, cachedKey)
         if (handle < 0) throw IllegalStateException("Shell client creation failed (code $handle)")
         handle
@@ -182,6 +183,7 @@ object RustShell {
      * @return true if key was obtained and verified
      */
     suspend fun fetchPublicKey(handle: Long): Boolean = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         nativeFetchPublicKey(handle)
     }
 
@@ -194,6 +196,7 @@ object RustShell {
         timeoutMs: Int,
         workdir: String = ""
     ): CommandResult = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         val raw = nativeExecuteCommand(handle, command, timeoutMs, workdir)
         try {
             json.decodeFromString<CommandResult>(raw)
@@ -212,6 +215,7 @@ object RustShell {
         offset: Long = 0,
         limit: Long = 0
     ): FileReadResult = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         val raw = nativeFileRead(handle, path, offset, limit)
         try {
             json.decodeFromString<FileReadResult>(raw)
@@ -231,6 +235,7 @@ object RustShell {
         path: String,
         content: String
     ): String? = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         val raw = nativeFileWrite(handle, path, content)
         try {
             json.decodeFromString<FileWriteResult>(raw).error
@@ -248,6 +253,7 @@ object RustShell {
         pattern: String,
         basePath: String = ""
     ): Result<List<String>> = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         val raw = nativeFileGlob(handle, pattern, basePath)
         try {
             val result = json.decodeFromString<FileGlobResult>(raw)
@@ -267,6 +273,7 @@ object RustShell {
         pattern: String,
         basePath: String = ""
     ): Result<List<GrepMatch>> = withContext(Dispatchers.IO) {
+        NativeLib.ensureLoaded()
         val raw = nativeFileGrep(handle, pattern, basePath)
         try {
             val result = json.decodeFromString<FileGrepResult>(raw)
@@ -282,6 +289,7 @@ object RustShell {
      * Destroy the shell client. Safe to call multiple times.
      */
     suspend fun destroyClient(handle: Long) = withContext(Dispatchers.IO) {
+        if (!NativeLib.loaded) return@withContext
         nativeDestroyShellClient(handle)
     }
 

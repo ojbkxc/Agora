@@ -3,6 +3,7 @@
 import com.newoether.agora.model.ChatMessage
 import com.newoether.agora.util.Constants
 import com.newoether.agora.util.DebugLog
+import com.newoether.agora.util.NativeLib
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,7 @@ open class RustAnthropicProvider : LlmProvider {
     ): Flow<StreamEvent> = callbackFlow {
         val handle = try {
             withContext(Dispatchers.IO) {
+                NativeLib.ensureLoaded()
                 val providerConfigJson = json.encodeToString(
                     RustProviderConfig(
                         apiKey = config.apiKey,
@@ -117,6 +119,7 @@ open class RustAnthropicProvider : LlmProvider {
     override suspend fun fetchModels(apiKey: String, baseUrl: String?): List<String> =
         withContext(Dispatchers.IO) {
             try {
+                NativeLib.ensureLoaded()
                 val providerConfigJson = json.encodeToString(
                     RustProviderConfig(
                         apiKey = apiKey,

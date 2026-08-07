@@ -56,10 +56,7 @@
 -keep class com.newoether.agora.api.RustCustomOpenAiProvider { *; }
 -keep class com.newoether.agora.api.RustCustomAnthropicProvider { *; }
 -keep class com.newoether.agora.api.RustCustomGeminiProvider { *; }
--keep class com.newoether.agora.api.LlamaEngine { *; }
--keep class com.newoether.agora.api.LlamaChatEngine { *; }
--keep class com.newoether.agora.api.LlamaChatEngine$* { *; }
--keep class com.newoether.agora.api.ChatTemplateMessage { *; }
+
 # RustSharedTypes.kt — every @Serializable data class (RustProviderConfig,
 # RustChatMessage, RustStreamEvent, RustStreamEventData, RustGenerationError,
 # RustToolCallRequest, RustModelListResponse, ...) is the JSON wire format

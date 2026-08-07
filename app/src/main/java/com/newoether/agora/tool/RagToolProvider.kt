@@ -1,7 +1,7 @@
 package com.newoether.agora.tool
 
 import com.newoether.agora.api.EmbeddingClient
-import com.newoether.agora.api.LlamaEngine
+
 import com.newoether.agora.api.ProviderDefaults
 import com.newoether.agora.api.ToolDefinition
 import com.newoether.agora.api.ToolFunction
@@ -385,11 +385,10 @@ class RagToolProvider(
             return@withContext emptyList()
         }
         val queryEmbedding = if (config.type == com.newoether.agora.data.EmbeddingModelType.LOCAL) {
-            if (!LlamaEngine.isModelReady(config.localFilePath)) {
-                DebugLog.w("AgoraVM", "GM RAG: local model not ready")
-                return@withContext emptyList()
-            }
-            LlamaEngine.computeEmbedding(query, config.localFilePath)
+            // Local (on-device GGUF) embedding models are no longer supported after the
+            // llama.cpp removal. Fail gracefully with no results.
+            DebugLog.w("AgoraVM", "GM RAG: local embedding models are no longer supported")
+            return@withContext emptyList()
         } else {
             val apiKey = resolveEmbeddingApiKey(ctx)
             if (apiKey == null) {

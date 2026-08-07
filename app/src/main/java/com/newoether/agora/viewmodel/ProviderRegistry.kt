@@ -8,7 +8,7 @@ import com.newoether.agora.api.RustCustomOpenAiProvider
 import com.newoether.agora.api.RustGeminiProvider
 import com.newoether.agora.api.RustOllamaProvider
 import com.newoether.agora.api.RustOpenAiProvider
-import com.newoether.agora.api.local.LocalProvider
+
 import com.newoether.agora.data.CustomEndpointProtocol
 import com.newoether.agora.data.CustomEndpointResolution
 import com.newoether.agora.data.CustomProviderConfig
@@ -81,7 +81,7 @@ internal fun providerConfigurationIsValid(
 ): Boolean = when {
     providerName == Constants.PROVIDER_UNKNOWN -> false
     !registered -> false
-    providerName == Constants.PROVIDER_LOCAL -> true
+
     !builtIn || providerName == Constants.PROVIDER_OLLAMA -> !effectiveBaseUrl.isNullOrBlank()
     else -> activeKey.isNotBlank()
 }
@@ -99,7 +99,6 @@ internal fun providerConfigurationIsValid(
  */
 class ProviderRegistry(
     private val settings: SettingsRepository,
-    localProvider: LocalProvider,
     private val scope: CoroutineScope,
 ) {
     private val builtInProviders: Map<String, LlmProvider> = mapOf(
@@ -111,7 +110,6 @@ class ProviderRegistry(
         Constants.PROVIDER_GROQ to RustOpenAiProvider(),     // Groq uses OpenAI-compatible API
         Constants.PROVIDER_OLLAMA to RustOllamaProvider(),
         Constants.PROVIDER_OPEN_ROUTER to RustOpenAiProvider(), // OpenRouter uses OpenAI-compatible API
-        Constants.PROVIDER_LOCAL to localProvider
     )
 
     // Declared as MutableMap so `in`/`contains` keep Map (containsKey) semantics (KT-18053).

@@ -1,7 +1,6 @@
 package com.newoether.agora.ui.onboarding
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -34,20 +33,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -94,7 +90,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.newoether.agora.R
 import com.newoether.agora.data.CustomEndpointProtocol
-import com.newoether.agora.data.LocalChatModelConfig
+
 import com.newoether.agora.ui.components.CustomEndpointProtocolSelector
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.components.providerIcon
@@ -102,11 +98,7 @@ import com.newoether.agora.model.apiModelName
 import com.newoether.agora.util.Constants
 import com.newoether.agora.viewmodel.ChatViewModel
 import kotlin.math.absoluteValue
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.util.UUID
 
 data class WelcomePage(
     val title: String,
@@ -145,12 +137,12 @@ fun WelcomeScreen(
         Constants.PROVIDER_OLLAMA, Constants.PROVIDER_OPEN_ROUTER
     )
     val customProviders by viewModel.settings.customProviders.collectAsState()
-    val allProviders = (builtInProviders + customProviders.map { it.name } + "Custom" + Constants.PROVIDER_LOCAL).distinct()
+    val allProviders = (builtInProviders + customProviders.map { it.name } + "Custom").distinct()
     var selectedProvider by remember { mutableStateOf<String?>(null) }
     // True for any user-defined endpoint (the "Custom" slot or an already-created
     // provider). Its selected wire protocol determines request and response handling.
     val isCustomProvider = selectedProvider != null &&
-        selectedProvider != Constants.PROVIDER_LOCAL && selectedProvider != Constants.PROVIDER_OLLAMA &&
+        selectedProvider != Constants.PROVIDER_OLLAMA &&
         selectedProvider !in builtInProviders
     var apiKeyText by remember { mutableStateOf("") }
     var baseUrlText by remember { mutableStateOf("") }
@@ -160,7 +152,6 @@ fun WelcomeScreen(
     val autoBackupEnabled by viewModel.settings.autoBackupEnabled.collectAsState()
     val availableModels by viewModel.settings.availableModels.collectAsState()
     val modelAliases by viewModel.settings.modelAliases.collectAsState()
-    val localChatModels by viewModel.settings.localChatModels.collectAsState()
     val existingApiKeys by viewModel.settings.apiKeys.collectAsState()
     val existingProviderUrls by viewModel.settings.providerBaseUrls.collectAsState()
 
@@ -176,7 +167,6 @@ fun WelcomeScreen(
                 val url = existingProviderUrls[Constants.PROVIDER_OLLAMA]
                 if (!url.isNullOrBlank()) apiKeyText = url
             }
-            p == Constants.PROVIDER_LOCAL -> { /* no pre-fill */ }
             p != "Custom" && p !in builtInProviders -> {
                 // Existing custom provider: pre-fill both its URL and key.
                 existingProviderUrls[p]?.takeIf { it.isNotBlank() }?.let { baseUrlText = it }
@@ -189,41 +179,8 @@ fun WelcomeScreen(
         }
     }
 
-    // ── GGUF import ──
-    var showGgufError by remember { mutableStateOf(false) }
-    var isImportingGGUF by remember { mutableStateOf(false) }
-    val ggufPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            isImportingGGUF = true
-            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val dest = File(context.filesDir, "chat_model_${UUID.randomUUID()}.gguf")
-                    val aliasName = com.newoether.agora.util.FileValidator.resolveFileName(context, uri)
-                        ?.let { if (it.substringAfterLast('.', "").equals("gguf", ignoreCase = true)) it.substringBeforeLast('.') else it }
-                        ?.trim()?.ifBlank { null }
-                        ?: dest.nameWithoutExtension
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        dest.outputStream().use { output -> input.copyTo(output) }
-                    }
-                    val magic = ByteArray(4); dest.inputStream().use { it.read(magic) }
-                    if (magic[0] != 'G'.code.toByte() || magic[1] != 'G'.code.toByte()
-                        || magic[2] != 'U'.code.toByte() || magic[3] != 'F'.code.toByte()
-                    ) { dest.delete(); withContext(Dispatchers.Main) { showGgufError = true } }
-                    else {
-                        withContext(Dispatchers.Main) {
-                            localChatModels.forEach { viewModel.deleteLocalChatModel(it.id) }
-                            viewModel.addLocalChatModel(LocalChatModelConfig(
-                                modelId = dest.nameWithoutExtension,
-                                alias = aliasName,
-                                localFilePath = dest.absolutePath
-                            ))
-                        }
-                    }
-                } catch (_: Exception) { withContext(Dispatchers.Main) { showGgufError = true } }
-                finally { withContext(Dispatchers.Main) { isImportingGGUF = false } }
-            }
-        }
-    }
+    // ── GGUF import removed — on-device GGUF chat models are no longer supported
+    // after the llama.cpp native layer removal. ──
 
     // ── Pages ──
     val pages = listOf(
@@ -267,11 +224,10 @@ fun WelcomeScreen(
 
     // Persist whatever the API Key page collected for the selected provider. Custom
     // providers register their base URL (creating the provider if new) plus key; the
-    // built-in/Ollama/Local paths stay as before. Blank fields are skipped.
+    // built-in/Ollama paths stay as before. Blank fields are skipped.
     val saveProviderCredentials: () -> Unit = save@{
         val p = selectedProvider ?: return@save
         when {
-            p == Constants.PROVIDER_LOCAL -> { /* handled by GGUF import */ }
             p == Constants.PROVIDER_OLLAMA -> if (apiKeyText.isNotBlank()) viewModel.settings.setProviderBaseUrl(Constants.PROVIDER_OLLAMA, apiKeyText)
             isCustomProvider -> {
                 if (baseUrlText.isNotBlank()) {
@@ -308,7 +264,7 @@ fun WelcomeScreen(
         // on every entry with the latest key; cancel on leave so an in-flight request
         // never lands off-screen (no list jump) and a stale key's result never wins.
         fetchJob?.cancel()
-        if (pagerState.currentPage == PAGE_MODEL_CONFIG && selectedProvider != null && selectedProvider != Constants.PROVIDER_LOCAL) {
+        if (pagerState.currentPage == PAGE_MODEL_CONFIG && selectedProvider != null) {
             isFetchingModels = true
             fetchJob = scope.launch {
                 try {
@@ -329,14 +285,6 @@ fun WelcomeScreen(
 
     LaunchedEffect(exiting) { if (exiting) { kotlinx.coroutines.delay(300); onComplete() } }
 
-    // GGUF error dialog
-    if (showGgufError) AlertDialog(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        onDismissRequest = { showGgufError = false },
-        title = { Text(stringResource(R.string.onboarding_invalid_gguf_title), fontWeight = FontWeight.Bold) },
-        text = { Text(stringResource(R.string.onboarding_invalid_gguf_desc)) },
-        confirmButton = { TextButton(onClick = { showGgufError = false }) { Text(stringResource(R.string.ok)) } }
-    )
 
     AnimatedVisibility(visible = !exiting, exit = fadeOut(tween(300))) {
         Box(modifier = Modifier.fillMaxSize().clearFocusOnTap()) {
@@ -382,15 +330,10 @@ fun WelcomeScreen(
                                     onCustomProtocolChange = { customProtocol = it },
                                     apiKeyVisible = apiKeyVisible,
                                     onToggleVisibility = { apiKeyVisible = !apiKeyVisible },
-                                    isImporting = isImportingGGUF,
-                                    onImportGGUF = { ggufPicker.launch(arrayOf("*/*")) },
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).alpha(contentAlpha),
-                                    localModels = localChatModels
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).alpha(contentAlpha)
                                 )
                                 PAGE_MODEL_CONFIG -> {
-                                    val pModels = if (selectedProvider != null) availableModels[selectedProvider] ?: emptyList() else emptyList()
-                                    val lModels = localChatModels.map { "${Constants.PROVIDER_LOCAL}:${it.modelId}" }
-                                    val models = if (selectedProvider == Constants.PROVIDER_LOCAL) lModels else pModels
+                                    val models = if (selectedProvider != null) availableModels[selectedProvider] ?: emptyList() else emptyList()
                                     val applyModel: (String) -> Unit = { id ->
                                         selectedModelId = id
                                         viewModel.settings.setSelectedModel(id)
@@ -432,13 +375,11 @@ fun WelcomeScreen(
                         Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp).alpha(contentAlpha)) {
                             val page = pages[index]
                             val title = when {
-                                index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_LOCAL -> stringResource(R.string.onboarding_gguf_title)
                                 index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_OLLAMA -> stringResource(R.string.onboarding_server_url_title)
                                 index == PAGE_API_KEY && isCustomProvider -> stringResource(R.string.onboarding_custom_title)
                                 else -> page.title
                             }
                             val desc = when {
-                                index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_LOCAL -> stringResource(R.string.onboarding_gguf_desc)
                                 index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_OLLAMA -> stringResource(R.string.onboarding_ollama_desc)
                                 index == PAGE_API_KEY && isCustomProvider -> stringResource(R.string.onboarding_custom_desc)
                                 index == PAGE_API_KEY && selectedProvider != null -> stringResource(R.string.onboarding_api_key_for, selectedProvider!!)
@@ -477,7 +418,7 @@ fun WelcomeScreen(
                         else {
                             // Credentials are saved by the page-leave effect (covers both
                             // swipe and this button), so we only advance here.
-                            if (pagerState.currentPage == PAGE_PROVIDER && selectedProvider != null && selectedProvider != Constants.PROVIDER_LOCAL) apiKeyText = ""
+                            if (pagerState.currentPage == PAGE_PROVIDER && selectedProvider != null) apiKeyText = ""
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1, animationSpec = tween<Float>(500, easing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f))) }
                         }
                     }, Modifier.fillMaxWidth(), shape = RoundedCornerShape(50), enabled = showContent, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
@@ -539,7 +480,7 @@ private fun ProviderPage(providers: List<String>, selected: String?, onSelect: (
                     Spacer(Modifier.width(8.dp))
                     when {
                         iconRes != 0 -> Icon(painterResource(iconRes), null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
-                        p == Constants.PROVIDER_LOCAL -> Icon(Icons.Filled.AutoAwesome, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+
                         p == "Custom" -> Icon(Icons.Filled.Tune, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                         else -> Icon(Icons.Filled.Cloud, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                     }
@@ -561,27 +502,12 @@ private fun ApiKeyPage(
     customProtocol: CustomEndpointProtocol,
     onCustomProtocolChange: (CustomEndpointProtocol) -> Unit,
     apiKeyVisible: Boolean, onToggleVisibility: () -> Unit,
-    isImporting: Boolean, onImportGGUF: () -> Unit, modifier: Modifier,
-    localModels: List<com.newoether.agora.data.LocalChatModelConfig> = emptyList()
+    modifier: Modifier
 ) {
     Surface(modifier, RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 2.dp) {
         if (provider == null) {
             Column(Modifier.padding(32.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.onboarding_no_provider), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else if (provider == Constants.PROVIDER_LOCAL) {
-            val label = if (isImporting) stringResource(R.string.onboarding_importing)
-                else localModels.lastOrNull()?.alias ?: stringResource(R.string.onboarding_import_gguf)
-            Column(Modifier.padding(32.dp).fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.AutoAwesome, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(36.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(provider, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                }
-                Spacer(Modifier.height(20.dp))
-                OutlinedButton(onClick = onImportGGUF, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(50), enabled = !isImporting) {
-                    Text(label, modifier = Modifier.padding(vertical = 6.dp))
-                }
             }
         } else if (provider == Constants.PROVIDER_OLLAMA) {
             Column(Modifier.padding(32.dp).fillMaxWidth().clearFocusOnTap()) {

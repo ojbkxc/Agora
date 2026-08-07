@@ -5,7 +5,7 @@ import android.content.Context
 import com.newoether.agora.R
 import com.newoether.agora.api.ProviderConfig
 import com.newoether.agora.api.StreamEvent
-import com.newoether.agora.api.local.LocalProvider
+
 import com.newoether.agora.automation.ConversationExecutionCoordinator
 import com.newoether.agora.data.BuiltInPrompts
 import com.newoether.agora.data.ConversationSettings
@@ -163,7 +163,7 @@ class MessageGenerationController(
     private val requestBuilder: GenerationRequestBuilder,
     private val payloadBuilder: MessagePayloadBuilder,
     private val providerRegistry: ProviderRegistry,
-    private val localProvider: LocalProvider,
+
     private val executionCoordinator: ConversationExecutionCoordinator,
     // ── Shared UI state: the SAME instances ChatViewModel exposes — never recreate ──
     private val allMessages: MutableStateFlow<List<ChatMessage>>,
@@ -502,8 +502,7 @@ class MessageGenerationController(
                 effectiveSettings, currentId
             )
             // No global slot: remote generations run concurrently (only the per-conversation
-            // lock above serializes same-conversation work); local model work is serialized
-            // inside LocalProvider via LocalModelSerializer. Stop therefore releases
+            // lock above serializes same-conversation work). Stop therefore releases
             // immediately — nothing is queued behind a held process-wide mutex.
             generationManager.generate(
                 conversationId = currentId,
@@ -769,16 +768,15 @@ class MessageGenerationController(
             return
         }
         if (providerName == Constants.PROVIDER_LOCAL) {
-            val localModelId = modelId.substringAfter("${Constants.PROVIDER_LOCAL}:")
-            val config = settings.localChatModels.value.find { it.modelId == localModelId }
-            if (config == null || !java.io.File(config.localFilePath).exists()) {
-                onSnackbar(application.getString(R.string.local_model_not_found))
-                state.scope.launch {
-                    convRepo.failRun(runId)
-                    releaseAndDrain(state, myUiToken, genId)
-                }
-                return
+            // Local (on-device GGUF) chat models were removed with the llama.cpp native
+            // layer. Any persisted Local:* selection is now unusable — fail gracefully
+            // with a clear snackbar instead of crashing on a missing provider.
+            onSnackbar(application.getString(R.string.local_model_not_found))
+            state.scope.launch {
+                convRepo.failRun(runId)
+                releaseAndDrain(state, myUiToken, genId)
             }
+            return
         }
         state.loadingChange(myUiToken, true)
 
@@ -883,12 +881,10 @@ class MessageGenerationController(
         val state = registry.getOrCreate(genId)
         val (providerName, activeKey) = requestBuilder.resolveProviderKey(modelId) ?: return null
         if (providerName == Constants.PROVIDER_LOCAL) {
-            val localModelId = modelId.substringAfter("${Constants.PROVIDER_LOCAL}:")
-            val config = settings.localChatModels.value.find { it.modelId == localModelId }
-            if (config == null || !java.io.File(config.localFilePath).exists()) {
-                onSnackbar(application.getString(R.string.local_model_not_found))
-                return null
-            }
+            // Local (on-device GGUF) chat models were removed with the llama.cpp native
+            // layer. Any persisted Local:* selection is now unusable — fail gracefully.
+            onSnackbar(application.getString(R.string.local_model_not_found))
+            return null
         }
 
         // Expensive media work finishes before the atomic placement decision. The composer does
@@ -1308,35 +1304,11 @@ class MessageGenerationController(
 
             var title = ""
             try {
-                // Title generation is a real provider call. Remote title gen runs without any
-                // global slot (it's cheap and independent); local title gen takes the shared
-                // LocalModelSerializer mutex so it can't load a model alongside an in-flight
-                // chat/embedding turn (OOM). The mutex is fair and cancellable, so a Stop or a
-                // new send isn't blocked behind it.
-                if (providerName == Constants.PROVIDER_LOCAL) {
-                    com.newoether.agora.api.LocalModelSerializer.mutex.withLock {
-                        withContext(Dispatchers.IO) {
-                            provider.generateResponse(titlePrompt, config).collect { event ->
-                                if (event is StreamEvent.TextChunk) title += event.text
-                                else if (event is StreamEvent.Error) DebugLog.e("AgoraVM", "Title generation error: ${event.message}")
-                            }
-                        }
-                        // Intentionally do NOT releaseEngine() here. Title generation runs right
-                        // after the first message of a new conversation, on the same model the
-                        // user is actively chatting with; LocalProvider.ensureEngineLoaded reuses
-                        // the already-loaded engine. Releasing here would force the next message
-                        // to re-load a multi-GB model onto a possibly-fragmented native heap,
-                        // which is the leading suspect for the "second message OOM" crash (#53,
-                        // 31 OOM reports) — the text path itself is crash-safe. Keeping the
-                        // engine session-scoped (released only on model switch / RAG / process
-                        // death) eliminates that reload churn. This is an OOM-probability
-                        // reduction, NOT a claimed #53 root-case fix (that needs a logcat).
-                    }
-                } else {
-                    provider.generateResponse(titlePrompt, config).collect { event ->
-                        if (event is StreamEvent.TextChunk) title += event.text
-                        else if (event is StreamEvent.Error) DebugLog.e("AgoraVM", "Title generation error: ${event.message}")
-                    }
+                // Title generation is a real provider call. It runs without any global
+                // slot — it's cheap and independent, and a Stop releases it immediately.
+                provider.generateResponse(titlePrompt, config).collect { event ->
+                    if (event is StreamEvent.TextChunk) title += event.text
+                    else if (event is StreamEvent.Error) DebugLog.e("AgoraVM", "Title generation error: ${event.message}")
                 }
             } catch (e: Exception) {
                 DebugLog.e("AgoraVM", "Title generation failed for provider=$providerName model=$modelId", e)

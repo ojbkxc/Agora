@@ -57,7 +57,11 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeGenerateKe
     };
 
     let handle = next_key_handle();
-    KEY_PAIRS.lock().unwrap().insert(handle, secret_bytes);
+    // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+    KEY_PAIRS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(handle, secret_bytes);
 
     let result = serde_json::json!({
         "public_key": public_key,
@@ -87,7 +91,8 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeDeriveAesK
 
     // 获取存储的密钥对
     let secret_bytes = {
-        let pairs = KEY_PAIRS.lock().unwrap();
+        // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+        let pairs = KEY_PAIRS.lock().unwrap_or_else(|e| e.into_inner());
         match pairs.get(&handle) {
             Some(bytes) => *bytes,
             None => {
@@ -131,7 +136,11 @@ pub extern "system" fn Java_com_newoether_agora_util_RustCrypto_nativeDeriveAesK
     };
 
     // 清理已使用的密钥对
-    KEY_PAIRS.lock().unwrap().remove(&handle);
+    // 使用 unwrap_or_else 恢复中毒的 Mutex，避免 panic 跨越 FFI 边界导致 JVM 崩溃。
+    KEY_PAIRS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .remove(&handle);
 
     use base64::Engine;
     let key_b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&aes_key);

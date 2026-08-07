@@ -7,9 +7,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.newoether.agora.AgoraApplication
 import com.newoether.agora.api.EmbeddingClient
-import com.newoether.agora.api.LlamaEngine
 import com.newoether.agora.api.ProviderDefaults
-import com.newoether.agora.api.local.LocalProvider
 import com.newoether.agora.data.EmbeddingCacheLocks
 import com.newoether.agora.data.EmbeddingModelType
 import com.newoether.agora.data.EmbeddingIndexer
@@ -64,7 +62,7 @@ class EmbeddingCacheWorker(
 
         // Same process-wide lock as RagManager's in-app runner: never compute alongside it.
         EmbeddingCacheLocks.forModel(modelId).withLock {
-            cacheModel(modelId, container.chatDao, container.settingsManager, container.localProvider)
+            cacheModel(modelId, container.chatDao, container.settingsManager)
         }
     }
 
@@ -72,7 +70,6 @@ class EmbeddingCacheWorker(
         modelId: String,
         chatDao: ChatDao,
         settingsManager: SettingsManager,
-        localProvider: LocalProvider
     ): Result {
         val models = settingsManager.embeddingModels.first()
         val model = models.find { it.id == modelId }
@@ -99,20 +96,19 @@ class EmbeddingCacheWorker(
         var succeeded = 0
         var attempted = 0
         val batchSize = model.batchSize.coerceIn(1, 100)
-        val remoteConfig = if (model.type == EmbeddingModelType.LOCAL) {
-            if (!LlamaEngine.isModelReady(model.localFilePath)) {
-                return Result.failure(Data.Builder()
-                    .putString("error", "Local model file not found").build())
-            }
-            null
-        } else {
-            val apiKey = model.remoteApiKey.ifBlank { resolveApiKey(settingsManager) ?: "" }
-            if (apiKey.isBlank()) {
-                return Result.failure(Data.Builder()
-                    .putString("error", "No API key configured").build())
-            }
-            apiKey to model.remoteBaseUrl.ifBlank { resolveBaseUrl(settingsManager) }
+        // Local (on-device GGUF) embedding models are no longer supported after the
+        // llama.cpp removal. Fail gracefully so WorkManager doesn't keep retrying.
+        if (model.type == EmbeddingModelType.LOCAL) {
+            return Result.failure(Data.Builder()
+                .putString("error", "Local embedding models are no longer supported").build())
         }
+        val apiKey = model.remoteApiKey.ifBlank { resolveApiKey(settingsManager) ?: "" }
+        if (apiKey.isBlank()) {
+            return Result.failure(Data.Builder()
+                .putString("error", "No API key configured").build())
+        }
+        val baseUrl = model.remoteBaseUrl.ifBlank { resolveBaseUrl(settingsManager) }
+        val remoteConfig = apiKey to baseUrl
 
         try {
             setProgress(workDataOf(KEY_CACHED to alreadyDone, KEY_TOTAL to total))
@@ -128,18 +124,10 @@ class EmbeddingCacheWorker(
                 afterMessageId = batch.last().id
 
                 val texts = batch.map { it.text.take(Constants.MAX_EMBEDDING_TEXT_LENGTH) }
-                val embeddings = if (model.type == EmbeddingModelType.LOCAL) {
-                    // Release any resident chat engine first — same OOM guard as the in-app
-                    // runner (chat model + embedding model resident together can OOM).
-                    LlamaEngine.computeEmbeddings(texts, model.localFilePath) {
-                        localProvider.releaseEngineBlocking()
-                    }
-                } else {
-                    val (apiKey, baseUrl) = requireNotNull(remoteConfig)
-                    EmbeddingClient.computeEmbeddings(
-                        texts, apiKey, model.remoteModelName, baseUrl
-                    )
-                }
+                val (activeKey, activeBaseUrl) = remoteConfig
+                val embeddings = EmbeddingClient.computeEmbeddings(
+                    texts, activeKey, model.remoteModelName, activeBaseUrl
+                )
 
                 attempted += batch.size
                 batch.zip(embeddings).forEach { (message, embedding) ->

@@ -1,7 +1,5 @@
 package com.newoether.agora.ui.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -17,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -28,8 +25,6 @@ import com.newoether.agora.api.ProviderDefaults
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.util.Constants
 import com.newoether.agora.viewmodel.ChatViewModel
-import kotlinx.coroutines.launch
-import java.io.File
 
 private data class SearchMethodOption(val key: String, @androidx.annotation.StringRes val labelRes: Int)
 
@@ -55,7 +50,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { viewModel.loadCacheCounts() }
     var showRemoteDialog by remember { mutableStateOf(false) }
-    var showLocalDialog by remember { mutableStateOf(false) }
+
     var showDeleteDialog by remember { mutableStateOf<String?>(null) }
     var showRenameDialog by remember { mutableStateOf<String?>(null) }
     var showRecacheConfirm by remember { mutableStateOf<String?>(null) }
@@ -74,11 +69,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
         EmbeddingProviderPreset("Custom", "", emptyList())
     )
     val remoteState = rememberRemoteEmbeddingDialogState(embeddingProviders.size)
-    var localName by remember { mutableStateOf("") }
-    var localFilePath by remember { mutableStateOf("") }
-    var localBatchSize by remember { mutableStateOf("8") }
-    var isImporting by remember { mutableStateOf(false) }
-    var showGgufError by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(embeddingModels.size) {
         showMenuForModel = null
@@ -331,12 +322,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 )
                                 showRemoteDialog = true
                             }) { Text(stringResource(R.string.add_remote_model)) }
-                            TextButton(onClick = {
-                                localName = ""
-                                localFilePath = ""
-                                localBatchSize = "8"
-                                showLocalDialog = true
-                            }) { Text(stringResource(R.string.add_local_model)) }
+
                         }
                     }
                 }
@@ -480,118 +466,6 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             )
         }
 
-        if (showGgufError) {
-            AlertDialog(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                onDismissRequest = { showGgufError = false },
-                title = { Text(stringResource(R.string.import_invalid_gguf_title), fontWeight = FontWeight.Bold) },
-                text = { Text(stringResource(R.string.import_invalid_gguf_desc)) },
-                confirmButton = { TextButton(onClick = { showGgufError = false }) { Text(stringResource(R.string.ok)) } }
-            )
-        }
-
-        if (showLocalDialog) {
-            val scope = rememberCoroutineScope()
-            val context = LocalContext.current
-            val filePickerLauncher = rememberLauncherForActivityResult(
-                contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
-            ) { uri ->
-                if (uri != null) {
-                    isImporting = true
-                    scope.launch {
-                        try {
-                            val destFile = File(context.filesDir, "embedding_${java.util.UUID.randomUUID()}.gguf")
-                            context.contentResolver.openInputStream(uri)?.use { input ->
-                                destFile.outputStream().use { output ->
-                                    input.copyTo(output)
-                                }
-                            }
-                            // Validate GGUF magic bytes
-                            val magic = ByteArray(4)
-                            destFile.inputStream().use { it.read(magic) }
-                            if (magic[0] != 'G'.code.toByte() || magic[1] != 'G'.code.toByte()
-                                || magic[2] != 'U'.code.toByte() || magic[3] != 'F'.code.toByte()) {
-                                destFile.delete()
-                                showGgufError = true
-                            } else {
-                                localFilePath = destFile.absolutePath
-                            }
-                        } catch (_: Exception) { }
-                        isImporting = false
-                    }
-                }
-            }
-            AlertDialog(
-                modifier = Modifier.clearFocusOnTap(),
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                onDismissRequest = {
-                    if (localFilePath.isNotBlank()) File(localFilePath).delete()
-                    showLocalDialog = false
-                },
-                title = { Text(stringResource(R.string.add_local_model), fontWeight = FontWeight.Bold) },
-                text = {
-                    Column {
-                        OutlinedTextField(
-                            value = localName,
-                            onValueChange = { localName = it },
-                            label = { Text(stringResource(R.string.model_name_label)) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = localBatchSize,
-                            onValueChange = { localBatchSize = it.filter { c -> c.isDigit() } },
-                            label = { Text(stringResource(R.string.embedding_batch_size)) },
-                            supportingText = { Text(stringResource(R.string.embedding_batch_size_desc)) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        if (localFilePath.isNotBlank()) {
-                            SettingsItem(
-                                headlineContent = { Text(stringResource(R.string.local_model_ready)) },
-                                leadingContent = {
-                                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
-                                }
-                            )
-                        } else {
-                            TextButton(onClick = { filePickerLauncher.launch(arrayOf("*/*")) }) {
-                                Text(stringResource(R.string.import_model))
-                            }
-                        }
-                        if (isImporting) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(start = 16.dp), strokeWidth = 2.dp)
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        if (localName.isNotBlank() && localFilePath.isNotBlank()) {
-                            viewModel.addEmbeddingModel(
-                                com.newoether.agora.data.EmbeddingModelConfig(
-                                    name = localName,
-                                    type = com.newoether.agora.data.EmbeddingModelType.LOCAL,
-                                    localFilePath = localFilePath,
-                                    batchSize = localBatchSize.toIntOrNull() ?: 8
-                                )
-                            )
-                            showLocalDialog = false
-                        }
-                    },
-                        enabled = localName.isNotBlank() && localFilePath.isNotBlank()
-                    ) { Text(stringResource(R.string.add)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        if (localFilePath.isNotBlank()) File(localFilePath).delete()
-                        showLocalDialog = false
-                    }) { Text(stringResource(R.string.cancel)) }
-                }
-            )
-        }
 
         if (showRecacheConfirm != null) {
             val modelId = showRecacheConfirm!!

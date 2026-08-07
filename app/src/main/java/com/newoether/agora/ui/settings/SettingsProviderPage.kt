@@ -37,7 +37,7 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val apiKeys by viewModel.settings.apiKeys.collectAsState()
     val providerBaseUrls by viewModel.settings.providerBaseUrls.collectAsState()
     val customProviders by viewModel.settings.customProviders.collectAsState()
-    val localChatModels by viewModel.settings.localChatModels.collectAsState()
+
 
     var selectedProvider by rememberSaveable { mutableStateOf<String?>(null) }
     var showAddCustomDialog by remember { mutableStateOf(false) }
@@ -68,7 +68,7 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 
                 @Composable
                 fun isConfigured(name: String): Boolean = when (name) {
-                    Constants.PROVIDER_LOCAL -> localChatModels.isNotEmpty()
+
                     else -> {
                         val isCustom = customProviders.any { it.name == name }
                         if (isCustom || name == Constants.PROVIDER_OLLAMA) !providerBaseUrls[name].isNullOrBlank()
@@ -156,16 +156,6 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 }
                             })
 
-                            val localConfigured = localChatModels.isNotEmpty()
-                            SettingsGroup(title = stringResource(R.string.local_models_title), items = listOf {
-                                SettingsItem(
-                                    headlineContent = { Text(stringResource(R.string.local_title)) },
-                                    supportingContent = { Text(if (localConfigured) stringResource(R.string.provider_local_models_summary, localChatModels.size) else stringResource(R.string.not_configured)) },
-                                    leadingContent = { Icon(Icons.Default.AutoAwesome, null, tint = if (localConfigured) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
-                                    trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
-                                    modifier = Modifier.clickable { selectedProvider = Constants.PROVIDER_LOCAL }
-                                )
-                            })
                         }
 
                         if (showDocFab) Spacer(modifier = Modifier.height(80.dp))

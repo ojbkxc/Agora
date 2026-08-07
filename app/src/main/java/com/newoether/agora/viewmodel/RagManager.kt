@@ -3,9 +3,7 @@ package com.newoether.agora.viewmodel
 import android.content.Context
 import com.newoether.agora.R
 import com.newoether.agora.api.EmbeddingClient
-import com.newoether.agora.api.LlamaEngine
 import com.newoether.agora.api.ProviderDefaults
-import com.newoether.agora.api.local.LocalProvider
 import com.newoether.agora.data.EmbeddingCacheLocks
 import com.newoether.agora.data.EmbeddingIndexer
 import com.newoether.agora.data.EmbeddingModelConfig
@@ -55,7 +53,7 @@ internal fun messagesEligibleForRagBackfill(messages: List<MessageEntity>): List
 class RagManager(
     private val conversations: ConversationRepository,
     private val settings: SettingsRepository,
-    private val localProvider: LocalProvider,
+
     private val appContext: Context,
     private val scope: CoroutineScope,
     private val emitSnackbar: suspend (SnackbarEvent) -> Unit,
@@ -228,20 +226,20 @@ class RagManager(
         var succeeded = 0
         var attempted = 0
         val batchSize = model.batchSize.coerceIn(1, 100)
-        val remoteConfig = if (model.type == EmbeddingModelType.LOCAL) {
-            if (!LlamaEngine.isModelReady(model.localFilePath)) {
-                if (!silent) emitSnackbar(SnackbarEvent(appContext.getString(R.string.local_model_not_found)))
-                return
-            }
-            null
-        } else {
-            val apiKey = model.remoteApiKey.ifBlank { resolveEmbeddingApiKey() ?: "" }
-            if (apiKey.isBlank()) {
-                if (!silent) emitSnackbar(SnackbarEvent(appContext.getString(R.string.no_api_key_configured)))
-                return
-            }
-            apiKey to model.remoteBaseUrl.ifBlank { resolveEmbeddingBaseUrl() }
+        // Local (on-device GGUF) embedding models are no longer supported after the
+        // llama.cpp removal. Treat any persisted LOCAL model as unavailable and bail
+        // out gracefully rather than crashing on a missing native library.
+        if (model.type == EmbeddingModelType.LOCAL) {
+            if (!silent) emitSnackbar(SnackbarEvent(appContext.getString(R.string.local_model_not_found)))
+            return
         }
+        val apiKey = model.remoteApiKey.ifBlank { resolveEmbeddingApiKey() ?: "" }
+        if (apiKey.isBlank()) {
+            if (!silent) emitSnackbar(SnackbarEvent(appContext.getString(R.string.no_api_key_configured)))
+            return
+        }
+        val baseUrl = model.remoteBaseUrl.ifBlank { resolveEmbeddingBaseUrl() }
+        val remoteConfig = apiKey to baseUrl
 
         _cachingProgress.update { it + (modelId to (alreadyDone to total)) }
         try {
@@ -257,16 +255,10 @@ class RagManager(
                 afterMessageId = batch.last().id
 
                 val texts = batch.map { it.text.take(Constants.MAX_EMBEDDING_TEXT_LENGTH) }
-                val embeddings = if (model.type == EmbeddingModelType.LOCAL) {
-                    LlamaEngine.computeEmbeddings(texts, model.localFilePath) {
-                        localProvider.releaseEngineBlocking()
-                    }
-                } else {
-                    val (apiKey, baseUrl) = requireNotNull(remoteConfig)
-                    EmbeddingClient.computeEmbeddings(
-                        texts, apiKey, model.remoteModelName, baseUrl
-                    )
-                }
+                val (activeKey, activeBaseUrl) = remoteConfig
+                val embeddings = EmbeddingClient.computeEmbeddings(
+                    texts, activeKey, model.remoteModelName, activeBaseUrl
+                )
 
                 attempted += batch.size
                 batch.zip(embeddings).forEach { (message, embedding) ->
@@ -354,23 +346,20 @@ class RagManager(
         }
         DebugLog.d("AgoraVM", "RAG index: indexing $messageId with model '${model.name}'")
         val toEmbed = text.take(Constants.MAX_EMBEDDING_TEXT_LENGTH)
-        val embedding: FloatArray? = if (model.type == EmbeddingModelType.LOCAL) {
-            if (!LlamaEngine.isModelReady(model.localFilePath)) {
-                DebugLog.w("AgoraVM", "RAG index: local model not ready, skipping")
-                return
-            }
-            LlamaEngine.computeEmbedding(toEmbed, model.localFilePath) {
-                localProvider.releaseEngineBlocking()
-            }
-        } else {
-            val apiKey = model.remoteApiKey.ifBlank { resolveEmbeddingApiKey() ?: "" }
-            if (apiKey.isBlank()) {
-                DebugLog.w("AgoraVM", "RAG index: no API key, skipping")
-                return
-            }
-            val baseUrl = model.remoteBaseUrl.ifBlank { resolveEmbeddingBaseUrl() }
-            EmbeddingClient.computeEmbedding(toEmbed, apiKey, model.remoteModelName, baseUrl)
+        // Local (on-device GGUF) embedding models are no longer supported after the
+        // llama.cpp removal. Skip silently — the cache worker / UI likewise bails out
+        // with an error, so incremental indexing must not crash either.
+        if (model.type == EmbeddingModelType.LOCAL) {
+            DebugLog.w("AgoraVM", "RAG index: local embedding models are no longer supported, skipping")
+            return
         }
+        val apiKey = model.remoteApiKey.ifBlank { resolveEmbeddingApiKey() ?: "" }
+        if (apiKey.isBlank()) {
+            DebugLog.w("AgoraVM", "RAG index: no API key, skipping")
+            return
+        }
+        val baseUrl = model.remoteBaseUrl.ifBlank { resolveEmbeddingBaseUrl() }
+        val embedding: FloatArray? = EmbeddingClient.computeEmbedding(toEmbed, apiKey, model.remoteModelName, baseUrl)
         if (embedding != null) {
             val stored = conversations.upsertEmbeddingIfSearchable(EmbeddingEntity(
                 messageId = messageId,

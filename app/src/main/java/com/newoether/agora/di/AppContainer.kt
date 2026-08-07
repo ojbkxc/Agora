@@ -10,7 +10,7 @@ import com.newoether.agora.data.repository.ConversationRepository
 import com.newoether.agora.data.repository.SettingsRepository
 import com.newoether.agora.data.repository.TaskRepository
 import com.newoether.agora.data.AutoBackupManager
-import com.newoether.agora.api.local.LocalProvider
+
 import com.newoether.agora.automation.AutomationScheduler
 import com.newoether.agora.automation.AutomationExecutionGate
 import com.newoether.agora.automation.ConversationExecutionCoordinator
@@ -78,14 +78,11 @@ class AppContainer(private val appContext: Context) {
 
     // ── Generation singletons (process-scoped) ────────────────
     // Shared by both the foreground ChatViewModel and background task execution.
-    // [localProvider] must be unique per process (owns the on-device llama engine +
-    // LlamaEngine.modelMutex); [providerRegistry] holds the live provider map the
-    // generation pipeline reads and runs the long-lived credential/model sync jobs.
-
-    val localProvider: LocalProvider by lazy { LocalProvider(appContext, settingsRepository) }
+    // [providerRegistry] holds the live provider map the generation pipeline reads
+    // and runs the long-lived credential/model sync jobs.
 
     val providerRegistry: ProviderRegistry by lazy {
-        ProviderRegistry(settingsRepository, localProvider, appScope).also { it.launchSyncJobs() }
+        ProviderRegistry(settingsRepository, appScope).also { it.launchSyncJobs() }
     }
 
     /** Serializes every foreground/background generation touching the same conversation. */
@@ -136,7 +133,7 @@ class AppContainer(private val appContext: Context) {
             settings = settingsRepository,
             memoryManager = memoryManager,
             providerRegistry = providerRegistry,
-            localProvider = localProvider,
+
             sandboxFactory = sandboxManagerFactory,
             appScope = appScope,
             executionCoordinator = conversationExecutionCoordinator,
@@ -197,7 +194,7 @@ class AppContainer(private val appContext: Context) {
     fun chatViewModelFactory(): ChatViewModelFactory =
         ChatViewModelFactory(
             application, database, chatDao, settingsManager, memoryManager, appContext, sandboxManagerFactory,
-            autoBackupManager, conversationRepository, settingsRepository, localProvider, providerRegistry,
+            autoBackupManager, conversationRepository, settingsRepository, providerRegistry,
             taskManager, loopManager, automationToolProvider, conversationExecutionCoordinator,
             automationExecutionGate
         )
