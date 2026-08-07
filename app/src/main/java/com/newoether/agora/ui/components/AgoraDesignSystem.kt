@@ -108,9 +108,12 @@ fun GlassCard(
             .shadow(elevation = elevation, shape = shape, clip = false)
             .graphicsLayer { translationY = lift }
             .clip(shape)
-            .background(colors.cardBg, shape)
-            .glassBlur(20.dp),
+            .background(colors.cardBg, shape),
     ) {
+        // NOTE: .glassBlur(20.dp) was removed here — Modifier.blur(radius) blurs
+        // the composable's *own* content (including child text), not the backdrop,
+        // which made all text inside GlassCard unreadable. The translucent cardBg
+        // background alone provides the glassmorphism effect.
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
             content()
         }
@@ -359,9 +362,10 @@ fun GlassSurface(
     Box(
         modifier = modifier
             .clip(shape)
-            .background(colors.cardBg, shape)
-            .glassBlur(20.dp),
+            .background(colors.cardBg, shape),
     ) {
+        // NOTE: .glassBlur(20.dp) removed — it blurred child content (text) instead
+        // of the backdrop, making text invisible. Translucent cardBg is enough.
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
             content()
         }
