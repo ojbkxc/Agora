@@ -109,10 +109,18 @@ object RustCrypto {
      */
     suspend fun generateKeyPair(): Pair<String, Long> = withContext(Dispatchers.IO) {
         NativeLib.ensureLoaded()
-        val result = json.decodeFromString<KeyPairResult>(nativeGenerateKeyPair())
-        if (result.error != null) throw IllegalStateException("Key pair generation failed: ${result.error}")
-        if (result.handle < 0) throw IllegalStateException("Key pair generation returned invalid handle")
-        Pair(result.publicKey, result.handle)
+        try {
+            val result = json.decodeFromString<KeyPairResult>(nativeGenerateKeyPair())
+            if (result.error != null) throw IllegalStateException("Key pair generation failed: ${result.error}")
+            if (result.handle < 0) throw IllegalStateException("Key pair generation returned invalid handle")
+            Pair(result.publicKey, result.handle)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: IllegalStateException) {
+            throw e  // 保留已有的业务逻辑异常
+        } catch (e: Throwable) {
+            throw IllegalStateException("Native key pair generation failed: ${e.message}", e)
+        }
     }
 
     /**
@@ -122,9 +130,17 @@ object RustCrypto {
     suspend fun deriveAesKey(handle: Long, serverPublicKey: String): String =
         withContext(Dispatchers.IO) {
             NativeLib.ensureLoaded()
-            val result = json.decodeFromString<AesKeyResult>(nativeDeriveAesKey(handle, serverPublicKey))
-            if (result.error != null) throw IllegalStateException("AES key derivation failed: ${result.error}")
-            result.key
+            try {
+                val result = json.decodeFromString<AesKeyResult>(nativeDeriveAesKey(handle, serverPublicKey))
+                if (result.error != null) throw IllegalStateException("AES key derivation failed: ${result.error}")
+                result.key
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: IllegalStateException) {
+                throw e  // 保留已有的业务逻辑异常
+            } catch (e: Throwable) {
+                throw IllegalStateException("Native AES key derivation failed: ${e.message}", e)
+            }
         }
 
     /**
@@ -132,7 +148,13 @@ object RustCrypto {
      */
     suspend fun encrypt(key: String, plaintext: String): String = withContext(Dispatchers.IO) {
         NativeLib.ensureLoaded()
-        nativeEncrypt(key, plaintext)
+        try {
+            nativeEncrypt(key, plaintext)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            throw IllegalStateException("Native encrypt failed: ${e.message}", e)
+        }
     }
 
     /**
@@ -140,7 +162,13 @@ object RustCrypto {
      */
     suspend fun decrypt(key: String, ciphertext: String): String = withContext(Dispatchers.IO) {
         NativeLib.ensureLoaded()
-        nativeDecrypt(key, ciphertext)
+        try {
+            nativeDecrypt(key, ciphertext)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            throw IllegalStateException("Native decrypt failed: ${e.message}", e)
+        }
     }
 
     /**
@@ -156,7 +184,13 @@ object RustCrypto {
         clientPubKey: String
     ): String = withContext(Dispatchers.IO) {
         NativeLib.ensureLoaded()
-        nativeSign(apiKey, timestamp, method, path, bodySha256, nonce, clientPubKey)
+        try {
+            nativeSign(apiKey, timestamp, method, path, bodySha256, nonce, clientPubKey)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            throw IllegalStateException("Native sign failed: ${e.message}", e)
+        }
     }
 
     /**
@@ -164,7 +198,13 @@ object RustCrypto {
      */
     suspend fun sha256Hex(data: String): String = withContext(Dispatchers.IO) {
         NativeLib.ensureLoaded()
-        nativeSha256Hex(data)
+        try {
+            nativeSha256Hex(data)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            throw IllegalStateException("Native sha256Hex failed: ${e.message}", e)
+        }
     }
 
     /**
@@ -172,6 +212,12 @@ object RustCrypto {
      */
     suspend fun generateNonce(): String = withContext(Dispatchers.IO) {
         NativeLib.ensureLoaded()
-        nativeGenerateNonce()
+        try {
+            nativeGenerateNonce()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            throw IllegalStateException("Native generateNonce failed: ${e.message}", e)
+        }
     }
 }

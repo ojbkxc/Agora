@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.newoether.agora.ui.settings.RatingForm
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.newoether.agora.data.MemoryManager
 import com.newoether.agora.data.SettingsManager
@@ -83,11 +84,36 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_CONVERSATION_ID = "com.newoether.agora.extra.CONVERSATION_ID"
+
+        // Cache the persisted language code so attachBaseContext does not have to
+        // synchronously read DataStore on every process (re)start. The first call
+        // loads it once (bounded by a short timeout); subsequent calls reuse the
+        // cached value, eliminating the ANR risk from a blocking disk read on the
+        // main thread.
+        @Volatile
+        private var cachedLangCode: String? = null
+        @Volatile
+        private var langCodeLoaded = false
     }
 
     override fun attachBaseContext(newBase: Context) {
-        val langCode = kotlinx.coroutines.runBlocking {
-            SettingsManager(newBase).appLanguage.first()
+        // Resolve the persisted language code. The very first invocation (cold start)
+        // performs a bounded synchronous read of DataStore — unavoidable because
+        // attachBaseContext must return a Context synchronously. The 500ms timeout
+        // guarantees we never block the main thread long enough to trigger an ANR;
+        // on timeout we fall back to the system locale. Every subsequent invocation
+        // (e.g. configuration changes) reuses the cached value with no disk I/O.
+        val langCode = if (langCodeLoaded) {
+            cachedLangCode
+        } else {
+            val loaded = kotlinx.coroutines.runBlocking {
+                withTimeoutOrNull(500) {
+                    SettingsManager(newBase).appLanguage.first()
+                }
+            }
+            cachedLangCode = loaded
+            langCodeLoaded = true
+            loaded
         }
         val locale = when (langCode) {
             "zh" -> java.util.Locale("zh", "CN")
@@ -133,7 +159,11 @@ class MainActivity : ComponentActivity() {
 
         val memoryManager = MemoryManager(applicationContext)
         val settingsManager = SettingsManager(applicationContext)
-        runBlocking(Dispatchers.IO) {
+        // Initialize first-install defaults off the main thread. This only writes
+        // defaults when no preference has been set yet, so deferring it is safe:
+        // the UI reads each setting via collectAsState with its own initial value
+        // and will pick up the persisted/default value once the write completes.
+        lifecycleScope.launch(Dispatchers.IO) {
             settingsManager.initializeFirstInstallDefaults(locale = java.util.Locale.getDefault())
         }
 

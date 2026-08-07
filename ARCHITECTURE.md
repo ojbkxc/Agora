@@ -32,7 +32,6 @@
 │  api/anthropic/ AnthropicProvider                             │
 │  api/gemini/    GeminiProvider                                │
 │  api/ollama/    OllamaProvider                                │
-│  api/local/     LocalProvider (on-device GGUF via llama.cpp)  │
 │  api/util/      MessageConverter, ThinkingParser, ToolMsgs    │
 ├──────────────────────────────────────────────────────────────┤
 │  DI Layer (AppContainer)                                      │
@@ -41,7 +40,7 @@
 │  Data Layer                                                   │
 │  Room DB v12 (conversations + messages + embeddings)          │
 │  DataStore (settings, API keys, model lists, theming)          │
-│  Filesystem (memory .md files, GGUF models, sandbox rootfs)   │
+|  Filesystem (memory .md files, sandbox rootfs)               |
 │  Export/Import (.agora, Claude, ChatGPT formats)               │
 │  AutoBackup (WorkManager periodic backup to .agora)           │
 ├──────────────────────────────────────────────────────────────┤
@@ -54,11 +53,13 @@
 │  ShellCrypto (ECDH + AES-256-GCM + HMAC-SHA256)              │
 │  ShellClient (remote command + file I/O, glob, grep)          │
 ├──────────────────────────────────────────────────────────────┤
-│  Native Layer (JNI via CMake)                                 │
-│  llama_chat_jni.cpp (chat generation + modified-UTF-8 fix)    │
-│  llama_jni.cpp (embeddings)                                   │
-│  proot_jni.cpp (PRoot chroot sandbox)                         │
-│  llama.cpp + proot (git submodules under thirdparty/)         │
+│  Native Layer (JNI)                                           │
+│  agora_rs (Rust crate → libagora_rs.so)                      │
+│  ├─ LLM providers (OpenAI/Anthropic/Gemini/Ollama)           │
+│  ├─ Embedding (OpenAI-compatible + local)                    │
+│  ├─ Crypto (X25519, AES-256-GCM, HMAC-SHA256, SHA-256)       │
+│  └─ Shell (Conch protocol)                                   │
+│  proot_jni.cpp (JNI bridge to PRoot chroot)                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -299,9 +300,7 @@ Walks the tree from root (parentId=null), following `_selectedChildren` to pick 
 
 **Other responsibilities:**
 - RAG/embedding management (index, cache, search, orphan cleanup)
-- Local chat model CRUD (GGUF model management)
 - Shell device CRUD
-- Auto-syncing local models into `availableModels` and `modelAliases`
 - LM Studio model discovery
 
 ### 5b. GenerationManager (`viewmodel/GenerationManager.kt`, 1027 lines)
@@ -416,7 +415,6 @@ Subclasses override: `parseDeltaContent()`, `customizeRequest()`, `getExtraHeade
 | **Anthropic** (`api/anthropic/`) | Direct `LlmProvider` | 413 | Custom SSE protocol (`event:`/`data:` lines); `content_block_start/delta/stop`; thinking via `budget_tokens`; tool_use/tool_result blocks; image support via base64 |
 | **Gemini** (`api/gemini/`) | Direct `LlmProvider` | 476 | Google SSE `streamGenerateContent`; inline base64 images; `thought` flag; code execution + Google Search as provider-specific tools; Gemini 2.5 vs 3 thinking config |
 | **Ollama** (`api/ollama/`) | Direct `LlmProvider` | 278 | Local server `/api/chat`; structured `thinking` field or `<think>` tag fallback; `/api/tags` for model list |
-| **Local** (`api/local/`) | Direct `LlmProvider` | 258 | On-device GGUF via llama.cpp JNI; chat template or ChatML fallback; StreamingThinkTagParser for `<think>`; Mutex-guarded engine lifecycle; tool calls emitted as text (unsupported natively) |
 
 ### 7d. Message Conversion (`api/util/MessageConverter.kt`, 146 lines)
 
@@ -426,7 +424,7 @@ Transforms internal `ChatMessage` tree into OpenAI-format API messages:
 - Normal → text + base64-encoded images
 - Tool call IDs are SHA-256 hashes of `toolName:arguments` — deterministic for multi-turn consistency
 
-Anthropic, Gemini, Ollama, and Local each have their own conversion logic inline.
+Anthropic, Gemini, and Ollama each have their own conversion logic inline.
 
 ### 7e. HTTP Client (`api/HttpClient.kt`, 52 lines)
 
@@ -520,45 +518,46 @@ PRoot is compiled as a static binary (no external dependencies besides libc). Th
 
 ---
 
-## 11. The Native Layer (JNI — llama.cpp)
+## 11. The Native Layer (JNI — Rust)
 
-### 11a. Build System (`app/src/main/cpp/CMakeLists.txt`)
+### 11a. Rust Core (`rust-core/`)
 
-- llama.cpp built as static library from `thirdparty/llama.cpp` (git submodule)
-- JNI wrapper built as shared library `agora_llama`
-- C++17, arm64-v8a only, links `llama` + `log`
-- GGML_OPENMP forced OFF for Android compatibility
+Cargo project compiled to `libagora_rs.so` (arm64-v8a only) via `cargo-ndk`. Links `rustls` (pure-Rust TLS, no system cert store dependency).
 
-### 11b. Chat JNI (`llama_chat_jni.cpp`, ~370 lines)
-
-Wraps llama.cpp chat generation:
-
-| JNI Function | Purpose |
+| Module | Purpose |
 |---|---|
-| `nativeChatLoadModel` | Loads GGUF, creates context with `n_batch = n_ctx`, sets abort callback |
-| `nativeChatGetTemplate` | Returns model's Jinja chat template or null |
-| `nativeChatApplyTemplate` | Calls `llama_chat_apply_template()` with retry on buffer overflow |
-| `nativeChatGenerate` | Tokenization, prefill via `llama_batch_get_one`, sampler chain (min_p→top_p→temp→dist), generation loop with cancel check, context space check |
-| `nativeChatReset` | Clears KV cache via `llama_memory_clear()` |
-| `nativeChatFreeModel` | Frees model and context |
-| `nativeChatCancel` | Sets volatile cancel flag checked by abort callback and generation loop |
+| `src/api/http_client.rs` | reqwest HTTP client with proxy + rustls-tls |
+| `src/api/openai.rs` | OpenAI-compatible provider (chat + streaming SSE) |
+| `src/api/anthropic.rs` | Anthropic provider (SSE events, thinking, tools) |
+| `src/api/gemini.rs` | Gemini provider (streamGenerateContent, tools) |
+| `src/api/ollama.rs` | Ollama provider (local server) |
+| `src/api/provider.rs` | JNI entry points for all LLM providers |
+| `src/api/embedding.rs` | OpenAI-compatible embeddings |
+| `src/api/sse.rs` | SSE line parser |
+| `src/api/message_pipeline.rs` | Message conversion pipeline |
+| `src/jni/embedding_jni.rs` | JNI bridge for embeddings |
+| `src/jni/crypto_jni.rs` | JNI bridge for crypto (X25519, AES-GCM, HMAC) |
+| `src/jni/shell_jni.rs` | JNI bridge for Conch shell protocol |
+| `src/jni/util.rs` | JNI utilities (global Tokio runtime, string helpers) |
+| `src/crypto/` | AES-256-GCM, HMAC-SHA256, X25519, Conch protocol |
 
-Sampler chain: `min_p(0.05) → top_p(configurable) → temp(configurable) → dist(seed)`
+### 11b. Kotlin JNI Wrappers
 
-### 11c. Embedding JNI (`llama_jni.cpp`, ~175 lines)
+**NativeLib** (`util/NativeLib.kt`, 63 lines) — centralized `System.loadLibrary("agora_rs")` loader. Catches `UnsatisfiedLinkError`/`SecurityException`, provides `loaded` flag and `ensureLoaded()` (throws `IllegalStateException`).
 
-| JNI Function | Purpose |
-|---|---|
-| `nativeLoadModel` | Loads GGUF with `embeddings=true`, `pooling_type=MEAN`, `n_ctx=512`, `n_batch=512` |
-| `nativeFreeModel` | Frees model and context |
-| `nativeComputeEmbedding` | Tokenizes, creates batch manually, calls `llama_encode`/`llama_decode`, returns pooled embedding |
-| `nativeGetEmbeddingDim` | Returns `llama_model_n_embd_out()` |
+**RustProvider** (`api/RustProvider.kt`) — base class for Rust-backed LLM providers. Manages native provider handle lifecycle.
 
-### 11d. Kotlin JNI Wrappers
+**RustOpenAiProvider / RustAnthropicProvider / RustGeminiProvider / RustOllamaProvider** — provider-specific JNI wrappers with `catch (e: Throwable)` defense.
 
-**LlamaEngine** (`api/LlamaEngine.kt`, 57 lines) — embedding singleton. Single and batch embedding methods. Batch loads once, computes all embeddings, frees once.
+**RustEmbeddingClient** (`api/RustEmbeddingClient.kt`) — embedding JNI wrapper.
 
-**LlamaChatEngine** (`api/LlamaChatEngine.kt`, 193 lines) — per-instance chat model. Streams tokens via `callbackFlow` with `NativeChatCallback`. Supports cancel, reset context, apply template.
+**RustShell** (`util/RustShell.kt`) — Conch shell JNI wrapper.
+
+**RustCrypto** (`util/RustCrypto.kt`) — crypto JNI wrapper (X25519, AES-256-GCM, HMAC-SHA256, SHA-256).
+
+### 11c. Proot JNI (`cpp/proot_jni.cpp`, ~65 lines)
+
+JNI bridge to the PRoot binary (built from `thirdparty/proot` git submodule via GNUmakefile). Currently a stub (`return -1`). The build produces `libagora_proot.so`.
 
 ---
 
@@ -632,7 +631,7 @@ Both implement an iOS-style collapsing large-title pattern: the title shrinks an
 | Page | Lines | Purpose |
 |---|---|---|
 | `SettingsProviderPage` | 187 | Provider list overview |
-| `SettingsProviderDetailPage` | 482 | API key CRUD, base URL per provider, custom providers, local GGUF management |
+| `SettingsProviderDetailPage` | 482 | API key CRUD, base URL per provider, custom providers |
 | `SettingsModelsPage` | 351 | Default model selector, sync, expandable per-provider model lists |
 | `SettingsPromptsPage` | 190 | System prompt CRUD with `PromptSettingControls` |
 | `SystemPromptEditorPage` | 478 | Full-page three-section editor (system + userPrepend + userPostpend) |
@@ -738,7 +737,7 @@ Switch branch at parentId=1 → `{"1": "3"}` walks → [1, 3] (branch B pruned).
 CACHE: cacheMessagesForModel() →
   1. If re-cache: uncache model, delete all embeddings for model
   2. Iterate all indexable messages (user/model, non-blank)
-  3. Batch: local models load once, process all; remote models batch 64 per API call
+  3. Batch: remote models batch 64 per API call
   4. Upsert embeddings, mark model as cached
 
 INDEX (auto): onMessagePersisted →
@@ -778,10 +777,8 @@ ORPHAN: deleteOrphanedEmbeddings() →
 - **Custom providers** — user-defined OpenAI-compatible endpoints.
 - **DuckDuckGo Lite as default search** — anonymous, no-key web search provider; HTML scrape, best-effort.
 - **SAF DocumentsProvider for sandbox** — Android Storage Access Framework exposes sandbox rootfs to other apps; root home at `/root`.
-- **llama.cpp + proot as git submodules** — under `thirdparty/`, linked via CMake (`add_subdirectory`) and GNUmakefile respectively.
-- **Separate JNI for embedding vs chat vs sandbox** — `llama_jni.cpp` for embeddings, `llama_chat_jni.cpp` for chat, `proot_jni.cpp` for sandbox.
-- **Mutex-guarded engine lifecycle** — only one local model loaded at a time.
-- **On-device inference on IO dispatcher** — cancel support via volatile flag + abort callback.
+- **Rust core via JNI** — all LLM providers, embeddings, crypto, and shell run in Rust (`agora_rs` crate), compiled to `libagora_rs.so` for arm64-v8a via `cargo-ndk`.
+- **Centralized native loading** — `NativeLib.kt` catches `UnsatisfiedLinkError`, callers use `ensureLoaded()` for graceful degradation instead of process crashes.
 - **Foreground service** — keeps process alive during LLM generation.
 - **WorkManager for embedding cache + auto backup** — survives process death during bulk caching; periodic auto-backup with configurable period/categories/retention.
 - **Conch end-to-end encryption** — ECDH + AES-256-GCM + HMAC-SHA256, token bucket, nonce anti-replay.
@@ -798,15 +795,19 @@ ORPHAN: deleteOrphanedEmbeddings() →
 
 ## 15. File Index
 
-### API Layer (22 files)
+### API Layer (25 files)
 | File | Lines | Purpose |
 |---|---|---|
 | `api/LlmProvider.kt` | 203 | Interface + StreamEvent + request/response types |
 | `api/GenerationError.kt` | 85 | Structured generation error types |
 | `api/EmbeddingClient.kt` | 70 | OpenAI-compatible embeddings API |
 | `api/HttpClient.kt` | 52 | OkHttp wrapper |
-| `api/LlamaEngine.kt` | 57 | JNI wrapper for embedding models |
-| `api/LlamaChatEngine.kt` | 193 | JNI wrapper for chat models |
+| `api/RustProvider.kt` | ~120 | Rust JNI provider base |
+| `api/RustOpenAiProvider.kt` | ~200 | OpenAI-compatible via Rust |
+| `api/RustAnthropicProvider.kt` | ~200 | Anthropic via Rust |
+| `api/RustGeminiProvider.kt` | ~200 | Gemini via Rust |
+| `api/RustOllamaProvider.kt` | ~150 | Ollama via Rust |
+| `api/RustEmbeddingClient.kt` | ~100 | Embedding via Rust |
 | `api/openai/BaseOpenAiProvider.kt` | 203 | Template for OpenAI-compatible providers |
 | `api/openai/OpenAiProvider.kt` | 27 | OpenAI (reasoning_effort, reasoning_content) |
 | `api/openai/DeepSeekProvider.kt` | 22 | DeepSeek |
@@ -816,7 +817,6 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `api/anthropic/AnthropicProvider.kt` | 413 | Anthropic Claude (SSE events, thinking, images) |
 | `api/gemini/GeminiProvider.kt` | 476 | Google Gemini (code exec, search, thinking) |
 | `api/ollama/OllamaProvider.kt` | 278 | Ollama local server |
-| `api/local/LocalProvider.kt` | 258 | On-device GGUF via llama.cpp |
 | `api/util/MessageConverter.kt` | 146 | ChatMessage → OpenAI format |
 | `api/util/StreamingThinkTagParser.kt` | 71 | Streaming `<think>` parser |
 | `api/util/ThinkingParser.kt` | 145 | Structured thinking block parser |
@@ -902,13 +902,12 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `util/ShellCrypto.kt` | 116 | ECDH + AES-256-GCM + HMAC-SHA256 |
 | `util/ShellClient.kt` | 277 | Conch protocol HTTP client |
 
-### Native Layer (4 files)
+### Native Layer (3 files)
 | File | Lines | Purpose |
 |---|---|---|
-| `cpp/llama_chat_jni.cpp` | ~370 | Chat generation JNI (+ modified-UTF-8 fix) |
-| `cpp/llama_jni.cpp` | 175 | Embedding JNI |
-| `cpp/proot_jni.cpp` | ~65 | PRoot chroot sandbox JNI |
-| `cpp/CMakeLists.txt` | 19 | CMake build config (agora_llama + agora_proot) |
+| `rust-core/` (Cargo) | — | Rust crate: LLM providers, embeddings, crypto, shell → libagora_rs.so |
+| `cpp/proot_jni.cpp` | ~65 | PRoot chroot sandbox JNI (stub) |
+| `cpp/CMakeLists.txt` | 19 | CMake build config (agora_proot only) |
 
 ### UI Layer (31 files)
 | File | Lines | Purpose |
@@ -932,7 +931,7 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `ui/settings/SettingsAnimations.kt` | 40 | Shared page transition animation spec |
 | `ui/settings/SettingsScreen.kt` | 305 | Main settings with tabs |
 | `ui/settings/SettingsProviderPage.kt` | 187 | Provider list overview |
-| `ui/settings/SettingsProviderDetailPage.kt` | 482 | Provider detail + local models |
+| `ui/settings/SettingsProviderDetailPage.kt` | 482 | Provider detail + custom providers |
 | `ui/settings/SettingsModelsPage.kt` | 351 | Model selection |
 | `ui/settings/SettingsPromptsPage.kt` | 190 | System prompt CRUD |
 | `ui/settings/PromptSettingControls.kt` | 128 | Reusable prompt controls |
@@ -963,7 +962,7 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `ui/theme/Theme.kt` | 39 | Agora theme |
 | `ui/theme/Type.kt` | 129 | Typography + MonoFamily |
 
-### Utilities (13 files)
+### Utilities (16 files)
 | File | Lines | Purpose |
 |---|---|---|
 | `util/Constants.kt` | 14 | Message prefix constants |
@@ -977,6 +976,9 @@ ORPHAN: deleteOrphanedEmbeddings() →
 | `util/FileValidator.kt` | 83 | File import validation |
 | `util/UpdateChecker.kt` | 71 | GitHub releases update checker |
 | `util/DebugLog.kt` | 18 | Debug logging utility |
+| `util/NativeLib.kt` | 63 | Centralized native library loader |
+| `util/RustShell.kt` | ~150 | Shell JNI wrapper |
+| `util/RustCrypto.kt` | 223 | Crypto JNI wrapper |
 | `util/PdfPageRenderer.kt` | 75 | PDF page to bitmap renderer |
 | `util/GradientBlur.kt` | 38 | Compose blur with gradient mask |
 | `util/NoOpBringIntoView.kt` | 21 | Compose bring-into-view workaround |
