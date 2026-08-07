@@ -919,9 +919,13 @@ class ChatViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             settings.saveAutoBackupEnabled(enabled)
             if (enabled) {
-                try { AutoBackupWorker.schedule(getApplication()) } catch (_: Exception) {}
+                try { AutoBackupWorker.schedule(getApplication()) } catch (e: Exception) {
+                    DebugLog.w("ChatViewModel", "Failed to schedule auto backup: ${e.message}")
+                }
             } else {
-                try { AutoBackupWorker.cancel(getApplication()) } catch (_: Exception) {}
+                try { AutoBackupWorker.cancel(getApplication()) } catch (e: Exception) {
+                    DebugLog.w("ChatViewModel", "Failed to cancel auto backup: ${e.message}")
+                }
             }
         }
     }

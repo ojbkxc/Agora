@@ -560,6 +560,34 @@ private object LatexBitmapCache {
         return renderAsync(key).await()
     }
 
+    /**
+     * 回收所有缓存的 Bitmap 并清空缓存。
+     *
+     * 注意：不能在 [removeEldestEntry] 中直接 recycle，因为 Composable 可能通过
+     * `remember(key) { mutableStateOf(LatexBitmapCache.get(key)) }` 仍持有 Bitmap 引用，
+     * 此时 recycle 会导致绘制崩溃。本方法仅在系统低内存回调（onTrimMemory）时调用，
+     * 此时 UI 大概率不可见或可重建，安全回收原生内存。
+     *
+     * API 26+ 的 Bitmap 原生内存由 GC 自动管理，但 API 24-25 需要显式 recycle。
+     */
+    fun clear() = synchronized(lock) {
+        bitmaps.values.forEach { bmp ->
+            try {
+                if (!bmp.isRecycled) bmp.recycle()
+            } catch (_: Throwable) {
+                // 忽略 "already recycled" 等异常，保证清理流程不中断
+            }
+        }
+        bitmaps.clear()
+        inFlight.clear()
+    }
+
+    /**
+     * 内存压力时裁剪缓存。当前实现与 [clear] 一致，激进释放所有原生内存。
+     * 如需更保守策略可改为只回收一半条目。
+     */
+    fun trimMemory() = clear()
+
     private fun renderBitmap(key: LatexRenderKey): Bitmap {
         val fw = (key.textSize * 10).toInt()
         val fh = (key.textSize * 2).toInt()
@@ -572,6 +600,18 @@ private object LatexBitmapCache {
             minW = 0,
         ) ?: renderTextToBitmap("$${key.latex}$", key.textSize, key.color)
     }
+}
+
+/**
+ * 释放 LaTeX Bitmap 缓存持有的原生内存。供 Application 的 [ComponentCallbacks2.onTrimMemory]
+ * / [ComponentCallbacks2.onLowMemory] 回调在系统内存压力时调用。
+ *
+ * 之所以不在 [LatexBitmapCache] 内部直接 recycle 被驱逐的条目，是因为 Composable 可能仍通过
+ * `remember { mutableStateOf(...) }` 持有该 Bitmap 引用，此时 recycle 会导致绘制崩溃。
+ * 仅在系统级低内存回调时整体清空，此时 UI 大概率可重建，是安全的回收时机。
+ */
+fun trimLatexBitmapCache() {
+    LatexBitmapCache.trimMemory()
 }
 
 private fun estimateLatexPlaceholderSize(latex: String, textSize: Float, display: Boolean): Size {

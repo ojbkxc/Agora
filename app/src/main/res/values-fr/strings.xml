@@ -953,4 +953,37 @@
     <string name="proxy_password">Mot de passe (facultatif)</string>
     <string name="proxy_bypass">Liste de contournement</string>
     <string name="proxy_bypass_desc">Hôtes et plages CIDR connectés directement, un par ligne</string>
+
+    <!-- TODO: Translate to 法语 -->
+    <string name="tool_execution_stopped">Tool execution stopped</string>
+    <string name="tool_state_executing">Executing</string>
+    <string name="tool_state_running">Running</string>
+    <string name="tool_state_succeeded">Succeeded</string>
+    <string name="tool_state_failed">Failed</string>
+    <string name="tool_state_stopped">Stopped</string>
+    <string name="tool_unknown_device">Unknown device</string>
+    <string name="tool_no_output">(No output)</string>
+    <string name="tool_background_job_running">Background job %1$s is running</string>
+    <string name="tool_shell_jobs">Shell Jobs</string>
+    <string name="tool_shell_job">Shell Job</string>
+    <string name="tool_stop_shell_job">Stop Shell Job</string>
+    <string name="tool_listing_shell_jobs">Listing shell jobs…</string>
+    <string name="tool_reading_shell_job">Reading shell job %1$s…</string>
+    <string name="tool_stopping_shell_job">Stopping shell job %1$s…</string>
+    <string name="tool_no_shell_jobs">No shell jobs</string>
+    <string name="tool_shell_job_count">Listed %1$d shell jobs</string>
+    <string name="tool_shell_job_status">Read shell job %1$s</string>
+    <string name="tool_stopped_shell_job">Stopped shell job %1$s</string>
+    <string name="tool_shell_executed_successfully">Command executed successfully</string>
+    <string name="tool_shell_execution_completed">Command execution completed</string>
+    <string name="tool_shell_returned_exit_code">Command returned exit code %1$d</string>
+    <string name="tool_read_file_empty">Read %1$s · empty</string>
+    <string name="tool_found_no_matches">No matches found</string>
+    <string name="file_path_unknown">Unknown file</string>
+    <string name="tool_exit_code">Exit %1$d</string>
+    <string name="tool_line_count">%1$d lines</string>
+    <string name="tool_web_result">Result %1$d</string>
+    <string name="custom_provider_protocol_label">API format</string>
+    <string name="import_file_too_large">File too large (%1$d MB). Please choose a smaller export file.</string>
+    <string name="import_out_of_memory">Not enough memory to import this file. Please choose a smaller export.</string>
 </resources>

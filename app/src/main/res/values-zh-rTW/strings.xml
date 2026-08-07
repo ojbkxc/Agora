@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">Agora</string>
 
     <!-- Chat Bottom Bar -->
@@ -990,4 +990,10 @@
     <string name="proxy_password">密碼(選填)</string>
     <string name="proxy_bypass">直連清單</string>
     <string name="proxy_bypass_desc">直接連線、不經過代理的主機與 CIDR 範圍,每行一個</string>
+
+    <!-- TODO: Translate to 繁体中文 -->
+    <string name="agora_responded">Agora responded</string>
+    <string name="more">More</string>
+    <string name="delete_message_title">Delete Message?</string>
+    <string name="delete_message_confirm">This message and all follow-up replies will be permanently removed.</string>
 </resources>

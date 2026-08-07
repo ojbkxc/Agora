@@ -1116,7 +1116,9 @@ class DataImporter(
                         try {
                             val name = com.newoether.agora.util.readFontName(fontFile)
                             settingsManager.saveCustomFontName(name)
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) {
+                            DebugLog.w("DataImporter", "Failed to read restored font name: ${e.message}")
+                        }
                     }
                 } catch (e: Exception) {
                     errors.add("Settings: ${e.localizedMessage ?: "Unknown error"}")
@@ -1187,18 +1189,21 @@ class DataImporter(
                 step()
             }
 
-            archive.close()
-            onProgress(1f)
-            ImportResult(
-                conversationsImported = conversationsImported,
-                tasksImported = tasksImported,
-                loopsImported = loopsImported,
-                memoriesImported = memoriesImported,
-                systemPromptsImported = systemPromptsImported,
-                settingsImported = settingsImported,
-                apiKeysImported = apiKeysImported,
-                errors = errors
-            )
+            try {
+                onProgress(1f)
+                ImportResult(
+                    conversationsImported = conversationsImported,
+                    tasksImported = tasksImported,
+                    loopsImported = loopsImported,
+                    memoriesImported = memoriesImported,
+                    systemPromptsImported = systemPromptsImported,
+                    settingsImported = settingsImported,
+                    apiKeysImported = apiKeysImported,
+                    errors = errors
+                )
+            } finally {
+                archive.close()
+            }
         }
     }
 

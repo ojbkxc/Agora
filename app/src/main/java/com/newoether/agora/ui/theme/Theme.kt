@@ -3,6 +3,7 @@ package com.newoether.agora.ui.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -198,6 +199,7 @@ fun AgoraTheme(
     CompositionLocalProvider(
         LocalAgoraColors provides agoraColors,
         LocalAgoraGradients provides agoraGradients,
+        LocalContentColor provides colorScheme.onBackground,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

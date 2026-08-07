@@ -161,6 +161,7 @@ internal fun CollapsingSettingsTitleBar(
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
                 fontSize = expandedFont,
+                color = MaterialTheme.colorScheme.onBackground,
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

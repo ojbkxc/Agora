@@ -105,9 +105,11 @@ object PdfPageRenderer {
         return try {
             val fd = context.contentResolver.openFileDescriptor(uri, "r") ?: return 0
             val renderer = PdfRenderer(ParcelFileDescriptor(fd))
-            val count = renderer.pageCount
-            renderer.close()
-            count
+            try {
+                renderer.pageCount
+            } finally {
+                renderer.close()
+            }
         } catch (_: Exception) { 0 }
     }
 }

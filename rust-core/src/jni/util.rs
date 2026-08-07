@@ -84,8 +84,14 @@ pub fn extract_jstring(
     }
 }
 
-/// 在 JNI 调用中捕获 Rust panic，防止 unwind 跨越 FFI 边界。
-/// 返回 Ok(T) 或者将 panic 转换为 Java 异常并返回 Err(())。
+/// 在 JNI 调用中执行闭包并将 `Result` 错误转换为 Java 异常。
+///
+/// 返回 `Some(T)` 表示成功，`None` 表示失败（已抛出 Java 异常）。
+///
+/// 注意：此函数**不捕获 Rust panic**。在 `panic = "abort"` profile（见 Cargo.toml
+/// release 配置）下，`std::panic::catch_unwind` 无法捕获 panic，任何 panic 都会
+/// 直接 abort 进程。调用方必须确保闭包内部不会 panic（例如用
+/// `unwrap_or_else(|e| e.into_inner())` 恢复中毒的 Mutex，而非 `unwrap()`）。
 pub fn catch_unwind_jni<F, T>(env: &mut JNIEnv, f: F) -> Option<T>
 where
     F: FnOnce(&mut JNIEnv) -> Result<T, AgoraError>,
