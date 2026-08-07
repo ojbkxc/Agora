@@ -161,9 +161,9 @@ internal fun CollapsingSettingsTitleBar(
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
                 fontSize = expandedFont,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
