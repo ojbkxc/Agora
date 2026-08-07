@@ -1,4 +1,4 @@
-﻿package com.newoether.agora.ui.settings
+package com.newoether.agora.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -191,7 +191,7 @@ fun SettingsProviderDetailPage(
                                 add {
                                     SettingsItem(
                                         headlineContent = { Text(entry.name, fontWeight = FontWeight.Medium) },
-                                        supportingContent = { Text(entry.key.take(4) + "鈥⑩€⑩€⑩€⑩€⑩€⑩€⑩€? + entry.key.takeLast(4)) },
+                                        supportingContent = { Text(entry.key.take(4) + "••••" + entry.key.takeLast(4)) },
                                         leadingContent = { Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) { RadioButton(selected = isCurrentActive, onClick = { viewModel.settings.setActiveApiKey(providerName, entry.id) }, modifier = Modifier.size(20.dp)) } },
                                         trailingContent = {
                                             Box {
