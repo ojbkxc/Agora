@@ -32,16 +32,6 @@ fun SettingsLanguagePage(viewModel: ChatViewModel, onBack: () -> Unit) {
         LanguageOption("system", stringResource(R.string.language_system_default)),
         LanguageOption("en", "English"),
         LanguageOption("zh", "简体中文"),
-        LanguageOption("zh-Hant", "繁體中文"),
-        LanguageOption("es", "Español"),
-        LanguageOption("fr", "Français"),
-        LanguageOption("de", "Deutsch"),
-        LanguageOption("ru", "Русский"),
-        LanguageOption("pt-BR", "Português (Brasil)"),
-        LanguageOption("ja", "日本語"),
-        LanguageOption("ko", "한국어"),
-        LanguageOption("ar", "العربية"),
-        LanguageOption("vi", "Tiếng Việt")
     )
 
     CollapsingSettingsScaffold(

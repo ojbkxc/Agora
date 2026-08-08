@@ -107,11 +107,25 @@ class ProviderRegistry(
         Constants.PROVIDER_GOOGLE to RustGeminiProvider(),
         Constants.PROVIDER_OPENAI to RustOpenAiProvider(),
         Constants.PROVIDER_ANTHROPIC to RustAnthropicProvider(),
-        Constants.PROVIDER_DEEPSEEK to RustOpenAiProvider(), // DeepSeek uses OpenAI-compatible API
-        Constants.PROVIDER_QWEN to RustOpenAiProvider(),     // Qwen uses OpenAI-compatible API
-        Constants.PROVIDER_GROQ to RustOpenAiProvider(),     // Groq uses OpenAI-compatible API
+        // DeepSeek/Groq/Qwen/OpenRouter 使用 OpenAI 兼容协议，但各有独立的默认 base URL。
+        // 传入 providerTag 让 Rust 侧的 ModelId::parse 能识别供应商并选择正确工厂方法。
+        Constants.PROVIDER_DEEPSEEK to RustOpenAiProvider(
+            providerTag = "deepseek-chat",
+            defaultBaseUrl = "https://api.deepseek.com",
+        ),
+        Constants.PROVIDER_QWEN to RustOpenAiProvider(
+            providerTag = "qwen-plus",
+            defaultBaseUrl = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        ),
+        Constants.PROVIDER_GROQ to RustOpenAiProvider(
+            providerTag = "groq",
+            defaultBaseUrl = "https://api.groq.com/openai/v1",
+        ),
         Constants.PROVIDER_OLLAMA to RustOllamaProvider(),
-        Constants.PROVIDER_OPEN_ROUTER to RustOpenAiProvider(), // OpenRouter uses OpenAI-compatible API
+        Constants.PROVIDER_OPEN_ROUTER to RustOpenAiProvider(
+            providerTag = "openrouter",
+            defaultBaseUrl = "https://openrouter.ai/api/v1",
+        ),
     )
 
     // Declared as MutableMap so `in`/`contains` keep Map (containsKey) semantics (KT-18053).
@@ -236,10 +250,10 @@ class ProviderRegistry(
         val baseUrl = if (!isBuiltIn(name)) {
             settings.providerBaseUrls.value[name]?.takeIf { it.isNotBlank() } ?: provider.defaultBaseUrl
         } else {
-            // Built-in: a blank persisted entry is the same as absent (use the provider default).
-            // Without this guard, "" flows straight to the provider, which only elvis-checks null
-            // and would build a malformed relative endpoint.
-            settings.providerBaseUrls.value[name]?.takeIf { it.isNotBlank() }
+            // Built-in: 空白持久化值等价于未配置，回退到 provider.defaultBaseUrl。
+            // 这确保 DeepSeek/Groq/Qwen/OpenRouter 等内置供应商在用户未配置 base URL 时
+            // 使用各自正确的默认 API 地址，而非 OpenAI 的默认 URL。
+            settings.providerBaseUrls.value[name]?.takeIf { it.isNotBlank() } ?: provider.defaultBaseUrl
         }
 
         // Resolve protocol-specific versioning once during model sync. The successful

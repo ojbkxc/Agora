@@ -55,6 +55,8 @@ import com.newoether.agora.util.UpdateInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -66,6 +68,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 
@@ -1327,36 +1330,41 @@ class ChatViewModel(
         viewModelScope.launch {
             if (_isSyncingModels.value) return@launch
             _isSyncingModels.value = true
-            val successProviders = mutableListOf<String>()
-            val failedProviders = mutableListOf<String>()
+            val successProviders = Collections.synchronizedList(mutableListOf<String>())
+            val failedProviders = Collections.synchronizedList(mutableListOf<String>())
             var skippedCount = 0
 
             // Ensure custom providers are loaded into the providers map before iterating
             providerRegistry.ensureCustomProvidersRegistered()
 
             val message = try {
-                providerRegistry.all.forEach { (name, _) ->
-                    if (name == Constants.PROVIDER_LOCAL) return@forEach
+                // 并行拉取所有供应商的模型列表，避免串行等待导致超时
+                coroutineScope {
+                    providerRegistry.all.map { (name, _) ->
+                        async(Dispatchers.IO) {
+                            if (name == Constants.PROVIDER_LOCAL) return@async
 
-                    try {
-                        if (!providerRegistry.isConfigured(name, settings.resolveActiveKey(name) ?: "")) {
-                            skippedCount++
-                            settings.saveAvailableModels(name, emptyList())
-                            return@forEach
-                        }
+                            try {
+                                if (!providerRegistry.isConfigured(name, settings.resolveActiveKey(name) ?: "")) {
+                                    skippedCount++
+                                    settings.saveAvailableModels(name, emptyList())
+                                    return@async
+                                }
 
-                        val models = providerRegistry.fetchModelsForProvider(name)
-                        if (models.isNotEmpty()) {
-                            successProviders.add(name)
-                        } else {
-                            failedProviders.add(name)
+                                val models = providerRegistry.fetchModelsForProvider(name)
+                                if (models.isNotEmpty()) {
+                                    successProviders.add(name)
+                                } else {
+                                    failedProviders.add(name)
+                                }
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                DebugLog.e("ChatViewModel", "fetchModels failed for $name: ${e.message}", e)
+                                failedProviders.add(name)
+                            }
                         }
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        DebugLog.e("ChatViewModel", "fetchModels failed for $name: ${e.message}", e)
-                        failedProviders.add(name)
-                    }
+                    }.awaitAll()
                 }
 
                 val allFetchedModels = settings.getAvailableModels().values.flatten().toSet()

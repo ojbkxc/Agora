@@ -143,7 +143,17 @@ open class RustOllamaProvider : LlmProvider {
         withContext(Dispatchers.IO) {
             try {
                 NativeLib.ensureLoaded()
-                val effectiveBaseUrl = baseUrl?.trimEnd('/')?.ifBlank { null } ?: "http://localhost:11434"
+                // 确保默认 URL 包含 /api 路径段，Ollama 的模型列表端点是 /api/tags。
+                // defaultBaseUrl = "http://localhost:11434/api"，拼 /tags 后得到正确的 /api/tags。
+                // 用户若填 http://localhost:11434 也需要补上 /api。
+                val rawUrl = baseUrl?.trimEnd('/')?.ifBlank { null } ?: defaultBaseUrl
+                val effectiveBaseUrl = if (rawUrl.endsWith("/api")) {
+                    rawUrl
+                } else if (rawUrl.endsWith(":11434") || rawUrl == "http://localhost:11434") {
+                    "$rawUrl/api"
+                } else {
+                    rawUrl
+                }
                 val providerConfigJson = json.encodeToString(
                     RustProviderConfig(
                         apiKey = apiKey,

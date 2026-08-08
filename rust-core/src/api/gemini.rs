@@ -237,9 +237,15 @@ impl LlmProvider for GeminiProvider {
         let body = client.fetch_models(&url, &headers).await?;
         let response: GeminiModelListResponse = serde_json::from_str(&body)?;
 
+        // 只返回支持 generateContent 的模型（聊天模型），过滤掉 embedding/TTS/imagen 等非聊天模型
         let models: Vec<String> = response
             .models
             .iter()
+            .filter(|m| {
+                m.supported_generation_methods
+                    .iter()
+                    .any(|method| method == "generateContent")
+            })
             .map(|m| m.name.trim_start_matches("models/").to_string())
             .collect();
 

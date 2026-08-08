@@ -648,6 +648,9 @@ pub struct GeminiModelInfo {
     pub display_name: Option<String>,
     #[serde(default)]
     pub description: Option<String>,
+    /// 该模型支持的生产方法列表（如 generateContent、embedContent 等）
+    #[serde(default)]
+    pub supported_generation_methods: Vec<String>,
 }
 
 // ============================================================

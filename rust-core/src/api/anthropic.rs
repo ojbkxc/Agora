@@ -1341,8 +1341,16 @@ impl LlmProvider for AnthropicProvider {
         while pages < 10 {
             let mut url = format!("{}/models?limit=100", effective_base_url);
             if let Some(ref after) = after_id {
+                // URL 编码 after_id，防止特殊字符构造出非法 URL
+                let encoded: String = after
+                    .chars()
+                    .map(|c| match c {
+                        'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' | '~' => c.to_string(),
+                        _ => format!("%{:02X}", c as u8),
+                    })
+                    .collect();
                 url.push_str("&after_id=");
-                url.push_str(after);
+                url.push_str(&encoded);
             }
 
             let response_text = match client.fetch_models(&url, &headers).await {
@@ -1370,16 +1378,11 @@ impl LlmProvider for AnthropicProvider {
         }
 
         if all_models.is_empty() {
-            // Anthropic 没有模型列表端点时返回硬编码列表
-            return Ok(vec![
-                "claude-opus-4-20250514".to_string(),
-                "claude-sonnet-4-20250514".to_string(),
-                "claude-3-5-sonnet-20241022".to_string(),
-                "claude-3-5-haiku-20241022".to_string(),
-                "claude-3-opus-20240229".to_string(),
-                "claude-3-sonnet-20240229".to_string(),
-                "claude-3-haiku-20240307".to_string(),
-            ]);
+            // 不再返回硬编码兜底列表 — 那会随时间过期且掩盖真实的 API 错误。
+            // 返回空列表让上层正确处理失败情况。
+            return Err(AgoraError::Unknown(
+                "No models returned from Anthropic API".to_string(),
+            ));
         }
 
         all_models.sort();

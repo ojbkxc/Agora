@@ -9,7 +9,7 @@ package com.newoether.agora.api
 class RustCustomOpenAiProvider(
     override val name: String,
     override val defaultBaseUrl: String
-) : RustOpenAiProvider()
+) : RustOpenAiProvider(providerTag = "", defaultBaseUrl = defaultBaseUrl)
 
 /**
  * Rust-backed [LlmProvider] for custom Anthropic-compatible endpoints.
