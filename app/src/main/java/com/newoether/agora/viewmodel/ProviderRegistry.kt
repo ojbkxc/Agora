@@ -4,7 +4,6 @@ import com.newoether.agora.api.LlmProvider
 import com.newoether.agora.api.RustAnthropicProvider
 import com.newoether.agora.api.RustCustomAnthropicProvider
 import com.newoether.agora.api.RustCustomOpenAiProvider
-import com.newoether.agora.api.RustOllamaProvider
 import com.newoether.agora.api.RustOpenAiProvider
 
 import com.newoether.agora.data.CustomEndpointProtocol
@@ -73,7 +72,7 @@ internal fun providerConfigurationIsValid(
     providerName == Constants.PROVIDER_UNKNOWN -> false
     !registered -> false
 
-    !builtIn || providerName == Constants.PROVIDER_OLLAMA -> !effectiveBaseUrl.isNullOrBlank()
+    !builtIn -> !effectiveBaseUrl.isNullOrBlank()
     else -> activeKey.isNotBlank()
 }
 
@@ -95,7 +94,6 @@ class ProviderRegistry(
     private val builtInProviders: Map<String, LlmProvider> = mapOf(
         Constants.PROVIDER_OPENAI to RustOpenAiProvider(),
         Constants.PROVIDER_ANTHROPIC to RustAnthropicProvider(),
-        Constants.PROVIDER_OLLAMA to RustOllamaProvider(),
     )
 
     // Declared as MutableMap so `in`/`contains` keep Map (containsKey) semantics (KT-18053).

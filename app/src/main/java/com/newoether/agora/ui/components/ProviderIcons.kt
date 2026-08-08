@@ -9,6 +9,5 @@ import com.newoether.agora.R
 fun providerIcon(name: String): Int = when (name.lowercase()) {
     "openai" -> R.drawable.provider_openai
     "anthropic" -> R.drawable.provider_anthropic
-    "ollama" -> R.drawable.provider_ollama
     else -> 0
 }

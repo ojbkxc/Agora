@@ -15,7 +15,6 @@ pub mod request_validator;
 // Provider 实现（各 LLM 厂商适配层）
 pub mod openai;
 pub mod anthropic;
-pub mod ollama;
 
 // 重导出核心类型，方便外部使用
 pub use types::{
@@ -48,4 +47,3 @@ pub use sse::{
 
 pub use openai::OpenAiProvider;
 pub use anthropic::AnthropicProvider;
-pub use ollama::OllamaProvider;

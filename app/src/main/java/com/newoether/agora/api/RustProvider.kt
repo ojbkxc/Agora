@@ -27,7 +27,7 @@ object RustProvider {
     /**
      * Create a Rust-side provider instance.
      *
-     * @param providerType one of "openai", "anthropic", "gemini", "ollama"
+     * @param providerType one of "openai", "anthropic"
      * @param configJson   JSON-serialised [RustProviderConfig]
      * @return opaque handle (positive) or a negative error code
      */

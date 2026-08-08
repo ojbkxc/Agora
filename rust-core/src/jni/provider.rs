@@ -13,7 +13,7 @@ use crate::api::http_client::AgoraHttpClient;
 use crate::api::provider::LlmProvider;
 use crate::api::types::{ChatMessage, ProviderConfig, StreamEvent};
 use crate::api::{
-    AnthropicProvider, OllamaProvider, OpenAiProvider,
+    AnthropicProvider, OpenAiProvider,
 };
 use crate::error::AgoraError;
 use crate::jni::util;
@@ -170,7 +170,27 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
                 ))
             }
         }
-        "ollama" => Arc::new(OllamaProvider::new()),
+        "ollama" => {
+            // 保留 Ollama 处理以兼容旧数据，降级为 OpenAI 兼容通道
+            if let Some(ref base_url) = config.base_url {
+                if !base_url.is_empty() {
+                    Arc::new(OpenAiProvider::new_custom(
+                        "Ollama (OpenAI compat)".to_string(),
+                        base_url.clone(),
+                    ))
+                } else {
+                    Arc::new(OpenAiProvider::new_custom(
+                        "Ollama (OpenAI compat)".to_string(),
+                        "http://localhost:11434/v1".to_string(),
+                    ))
+                }
+            } else {
+                Arc::new(OpenAiProvider::new_custom(
+                    "Ollama (OpenAI compat)".to_string(),
+                    "http://localhost:11434/v1".to_string(),
+                ))
+            }
+        }
         _ => {
             util::handle_error(
                 &mut env,

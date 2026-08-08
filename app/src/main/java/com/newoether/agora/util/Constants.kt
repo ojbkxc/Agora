@@ -50,7 +50,6 @@ object Constants {
     // ── Provider name constants ────────────────────────────────
     const val PROVIDER_LOCAL = "Local"
     const val PROVIDER_OPENAI = "OpenAI"
-    const val PROVIDER_OLLAMA = "Ollama"
     const val PROVIDER_ANTHROPIC = "Anthropic"
     const val PROVIDER_UNKNOWN = "Unknown"
     /** Placeholder model ID used as StateFlow/DataStore cold-start fallback and

@@ -52,7 +52,7 @@
 -keep class com.newoether.agora.api.RustOpenAiProvider { *; }
 -keep class com.newoether.agora.api.RustAnthropicProvider { *; }
 
--keep class com.newoether.agora.api.RustOllamaProvider { *; }
+
 -keep class com.newoether.agora.api.RustCustomOpenAiProvider { *; }
 -keep class com.newoether.agora.api.RustCustomAnthropicProvider { *; }
 

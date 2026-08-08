@@ -138,8 +138,7 @@ fun WelcomeScreen(
 
     // ── Onboarding state ──
     val builtInProviders = listOf(
-        Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC,
-        Constants.PROVIDER_OLLAMA
+        Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC
     )
     val customProviders by viewModel.settings.customProviders.collectAsState()
     val allProviders = (builtInProviders + customProviders.map { it.name } + "Custom").distinct()
@@ -147,7 +146,6 @@ fun WelcomeScreen(
     // True for any user-defined endpoint (the "Custom" slot or an already-created
     // provider). Its selected wire protocol determines request and response handling.
     val isCustomProvider = selectedProvider != null &&
-        selectedProvider != Constants.PROVIDER_OLLAMA &&
         selectedProvider !in builtInProviders
     var apiKeyText by remember { mutableStateOf("") }
     var baseUrlText by remember { mutableStateOf("") }
@@ -168,10 +166,6 @@ fun WelcomeScreen(
             ?.protocol
             ?: CustomEndpointProtocol.OPENAI
         when {
-            p == Constants.PROVIDER_OLLAMA -> {
-                val url = existingProviderUrls[Constants.PROVIDER_OLLAMA]
-                if (!url.isNullOrBlank()) apiKeyText = url
-            }
             p != "Custom" && p !in builtInProviders -> {
                 // Existing custom provider: pre-fill both its URL and key.
                 existingProviderUrls[p]?.takeIf { it.isNotBlank() }?.let { baseUrlText = it }
@@ -229,11 +223,10 @@ fun WelcomeScreen(
 
     // Persist whatever the API Key page collected for the selected provider. Custom
     // providers register their base URL (creating the provider if new) plus key; the
-    // built-in/Ollama paths stay as before. Blank fields are skipped.
+    // built-in paths stay as before. Blank fields are skipped.
     val saveProviderCredentials: () -> Unit = save@{
         val p = selectedProvider ?: return@save
         when {
-            p == Constants.PROVIDER_OLLAMA -> if (apiKeyText.isNotBlank()) viewModel.settings.setProviderBaseUrl(Constants.PROVIDER_OLLAMA, apiKeyText)
             isCustomProvider -> {
                 if (baseUrlText.isNotBlank()) {
                     val existing = customProviders.firstOrNull { it.name == p }
@@ -391,12 +384,10 @@ fun WelcomeScreen(
                         Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp).alpha(contentAlpha)) {
                             val page = pages[index]
                             val title = when {
-                                index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_OLLAMA -> stringResource(R.string.onboarding_server_url_title)
                                 index == PAGE_API_KEY && isCustomProvider -> stringResource(R.string.onboarding_custom_title)
                                 else -> page.title
                             }
                             val desc = when {
-                                index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_OLLAMA -> stringResource(R.string.onboarding_ollama_desc)
                                 index == PAGE_API_KEY && isCustomProvider -> stringResource(R.string.onboarding_custom_desc)
                                 index == PAGE_API_KEY && selectedProvider != null -> stringResource(R.string.onboarding_api_key_for, selectedProvider!!)
                                 else -> page.description
@@ -529,25 +520,6 @@ private fun ApiKeyPage(
         if (provider == null) {
             Column(Modifier.padding(32.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.onboarding_no_provider), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else if (provider == Constants.PROVIDER_OLLAMA) {
-            Column(Modifier.padding(32.dp).fillMaxWidth().clearFocusOnTap()) {
-                val iconRes = providerIcon(provider)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (iconRes != 0) {
-                        Icon(painterResource(iconRes), null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(36.dp))
-                    } else {
-                        Icon(Icons.Filled.Cloud, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(36.dp))
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text(provider, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                }
-                Spacer(Modifier.height(20.dp))
-                OutlinedTextField(
-                    value = apiKeyText, onValueChange = onApiKeyChange, modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(stringResource(R.string.onboarding_ollama_hint)) },
-                    singleLine = true, shape = RoundedCornerShape(50)
-                )
             }
         } else if (isCustom) {
             Column(Modifier.padding(32.dp).fillMaxWidth().clearFocusOnTap()) {

@@ -65,12 +65,12 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     onBack = { selectedProvider = null }
                 )
             } else {
-                val builtInNames = listOf(Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC, Constants.PROVIDER_OLLAMA)
+                val builtInNames = listOf(Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC)
 
                 @Composable
                 fun isConfigured(name: String): Boolean {
                     val isCustom = customProviders.any { it.name == name }
-                    return if (isCustom || name == Constants.PROVIDER_OLLAMA) !providerBaseUrls[name].isNullOrBlank()
+                    return if (isCustom) !providerBaseUrls[name].isNullOrBlank()
                     else apiKeys.any { it.provider == name }
                 }
 
@@ -89,7 +89,6 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         supportingContent = {
                                             Text(
                                                 when {
-                                                    name == Constants.PROVIDER_OLLAMA -> providerBaseUrls[name]?.takeIf { it.isNotBlank() } ?: stringResource(R.string.not_configured)
                                                     isConfigured(name) -> stringResource(R.string.provider_keys_summary, apiKeys.count { it.provider == name })
                                                     else -> stringResource(R.string.not_configured)
                                                 }

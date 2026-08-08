@@ -8,8 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.newoether.agora.R
 import com.newoether.agora.api.*
 import com.newoether.agora.api.anthropic.*
-import com.newoether.agora.api.gemini.*
-import com.newoether.agora.api.ollama.*
 import com.newoether.agora.api.openai.*
 import com.newoether.agora.data.AutoBackupManager
 import com.newoether.agora.data.BuiltInPrompts
