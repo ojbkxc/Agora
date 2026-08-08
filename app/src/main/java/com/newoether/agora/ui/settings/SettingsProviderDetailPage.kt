@@ -168,7 +168,7 @@ fun SettingsProviderDetailPage(
                 val isSyncing by viewModel.isSyncingModels.collectAsState()
                 SettingsGroup(
                     title = stringResource(R.string.models_available),
-                    items = {
+                    items = buildList {
                         add {
                             SettingsItem(
                                 headlineContent = { Text(stringResource(R.string.models_sync)) },
