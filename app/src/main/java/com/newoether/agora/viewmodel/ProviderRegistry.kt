@@ -2,8 +2,6 @@ package com.newoether.agora.viewmodel
 
 import com.newoether.agora.api.LlmProvider
 import com.newoether.agora.api.RustAnthropicProvider
-import com.newoether.agora.api.RustCustomAnthropicProvider
-import com.newoether.agora.api.RustCustomOpenAiProvider
 import com.newoether.agora.api.RustOpenAiProvider
 
 import com.newoether.agora.data.CustomEndpointProtocol
@@ -25,8 +23,8 @@ internal fun createCustomProvider(
     config: CustomProviderConfig,
     baseUrl: String,
 ): LlmProvider? = when (config.protocol) {
-    CustomEndpointProtocol.OPENAI -> RustCustomOpenAiProvider(config.name, baseUrl)
-    CustomEndpointProtocol.ANTHROPIC -> RustCustomAnthropicProvider(config.name, baseUrl)
+    CustomEndpointProtocol.OPENAI -> RustOpenAiProvider(config.name, baseUrl)
+    CustomEndpointProtocol.ANTHROPIC -> RustAnthropicProvider(config.name, baseUrl)
     CustomEndpointProtocol.UNKNOWN -> null
 }
 
@@ -61,25 +59,22 @@ internal fun CustomEndpointResolution.matches(
         this.configuredBaseUrl.trim().trimEnd('/') == configuredBaseUrl.trim().trimEnd('/') &&
         effectiveBaseUrl.isNotBlank()
 
-/** Pure policy boundary used by both production code and JVM tests. Missing providers fail shut. */
+/** Pure policy boundary used by both production code and JVM tests. */
 internal fun providerConfigurationIsValid(
     providerName: String,
     activeKey: String,
     registered: Boolean,
-    builtIn: Boolean,
     effectiveBaseUrl: String?,
 ): Boolean = when {
     providerName == Constants.PROVIDER_UNKNOWN -> false
     !registered -> false
-
-    !builtIn -> !effectiveBaseUrl.isNullOrBlank()
-    else -> activeKey.isNotBlank()
+    else -> activeKey.isNotBlank() && !effectiveBaseUrl.isNullOrBlank()
 }
 
 /**
- * Owns the set of LLM providers — built-in plus user-defined custom OpenAI-compatible
- * ones — and all logic for resolving a model/provider to a concrete [LlmProvider]
- * instance, its effective base URL, and its configured/credentialed status.
+ * Owns the set of LLM providers — all user-defined, each with a selectable protocol
+ * (OpenAI-compatible or Anthropic). All providers are custom; there are no built-in
+ * providers. Each provider has a name, base URL, API key, and protocol.
  *
  * Extracted from [ChatViewModel] so provider lifecycle (registration, rename, delete,
  * credential reconciliation) and model discovery live in one cohesive place. The live
@@ -91,20 +86,13 @@ class ProviderRegistry(
     private val settings: SettingsRepository,
     private val scope: CoroutineScope,
 ) {
-    private val builtInProviders: Map<String, LlmProvider> = mapOf(
-        Constants.PROVIDER_OPENAI to RustOpenAiProvider(),
-        Constants.PROVIDER_ANTHROPIC to RustAnthropicProvider(),
-    )
-
     // Declared as MutableMap so `in`/`contains` keep Map (containsKey) semantics (KT-18053).
-    private val providers: MutableMap<String, LlmProvider> = ConcurrentHashMap(builtInProviders)
+    private val providers: MutableMap<String, LlmProvider> = ConcurrentHashMap()
     private val runtimeEndpointResolutions = ConcurrentHashMap<String, CustomEndpointResolution>()
     private val initialCustomProviderSync = CompletableDeferred<Unit>()
 
     /** Live, thread-safe read view shared with the generation pipeline. */
     val all: Map<String, LlmProvider> get() = providers
-
-    fun isBuiltIn(name: String): Boolean = name in builtInProviders
 
     fun getInstance(name: String): LlmProvider = requireNotNull(providers[name]) {
         "Provider is not registered: $name"
@@ -133,7 +121,6 @@ class ProviderRegistry(
             providerName = providerName,
             activeKey = activeKey,
             registered = providerName in providers,
-            builtIn = isBuiltIn(providerName),
             effectiveBaseUrl = getEffectiveBaseUrl(providerName),
         )
 
@@ -148,10 +135,10 @@ class ProviderRegistry(
         return ModelId.parse(modelId).providerName
     }
 
-    // ── Custom provider CRUD ──────────────────────────────────
+    // ── Provider CRUD ────────────────────────────────────────
     // Settings persists the config; the callbacks keep the live `providers` map in sync.
 
-    fun addCustom(
+    fun add(
         name: String,
         baseUrl: String,
         protocol: CustomEndpointProtocol = CustomEndpointProtocol.OPENAI,
@@ -163,7 +150,7 @@ class ProviderRegistry(
         settings.addCustomProvider(config, baseUrl)
     }
 
-    fun renameCustom(oldName: String, newName: String) {
+    fun rename(oldName: String, newName: String) {
         val url = settings.providerBaseUrls.value[oldName] ?: return
         val oldConfig = settings.customProviders.value.firstOrNull { it.name == oldName } ?: return
         val newConfig = oldConfig.copy(name = newName)
@@ -174,7 +161,7 @@ class ProviderRegistry(
         settings.renameCustomProvider(oldName, newName)
     }
 
-    fun updateCustomProtocol(name: String, protocol: CustomEndpointProtocol) {
+    fun updateProtocol(name: String, protocol: CustomEndpointProtocol) {
         val current = settings.customProviders.value.firstOrNull { it.name == name } ?: return
         val updated = current.copy(protocol = protocol)
         val url = settings.providerBaseUrls.value[name].orEmpty()
@@ -184,14 +171,14 @@ class ProviderRegistry(
         settings.updateCustomProviderProtocol(name, protocol)
     }
 
-    fun deleteCustom(name: String) {
+    fun delete(name: String) {
         providers.remove(name)
         runtimeEndpointResolutions.remove(name)
         settings.deleteCustomProvider(name)
     }
 
-    /** Registers any persisted custom provider not yet present in the live map. */
-    fun ensureCustomProvidersRegistered() {
+    /** Registers any persisted provider not yet present in the live map. */
+    fun ensureProvidersRegistered() {
         settings.customProviders.value.forEach { config ->
             if (config.name !in providers) {
                 createCustomProvider(
@@ -202,7 +189,7 @@ class ProviderRegistry(
         }
     }
 
-    /** Waits until the live map reflects persisted custom provider names and base URLs. */
+    /** Waits until the live map reflects persisted provider names and base URLs. */
     suspend fun awaitInitialSync() = initialCustomProviderSync.await()
 
     /**
@@ -211,7 +198,7 @@ class ProviderRegistry(
      */
     suspend fun fetchModelsForProvider(name: String): List<String> {
         if (name == Constants.PROVIDER_LOCAL) return emptyList()
-        ensureCustomProvidersRegistered()
+        ensureProvidersRegistered()
         val provider = providers[name] ?: return emptyList()
         val activeKey = settings.apiKeys.value.find { it.id == settings.activeApiKeyIds.value[name] }?.key ?: ""
         if (!isConfigured(name, activeKey)) return emptyList()
@@ -251,7 +238,6 @@ class ProviderRegistry(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: IOException) {
-                // Native 侧返回了 error，记录具体原因后继续尝试下一个 candidate
                 DebugLog.e(TAG, "fetchModelsForProvider($name) native error for candidate $candidate: ${e.message}", e)
                 errors.add(e.message ?: "unknown error")
                 continue
@@ -278,14 +264,14 @@ class ProviderRegistry(
 
     /** Starts the long-lived collectors that keep the provider map and caches consistent. */
     fun launchSyncJobs() {
-        // Sync custom providers into the live map whenever the persisted set changes.
+        // Sync providers into the live map whenever the persisted set changes.
         scope.launch {
             try {
                 // Avoid treating the eager empty default as an authoritative provider set during
                 // a Worker cold start. The first collected value is now the on-disk snapshot.
                 settings.awaitInitialLoad()
                 settings.customProviders.collect { custom ->
-                    providers.keys.filter { !isBuiltIn(it) }.forEach { providers.remove(it) }
+                    providers.keys.forEach { providers.remove(it) }
                     val baseUrls = settings.getProviderBaseUrls()
                     custom.forEach { config ->
                         createCustomProvider(

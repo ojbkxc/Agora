@@ -101,7 +101,7 @@ import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.components.providerIcon
 import com.newoether.agora.model.apiModelName
 import com.newoether.agora.ui.theme.LocalAgoraGradients
-import com.newoether.agora.util.Constants
+
 import com.newoether.agora.viewmodel.ChatViewModel
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.launch
@@ -137,16 +137,12 @@ fun WelcomeScreen(
     val context = LocalContext.current
 
     // ── Onboarding state ──
-    val builtInProviders = listOf(
-        Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC
-    )
+    // All providers are user-defined custom providers. There are no built-in providers.
     val customProviders by viewModel.settings.customProviders.collectAsState()
-    val allProviders = (builtInProviders + customProviders.map { it.name } + "Custom").distinct()
+    val allProviders = (customProviders.map { it.name } + "Custom").distinct()
     var selectedProvider by remember { mutableStateOf<String?>(null) }
-    // True for any user-defined endpoint (the "Custom" slot or an already-created
-    // provider). Its selected wire protocol determines request and response handling.
-    val isCustomProvider = selectedProvider != null &&
-        selectedProvider !in builtInProviders
+    // All providers are custom — each supports both OpenAI and Anthropic protocols.
+    val isCustomProvider = selectedProvider != null
     var apiKeyText by remember { mutableStateOf("") }
     var baseUrlText by remember { mutableStateOf("") }
     var customProtocol by remember { mutableStateOf(CustomEndpointProtocol.OPENAI) }
@@ -166,7 +162,7 @@ fun WelcomeScreen(
             ?.protocol
             ?: CustomEndpointProtocol.OPENAI
         when {
-            p != "Custom" && p !in builtInProviders -> {
+            p != "Custom" -> {
                 // Existing custom provider: pre-fill both its URL and key.
                 existingProviderUrls[p]?.takeIf { it.isNotBlank() }?.let { baseUrlText = it }
                 existingApiKeys.find { it.provider == p }?.key?.takeIf { it.isNotBlank() }?.let { apiKeyText = it }
@@ -226,23 +222,18 @@ fun WelcomeScreen(
     // built-in paths stay as before. Blank fields are skipped.
     val saveProviderCredentials: () -> Unit = save@{
         val p = selectedProvider ?: return@save
-        when {
-            isCustomProvider -> {
-                if (baseUrlText.isNotBlank()) {
-                    val existing = customProviders.firstOrNull { it.name == p }
-                    if (existing == null) {
-                        viewModel.addCustomProvider(p, baseUrlText, customProtocol)
-                    } else {
-                        viewModel.settings.setProviderBaseUrl(p, baseUrlText)
-                        if (existing.protocol != customProtocol) {
-                            viewModel.updateCustomProviderProtocol(p, customProtocol)
-                        }
-                    }
+        if (baseUrlText.isNotBlank()) {
+            val existing = customProviders.firstOrNull { it.name == p }
+            if (existing == null) {
+                viewModel.addCustomProvider(p, baseUrlText, customProtocol)
+            } else {
+                viewModel.settings.setProviderBaseUrl(p, baseUrlText)
+                if (existing.protocol != customProtocol) {
+                    viewModel.updateCustomProviderProtocol(p, customProtocol)
                 }
-                if (apiKeyText.isNotBlank()) viewModel.settings.upsertApiKey(p, apiKeyText, p)
             }
-            else -> if (apiKeyText.isNotBlank()) viewModel.settings.upsertApiKey(p, apiKeyText, p)
         }
+        if (apiKeyText.isNotBlank()) viewModel.settings.upsertApiKey(p, apiKeyText, p)
     }
 
     val fm = LocalFocusManager.current

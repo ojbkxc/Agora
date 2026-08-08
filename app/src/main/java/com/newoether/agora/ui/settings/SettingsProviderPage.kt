@@ -18,7 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,14 +28,13 @@ import com.newoether.agora.ui.components.GradientButton
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.components.CustomEndpointProtocolSelector
 import com.newoether.agora.ui.components.displayName
-import com.newoether.agora.ui.components.providerIcon
-import com.newoether.agora.util.Constants
+
+
 import com.newoether.agora.viewmodel.ChatViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
-    val apiKeys by viewModel.settings.apiKeys.collectAsState()
     val providerBaseUrls by viewModel.settings.providerBaseUrls.collectAsState()
     val customProviders by viewModel.settings.customProviders.collectAsState()
 
@@ -65,14 +64,6 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     onBack = { selectedProvider = null }
                 )
             } else {
-                val builtInNames = listOf(Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC)
-
-                @Composable
-                fun isConfigured(name: String): Boolean {
-                    val isCustom = customProviders.any { it.name == name }
-                    return if (isCustom) !providerBaseUrls[name].isNullOrBlank()
-                    else apiKeys.any { it.provider == name }
-                }
 
                 CollapsingSettingsScaffold(
                     title = stringResource(R.string.settings_provider),
@@ -81,34 +72,6 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     floatingActionButton = { if (showDocFab) DocumentationFab("provider.md") }
                 ) {
                         SettingsGroupColumn {
-                            SettingsGroup(title = stringResource(R.string.provider_built_in), items = builtInNames.map { name ->
-                                @Composable {
-                                    val configured = isConfigured(name)
-                                    SettingsItem(
-                                        headlineContent = { Text(name) },
-                                        supportingContent = {
-                                            Text(
-                                                when {
-                                                    isConfigured(name) -> stringResource(R.string.provider_keys_summary, apiKeys.count { it.provider == name })
-                                                    else -> stringResource(R.string.not_configured)
-                                                }
-                                            )
-                                        },
-                                        leadingContent = {
-                                            val iconRes = providerIcon(name)
-                                            val tint = if (configured) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                            if (iconRes != 0) {
-                                                Icon(painterResource(iconRes), null, tint = tint, modifier = Modifier.size(24.dp))
-                                            } else {
-                                                Icon(Icons.Default.Cloud, null, tint = tint, modifier = Modifier.size(24.dp))
-                                            }
-                                        },
-                                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
-                                        modifier = Modifier.clickable { selectedProvider = name }
-                                    )
-                                }
-                            })
-
                             SettingsGroup(title = stringResource(R.string.custom_provider_section), items = buildList {
                                 if (customProviders.isEmpty()) {
                                     add {
@@ -170,7 +133,7 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     var customName by remember { mutableStateOf("") }; var customBaseUrl by remember { mutableStateOf("") }
                     var customProtocol by remember { mutableStateOf(CustomEndpointProtocol.OPENAI) }
                     var nameError by remember { mutableStateOf(false) }; var urlError by remember { mutableStateOf(false) }
-                    val allNames = builtInNames + customProviders.map { it.name }
+                    val allNames = customProviders.map { it.name }
                     AlertDialog(
                         modifier = Modifier.clearFocusOnTap(),
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,

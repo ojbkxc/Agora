@@ -1,7 +1,6 @@
 ﻿package com.newoether.agora.api
 
 import com.newoether.agora.model.ChatMessage
-import com.newoether.agora.util.Constants
 import com.newoether.agora.util.DebugLog
 import com.newoether.agora.util.NativeLib
 import kotlinx.coroutines.Dispatchers
@@ -20,9 +19,10 @@ import java.io.IOException
  * This class maps Kotlin data classes to the Rust JSON wire format and converts
  * Rust stream events back into [StreamEvent].
  */
-open class RustAnthropicProvider : LlmProvider {
-    override val name: String = Constants.PROVIDER_ANTHROPIC
-    override val defaultBaseUrl: String = "https://api.anthropic.com/v1"
+open class RustAnthropicProvider(
+    override val name: String,
+    override val defaultBaseUrl: String = "https://api.anthropic.com/v1",
+) : LlmProvider {
 
     private val json = Json {
         ignoreUnknownKeys = true

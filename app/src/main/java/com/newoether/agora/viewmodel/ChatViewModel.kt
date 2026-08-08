@@ -858,13 +858,13 @@ class ChatViewModel(
         baseUrl: String,
         protocol: com.newoether.agora.data.CustomEndpointProtocol =
             com.newoether.agora.data.CustomEndpointProtocol.OPENAI,
-    ) = providerRegistry.addCustom(name, baseUrl, protocol)
-    fun renameCustomProvider(oldName: String, newName: String) = providerRegistry.renameCustom(oldName, newName)
+    ) = providerRegistry.add(name, baseUrl, protocol)
+    fun renameCustomProvider(oldName: String, newName: String) = providerRegistry.rename(oldName, newName)
     fun updateCustomProviderProtocol(
         name: String,
         protocol: com.newoether.agora.data.CustomEndpointProtocol,
-    ) = providerRegistry.updateCustomProtocol(name, protocol)
-    fun deleteCustomProvider(name: String) = providerRegistry.deleteCustom(name)
+    ) = providerRegistry.updateProtocol(name, protocol)
+    fun deleteCustomProvider(name: String) = providerRegistry.delete(name)
 
     fun getCurrentVersion(): String {
         return try { appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName ?: "?" } catch (_: Exception) { "?" }
@@ -1334,7 +1334,7 @@ class ChatViewModel(
             var skippedCount = 0
 
             // Ensure custom providers are loaded into the providers map before iterating
-            providerRegistry.ensureCustomProvidersRegistered()
+            providerRegistry.ensureProvidersRegistered()
 
             val message = try {
                 // 并行拉取所有供应商的模型列表，避免串行等待导致超时

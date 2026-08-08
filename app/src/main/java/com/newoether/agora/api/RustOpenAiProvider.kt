@@ -1,7 +1,6 @@
 ﻿package com.newoether.agora.api
 
 import com.newoether.agora.model.ChatMessage
-import com.newoether.agora.util.Constants
 import com.newoether.agora.util.DebugLog
 import com.newoether.agora.util.NativeLib
 import kotlinx.coroutines.Dispatchers
@@ -21,10 +20,10 @@ import java.io.IOException
  * streaming callback into a Kotlin [Flow].
  */
 open class RustOpenAiProvider(
+    override val name: String,
     /** 默认 base URL，内置供应商可覆盖为各自的 API 地址。 */
     override val defaultBaseUrl: String = "https://api.openai.com/v1",
 ) : LlmProvider {
-    override val name: String = Constants.PROVIDER_OPENAI
 
     private val json = Json {
         ignoreUnknownKeys = true

@@ -297,7 +297,7 @@ fun SettingsProviderDetailPage(
     if (showRenameProvider) {
         var renameValue by remember { mutableStateOf(providerName) }
         var renameError by remember { mutableStateOf(false) }
-        val allNames = listOf(Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC) + customProviders.map { it.name }
+        val allNames = customProviders.map { it.name }
         AlertDialog(modifier = Modifier.clearFocusOnTap(), containerColor = MaterialTheme.colorScheme.surfaceContainer, onDismissRequest = { showRenameProvider = false }, title = { Text(stringResource(R.string.custom_provider_rename_title), fontWeight = FontWeight.Bold) }, text = {
             OutlinedTextField(value = renameValue, onValueChange = { renameValue = it; renameError = false }, label = { Text(stringResource(R.string.custom_provider_name_label)) }, isError = renameError, supportingText = if (renameError) {{ Text(stringResource(R.string.custom_provider_name_error)) }} else null, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), singleLine = true)
         }, confirmButton = { TextButton(onClick = {
