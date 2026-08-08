@@ -1,6 +1,18 @@
-plugins {
-    `kotlin-dsl`
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath(kotlin("gradle-plugin", version = "2.3.20"))
+    }
 }
+
+plugins {
+    `java-gradle-plugin`
+}
+
+apply(plugin = "org.jetbrains.kotlin.jvm")
 
 dependencies {
     // AGP instrumentation API (AsmClassVisitorFactory, AndroidComponentsExtension, ...).

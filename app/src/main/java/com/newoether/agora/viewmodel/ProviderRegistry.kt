@@ -283,10 +283,14 @@ class ProviderRegistry(
                             baseUrls[config.name] ?: "",
                         )?.let { providers[config.name] = it }
                     }
-                    initialCustomProviderSync.complete(Unit)
+                    if (!initialCustomProviderSync.isCompleted) {
+                        initialCustomProviderSync.complete(Unit)
+                    }
                 }
             } catch (error: Throwable) {
-                initialCustomProviderSync.completeExceptionally(error)
+                if (!initialCustomProviderSync.isCompleted) {
+                    initialCustomProviderSync.completeExceptionally(error)
+                }
                 throw error
             }
         }

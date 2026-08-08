@@ -186,11 +186,11 @@ open class RustOpenAiProvider(
             throw e
         } catch (e: Exception) {
             DebugLog.e(TAG, "Failed to parse model list: $jsonStr", e)
-            emptyList()
+            throw IOException("Failed to parse model list: ${e.message}", e)
         } catch (e: Throwable) {
             // 捕获逃逸的 Error 防止闪退
             DebugLog.e(TAG, "Native error parsing model list: $jsonStr", e)
-            emptyList()
+            throw IOException("Native error parsing model list: ${e.message}", e)
         }
     }
 

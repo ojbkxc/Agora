@@ -47,12 +47,13 @@ object NativeLib {
     }
 
     /**
-     * Throws an [IllegalStateException] if the native library is not loaded.
+     * Ensure the native library is loaded, attempting to load it if necessary.
      * Intended as the first statement of every JNI wrapper method so that a
      * missing `.so` surfaces as a catchable exception rather than an
      * `UnsatisfiedLinkError` escaping the wrapper.
      */
     fun ensureLoaded() {
+        load()
         if (!loaded) {
             throw IllegalStateException(
                 "$LIB_NAME native library is not loaded" +

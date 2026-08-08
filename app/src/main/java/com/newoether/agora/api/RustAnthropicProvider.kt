@@ -136,18 +136,19 @@ open class RustAnthropicProvider(
         withContext(Dispatchers.IO) {
             try {
                 NativeLib.ensureLoaded()
+                val effectiveBaseUrl = baseUrl ?: defaultBaseUrl
                 val providerConfigJson = json.encodeToString(
                     RustProviderConfig(
                         apiKey = apiKey,
                         modelId = "",
-                        baseUrl = baseUrl ?: defaultBaseUrl
+                        baseUrl = effectiveBaseUrl
                     )
                 )
                 val handle = RustProvider.nativeCreateProvider("anthropic", providerConfigJson)
                 if (handle < 0) throw IOException("Failed to create native provider (error code: $handle)")
 
                 try {
-                    val result = RustProvider.nativeFetchModels(handle, apiKey, baseUrl ?: "")
+                    val result = RustProvider.nativeFetchModels(handle, apiKey, effectiveBaseUrl)
                         ?: throw IOException("nativeFetchModels returned null (JNI-level failure)")
                     parseModelList(result)
                 } finally {
@@ -161,11 +162,11 @@ open class RustAnthropicProvider(
                 throw e
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModels failed", e)
-                emptyList()
+                throw IOException("Unexpected error in fetchModels: ${e.message}", e)
             } catch (e: Throwable) {
                 // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退
                 DebugLog.e(TAG, "Native fetchModels error", e)
-                emptyList()
+                throw IOException("Native error in fetchModels: ${e.message}", e)
             }
         }
 
@@ -183,11 +184,11 @@ open class RustAnthropicProvider(
             throw e
         } catch (e: Exception) {
             DebugLog.e(TAG, "Failed to parse model list: $jsonStr", e)
-            emptyList()
+            throw IOException("Failed to parse model list: ${e.message}", e)
         } catch (e: Throwable) {
             // 捕获逃逸的 Error 防止闪退
             DebugLog.e(TAG, "Native error parsing model list: $jsonStr", e)
-            emptyList()
+            throw IOException("Native error parsing model list: ${e.message}", e)
         }
     }
 
