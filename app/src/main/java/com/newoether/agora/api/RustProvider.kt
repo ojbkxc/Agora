@@ -59,9 +59,9 @@ object RustProvider {
      * @param handle  from [nativeCreateProvider]
      * @param apiKey  provider API key
      * @param baseUrl provider base URL (may be empty for defaults)
-     * @return JSON array of model-id strings, or JSON error
+     * @return JSON array of model-id strings, or JSON error; null on JNI-level failure
      */
-    external fun nativeFetchModels(handle: Long, apiKey: String, baseUrl: String): String
+    external fun nativeFetchModels(handle: Long, apiKey: String, baseUrl: String): String?
 
     /**
      * Release the Rust-side provider and free associated resources.

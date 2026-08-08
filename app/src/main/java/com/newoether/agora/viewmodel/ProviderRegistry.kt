@@ -266,6 +266,7 @@ class ProviderRegistry(
             listOf(baseUrl)
         }
 
+        val errors = mutableListOf<String>()
         for (candidate in candidates) {
             try {
                 val raw = withTimeout(Constants.MODEL_FETCH_TIMEOUT_MS) { provider.fetchModels(activeKey, candidate) }
@@ -284,19 +285,22 @@ class ProviderRegistry(
                 return prefixed
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 DebugLog.w(TAG, "fetchModelsForProvider($name) timed out after ${Constants.MODEL_FETCH_TIMEOUT_MS}ms for candidate $candidate", e)
+                errors.add("timeout: $candidate")
                 continue
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: IOException) {
                 // Native 侧返回了 error，记录具体原因后继续尝试下一个 candidate
                 DebugLog.e(TAG, "fetchModelsForProvider($name) native error for candidate $candidate: ${e.message}", e)
+                errors.add(e.message ?: "unknown error")
                 continue
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModelsForProvider($name) failed for candidate $candidate", e)
+                errors.add(e.message ?: "unknown error")
                 continue
             }
         }
-        return emptyList()
+        throw IOException("All candidate URLs failed for provider $name: ${errors.joinToString("; ")}")
     }
 
     /** Identity fingerprint of all providers' credentials/URLs — used to skip redundant syncs. */

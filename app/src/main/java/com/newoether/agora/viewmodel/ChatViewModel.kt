@@ -1332,6 +1332,7 @@ class ChatViewModel(
             _isSyncingModels.value = true
             val successProviders = Collections.synchronizedList(mutableListOf<String>())
             val failedProviders = Collections.synchronizedList(mutableListOf<String>())
+            val failedReasons = Collections.synchronizedList(mutableListOf<String>())
             var skippedCount = 0
 
             // Ensure custom providers are loaded into the providers map before iterating
@@ -1356,12 +1357,14 @@ class ChatViewModel(
                                     successProviders.add(name)
                                 } else {
                                     failedProviders.add(name)
+                                    failedReasons.add("$name: returned empty model list")
                                 }
                             } catch (e: kotlinx.coroutines.CancellationException) {
                                 throw e
                             } catch (e: Exception) {
                                 DebugLog.e("ChatViewModel", "fetchModels failed for $name: ${e.message}", e)
                                 failedProviders.add(name)
+                                failedReasons.add("$name: ${e.message}")
                             }
                         }
                     }.awaitAll()
@@ -1380,7 +1383,7 @@ class ChatViewModel(
                     successProviders.isNotEmpty() && failedProviders.isNotEmpty() ->
                         appContext.getString(R.string.sync_partial, successProviders.joinToString(), failedProviders.joinToString())
                     successProviders.isEmpty() && failedProviders.isNotEmpty() ->
-                        appContext.getString(R.string.sync_failed_providers, failedProviders.joinToString())
+                        appContext.getString(R.string.sync_failed_providers, failedReasons.joinToString("\n"))
                     else -> if (skippedCount > 0) appContext.getString(R.string.sync_no_providers) else appContext.getString(R.string.sync_completed)
                 }
             } catch (e: Exception) {

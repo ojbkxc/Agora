@@ -162,10 +162,11 @@ open class RustOllamaProvider : LlmProvider {
                     )
                 )
                 val handle = RustProvider.nativeCreateProvider("ollama", providerConfigJson)
-                if (handle < 0) return@withContext emptyList()
+                if (handle < 0) throw IOException("Failed to create native provider (error code: $handle)")
 
                 try {
                     val result = RustProvider.nativeFetchModels(handle, apiKey, effectiveBaseUrl)
+                        ?: throw IOException("nativeFetchModels returned null (JNI-level failure)")
                     parseModelList(result)
                 } finally {
                     RustProvider.destroyProvider(handle)

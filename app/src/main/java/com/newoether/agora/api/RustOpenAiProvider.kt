@@ -156,10 +156,11 @@ open class RustOpenAiProvider(
                     )
                 )
                 val handle = RustProvider.nativeCreateProvider("openai", providerConfigJson)
-                if (handle < 0) return@withContext emptyList()
+                if (handle < 0) throw IOException("Failed to create native provider (error code: $handle)")
 
                 try {
                     val result = RustProvider.nativeFetchModels(handle, apiKey, effectiveBaseUrl)
+                        ?: throw IOException("nativeFetchModels returned null (JNI-level failure)")
                     parseModelList(result)
                 } finally {
                     RustProvider.destroyProvider(handle)
@@ -172,11 +173,11 @@ open class RustOpenAiProvider(
                 throw e
             } catch (e: Exception) {
                 DebugLog.e(TAG, "fetchModels failed", e)
-                emptyList()
+                throw IOException("Unexpected error in fetchModels: ${e.message}", e)
             } catch (e: Throwable) {
                 // 捕获逃逸的 Error（UnsatisfiedLinkError 等）防止闪退
                 DebugLog.e(TAG, "Native fetchModels error", e)
-                emptyList()
+                throw IOException("Native error in fetchModels: ${e.message}", e)
             }
         }
 
