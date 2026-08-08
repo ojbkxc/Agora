@@ -36,6 +36,7 @@ import com.newoether.agora.ui.chat.FileThumbnail
 import com.newoether.agora.ui.chat.readFileContent
 import com.newoether.agora.ui.common.LocalAgoraHaptics
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -54,6 +55,7 @@ internal fun AttachmentPreviewRow(
 ) {
     val context = LocalContext.current
     val haptics = LocalAgoraHaptics.current
+    val coroutineScope = rememberCoroutineScope()
     val allMediaUrls = composer.selectedAttachments.filter {
         it.type == "image" || it.type == "video"
     }.map { it.uri }
@@ -96,8 +98,15 @@ internal fun AttachmentPreviewRow(
                     val clickableMod = when {
                         isFile -> {
                             if (onFileContentClick != null) Modifier.clickable {
-                                val content = readFileContent(context, attachment.localPath ?: uriStr)
-                                onFileContentClick(attachment.fileName ?: uriStr, content)
+                                // 异步读取文件内容,避免阻塞主线程(大文件会导致 UI 卡顿)
+                                val fileName = attachment.fileName ?: uriStr
+                                val path = attachment.localPath ?: uriStr
+                                coroutineScope.launch {
+                                    val content = withContext(Dispatchers.IO) {
+                                        readFileContent(context, path)
+                                    }
+                                    onFileContentClick(fileName, content)
+                                }
                             } else Modifier
                         }
                         isPdf -> {

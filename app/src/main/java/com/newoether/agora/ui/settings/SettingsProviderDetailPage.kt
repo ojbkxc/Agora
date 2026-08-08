@@ -80,10 +80,10 @@ fun SettingsProviderDetailPage(
                 // Base URL (non-Local only)
                 if (!isLocal) {
                 // Nullable: after deleting a custom provider this page recomposes once more
-                // before navigation pops it 鈥?render with an empty placeholder, don't crash.
+                // before navigation pops it — render with an empty placeholder, don't crash.
                 val providerInstance = viewModel.getProviderInstanceOrNull(providerName)
                 val savedUrl = providerBaseUrls[providerName]
-                // Don't key remember on savedUrl 鈥?that causes TextFieldState to be recreated
+                // Don't key remember on savedUrl — that causes TextFieldState to be recreated
                 // every time the debounced save writes back to DataStore, overwriting user input.
                 val baseUrlState = remember { TextFieldState(savedUrl ?: "") }
                 // Sync external changes (e.g. import) back into the text field.
@@ -94,7 +94,7 @@ fun SettingsProviderDetailPage(
                         baseUrlState.edit { replace(0, length, ext) }
                     }
                 }
-                // Save user input with 500ms debounce 鈥?but only on a *real* edit.
+                // Save user input with 500ms debounce — but only on a *real* edit.
                 // On first composition the field is initialized to `savedUrl ?: ""`, and a DataStore
                 // cold load can deliver savedUrl=null momentarily; writing that "" back would poison
                 // the persisted map (see SettingsManager.saveProviderBaseUrl). Skipping when the text
@@ -234,7 +234,7 @@ fun SettingsProviderDetailPage(
                                         leadingContent = { Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) { RadioButton(selected = isCurrentActive, onClick = { viewModel.settings.setActiveApiKey(providerName, entry.id) }, modifier = Modifier.size(20.dp)) } },
                                         trailingContent = {
                                             Box {
-                                                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.MoreVert, stringResource(R.string.options), modifier = Modifier.size(18.dp)) }
+                                                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.MoreVert, stringResource(R.string.options), modifier = Modifier.size(18.dp)) }
                                                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 16.dp, shape = RoundedCornerShape(12.dp)) {
                                                     DropdownMenuItem(text = { Text(stringResource(R.string.provider_edit)) }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { showMenu = false; showKeyDialog = entry })
                                                     DropdownMenuItem(text = { Text(stringResource(R.string.provider_delete), color = MaterialTheme.colorScheme.error) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false; showDeleteKeyConfirm = entry })

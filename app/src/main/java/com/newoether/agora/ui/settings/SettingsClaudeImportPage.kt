@@ -41,6 +41,11 @@ fun SettingsClaudeImportPage(
     var fileName by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
+    // 导入结果返回后显示成功对话框(showSuccessDialog 此前从未被设为 true,导致对话框永不显示)
+    LaunchedEffect(importResult) {
+        if (importResult != null) showSuccessDialog = true
+    }
+
     // File picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()

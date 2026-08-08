@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -86,9 +87,11 @@ internal fun SegmentDetailSheet(
             .ifEmpty { liveSegs.getOrNull(selectedSegmentIndex)?.let { listOf(it) }.orEmpty() }
     }
     val seg = selectedSegs.firstOrNull()
-    if (seg == null) {
-        onDismiss()
-    } else {
+    // 使用 LaunchedEffect 处理空段情况,避免在组合期间调用 onDismiss() 导致重组循环
+    LaunchedEffect(seg == null) {
+        if (seg == null) onDismiss()
+    }
+    if (seg != null) {
         val density = LocalDensity.current
         val configuration = LocalConfiguration.current
         val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
@@ -326,6 +329,8 @@ internal fun SegmentDetailSheet(
                                     else if (seg.type == "transcription") transcriptionLabel(liveSegs, selectedSegmentIndex)
                                     else stringResource(R.string.tool_thinking),
                                 style = ChatType.detailTitle,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                             )
                             HorizontalDivider(

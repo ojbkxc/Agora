@@ -217,7 +217,7 @@ private fun PromptList(
                             },
                             trailingContent = {
                                 Box {
-                                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
+                                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp)) {
                                         Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.options), modifier = Modifier.size(18.dp))
                                     }
                                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 16.dp, shape = RoundedCornerShape(12.dp)) {

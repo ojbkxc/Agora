@@ -68,13 +68,10 @@ fun SettingsProviderPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 val builtInNames = listOf(Constants.PROVIDER_GOOGLE, Constants.PROVIDER_OPENAI, Constants.PROVIDER_ANTHROPIC, Constants.PROVIDER_DEEPSEEK, Constants.PROVIDER_QWEN, Constants.PROVIDER_GROQ, Constants.PROVIDER_OLLAMA, Constants.PROVIDER_OPEN_ROUTER)
 
                 @Composable
-                fun isConfigured(name: String): Boolean = when (name) {
-
-                    else -> {
-                        val isCustom = customProviders.any { it.name == name }
-                        if (isCustom || name == Constants.PROVIDER_OLLAMA) !providerBaseUrls[name].isNullOrBlank()
-                        else apiKeys.any { it.provider == name }
-                    }
+                fun isConfigured(name: String): Boolean {
+                    val isCustom = customProviders.any { it.name == name }
+                    return if (isCustom || name == Constants.PROVIDER_OLLAMA) !providerBaseUrls[name].isNullOrBlank()
+                    else apiKeys.any { it.provider == name }
                 }
 
                 CollapsingSettingsScaffold(

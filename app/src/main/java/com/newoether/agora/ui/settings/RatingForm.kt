@@ -32,6 +32,22 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
+/** 将字符串转义为 JSON 字符串字面量(含首尾引号)。 */
+private fun jsonEscape(s: String): String = buildString {
+    append('"')
+    s.forEach { c ->
+        when (c) {
+            '"' -> append("\\\"")
+            '\\' -> append("\\\\")
+            '\n' -> append("\\n")
+            '\r' -> append("\\r")
+            '\t' -> append("\\t")
+            else -> append(c)
+        }
+    }
+    append('"')
+}
+
 @Composable
 fun RatingForm(
     onSubmitted: () -> Unit = {}
@@ -45,21 +61,6 @@ fun RatingForm(
     var submitted by remember { mutableStateOf(false) }
     var submitError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    fun jsonEscape(s: String): String = buildString {
-        append('"')
-        s.forEach { c ->
-            when (c) {
-                '"' -> append("\\\"")
-                '\\' -> append("\\\\")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
-                else -> append(c)
-            }
-        }
-        append('"')
-    }
 
     Column(Modifier.clearFocusOnTap()) {
         Text(

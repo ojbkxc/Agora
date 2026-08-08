@@ -113,7 +113,8 @@ internal fun ChatTopBar(
                                         text = stringResource(R.string.total_tokens, totalTokens),
                                         style = ChatType.micro,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }

@@ -419,15 +419,15 @@ internal fun AssistantMessageContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (!actionCopyText.isNullOrBlank()) {
-                                IconButton(onClick = { clipboardManager.setText(AnnotatedString(actionCopyText)); haptics.success() }, modifier = Modifier.size(32.dp)) {
+                                IconButton(onClick = { clipboardManager.setText(AnnotatedString(actionCopyText)); haptics.success() }, modifier = Modifier.size(40.dp)) {
                                     Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                                 }
                             }
-                            IconButton(onClick = { onRegenerate(message.id) }, enabled = !isLoading, modifier = Modifier.size(32.dp)) {
+                            IconButton(onClick = { onRegenerate(message.id) }, enabled = !isLoading, modifier = Modifier.size(40.dp)) {
                                 Icon(Icons.Default.Refresh, null, modifier = Modifier.size(19.dp), tint = if (isLoading) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                             }
                             Box {
-                                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
+                                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp)) {
                                     Icon(Icons.Default.MoreVert, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                                 }
                                 DropdownMenu(
@@ -460,11 +460,11 @@ internal fun AssistantMessageContent(
                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                         .padding(horizontal = 4.dp)
                                 ) {
-                                    IconButton(onClick = { onSwitchBranch(-1) }, enabled = branchIndex > 0 && isEditingAllowed, modifier = Modifier.size(24.dp)) {
+                                    IconButton(onClick = { onSwitchBranch(-1) }, enabled = branchIndex > 0 && isEditingAllowed, modifier = Modifier.size(40.dp)) {
                                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, modifier = Modifier.size(16.dp))
                                     }
                                     Text("${branchIndex + 1} / $totalBranches", style = MaterialTheme.typography.labelSmall)
-                                    IconButton(onClick = { onSwitchBranch(1) }, enabled = branchIndex < totalBranches - 1 && isEditingAllowed, modifier = Modifier.size(24.dp)) {
+                                    IconButton(onClick = { onSwitchBranch(1) }, enabled = branchIndex < totalBranches - 1 && isEditingAllowed, modifier = Modifier.size(40.dp)) {
                                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(16.dp))
                                     }
                                 }

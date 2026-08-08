@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.newoether.agora.R
 import com.newoether.agora.ui.components.clearFocusOnTap
@@ -94,7 +95,9 @@ fun SettingsMemoryPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 supportingContent = {
                                     Text(
                                         if (activeMemoryContent.isBlank()) stringResource(R.string.memory_active_empty)
-                                        else activeMemoryContent.take(100) + if (activeMemoryContent.length > 100) "..." else ""
+                                        else activeMemoryContent,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 },
                                 leadingContent = { Icon(Icons.Default.Memory, null, tint = MaterialTheme.colorScheme.primary) },
@@ -125,7 +128,7 @@ fun SettingsMemoryPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 var showFileMenu by remember { mutableStateOf(false) }
                                 val displayName = file.name.removeSuffix(".md")
                                 SettingsItem(
-                                    headlineContent = { Text(displayName, fontWeight = FontWeight.Medium) },
+                                    headlineContent = { Text(displayName, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     supportingContent = if (file.description.isNotBlank()) {{ Text(file.description) }} else null,
                                     leadingContent = { Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)) },
                                     trailingContent = {

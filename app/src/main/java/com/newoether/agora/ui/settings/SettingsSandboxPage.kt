@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.newoether.agora.R
@@ -320,7 +321,7 @@ fun SettingsSandboxPage(sandboxManager: SandboxManager, onBack: () -> Unit, show
                                     )
                                     Button(
                                         onClick = { if (installPkg.isNotBlank() && !isBusy && lastInstallResult == null) installPackage(installPkg.trim()) },
-                                        enabled = true,
+                                        enabled = installPkg.isNotBlank() && !isBusy,
                                         shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp, topEnd = 28.dp, bottomEnd = 28.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = btnBgColor,
@@ -356,15 +357,18 @@ fun SettingsSandboxPage(sandboxManager: SandboxManager, onBack: () -> Unit, show
                                         modifier = Modifier.padding(top = 16.dp).fillMaxWidth().height(260.dp)
                                     ) {
                                         SelectionContainer {
+                                            val nestedScrollConn = remember {
+                                                object : NestedScrollConnection {
+                                                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset = available
+                                                    override suspend fun onPreFling(available: Velocity): Velocity = available
+                                                    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = available
+                                                }
+                                            }
                                             Text(
                                                 terminalOutput,
                                                 modifier = Modifier.padding(12.dp).fillMaxWidth()
                                                     .verticalScroll(termScroll)
-                                                    .nestedScroll(object : NestedScrollConnection {
-                                                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset = available
-                                                        override suspend fun onPreFling(available: Velocity): Velocity = available
-                                                        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = available
-                                                    }),
+                                                    .nestedScroll(nestedScrollConn),
                                                 style = MaterialTheme.typography.bodySmall.copy(
                                                     fontFamily = FontFamily(Font(R.font.jetbrains_mono_regular)),
                                                     lineHeight = 18.sp
@@ -466,11 +470,11 @@ fun SettingsSandboxPage(sandboxManager: SandboxManager, onBack: () -> Unit, show
                                         }
                                     },
                                     supportingContent = {
-                                        if (pkg.description.isNotBlank()) Text(pkg.description.take(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        if (pkg.description.isNotBlank()) Text(pkg.description, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     },
                                     leadingContent = { Icon(Icons.Default.Inventory2, null, tint = MaterialTheme.colorScheme.primary) },
                                     trailingContent = {
-                                        IconButton(onClick = { deleteConfirm = pkg.name }, enabled = !isBusy, modifier = Modifier.size(32.dp)) {
+                                        IconButton(onClick = { deleteConfirm = pkg.name }, enabled = !isBusy, modifier = Modifier.size(40.dp)) {
                                             Icon(Icons.Default.Close, stringResource(R.string.sandbox_remove_content_desc), modifier = Modifier.size(16.dp))
                                         }
                                     }

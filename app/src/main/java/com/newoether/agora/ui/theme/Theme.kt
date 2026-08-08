@@ -11,6 +11,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 
 import androidx.compose.runtime.remember
@@ -187,7 +188,7 @@ fun AgoraTheme(
     }
 
     val fontFamily = effectiveFontFamily(fontPreference, customFontPath)
-    chatFontFamily = fontFamily
+    SideEffect { chatFontFamily = fontFamily }
     val typography = remember(fontFamily) { typographyWithFont(fontFamily) }
 
     // Project the static AgoraColors onto a theme-aware scheme for components.

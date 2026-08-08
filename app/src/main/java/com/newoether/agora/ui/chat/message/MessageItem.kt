@@ -22,7 +22,6 @@ import com.newoether.agora.model.StableModelAliases
 import com.newoether.agora.model.ToolCallDisplayModes
 import com.newoether.agora.ui.common.LocalAgoraHaptics
 import com.newoether.agora.ui.components.*
-import com.newoether.agora.ui.theme.AgoraColors
 import com.newoether.agora.ui.theme.LocalAgoraColors
 import com.mikepenz.markdown.compose.components.markdownComponents
 
@@ -99,13 +98,13 @@ fun MessageItem(
     val backgroundColor = when (message.participant) {
         Participant.USER -> Color.Transparent // 渐变背景由 UserMessageBubble 渲染
         Participant.MODEL -> Color.Transparent
-        Participant.ERROR -> AgoraColors.danger.copy(alpha = 0.15f)
+        Participant.ERROR -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
     }
 
     val textColor = when (message.participant) {
         Participant.USER -> Color.White // 白色文字配合渐变背景
         Participant.MODEL -> LocalAgoraColors.current.textMain
-        Participant.ERROR -> AgoraColors.danger
+        Participant.ERROR -> MaterialTheme.colorScheme.error
     }
 
     val shape = when (message.participant) {

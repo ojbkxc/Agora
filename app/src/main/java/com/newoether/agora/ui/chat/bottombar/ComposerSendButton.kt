@@ -173,8 +173,8 @@ internal fun ComposerSendButton(
                     strokeWidth = 2.dp,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
-                "stop" -> Icon(Icons.Default.Stop, stringResource(R.string.action), modifier = Modifier.size(24.dp))
-                else -> Icon(Icons.Default.ArrowUpward, stringResource(R.string.action), modifier = Modifier.size(24.dp))
+                "stop" -> Icon(Icons.Default.Stop, stringResource(R.string.action_stop_generation), modifier = Modifier.size(24.dp))
+                else -> Icon(Icons.Default.ArrowUpward, stringResource(R.string.action_send_message), modifier = Modifier.size(24.dp))
             }
         }
     }

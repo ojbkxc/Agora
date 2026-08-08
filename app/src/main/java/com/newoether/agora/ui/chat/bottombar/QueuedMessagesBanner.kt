@@ -94,7 +94,7 @@ internal fun QueuedMessagesBanner(
                             )
                             Spacer(Modifier.width(4.dp))
                         }
-                        IconButton(onClick = { onRemove(queued.id) }, modifier = Modifier.size(32.dp)) {
+                        IconButton(onClick = { onRemove(queued.id) }, modifier = Modifier.size(40.dp)) {
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = stringResource(R.string.remove),

@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.newoether.agora.R
 import com.newoether.agora.model.apiModelName
@@ -228,8 +229,8 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     val displayName = alias ?: parsed.apiModelName
 
                                     SettingsItem(
-                                        headlineContent = { Text(displayName) },
-                                        supportingContent = if (alias != null) { { Text(parsed.apiModelName) } } else null,
+                                        headlineContent = { Text(displayName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                        supportingContent = if (alias != null) { { Text(parsed.apiModelName, maxLines = 1, overflow = TextOverflow.Ellipsis) } } else null,
                                         trailingContent = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 IconButton(onClick = { showModelAliasDialog = model }) {
@@ -274,7 +275,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 
                         SettingsItem(
                             headlineContent = {
-                                Text(displayName, fontWeight = if (model == selectedModel) FontWeight.Bold else FontWeight.Normal)
+                                Text(displayName, fontWeight = if (model == selectedModel) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             },
                             supportingContent = {
                                 Text(providerName, style = MaterialTheme.typography.bodySmall)

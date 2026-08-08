@@ -150,9 +150,16 @@ fun SettingsImageGenPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(stringResource(R.string.image_gen_size), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onSurface)
-                                    val parts = remember { size.split("x", "X", limit = 2) }
-                                    val wState = remember { TextFieldState(parts.getOrNull(0)?.trim().orEmpty().ifEmpty { "1024" }) }
-                                    val hState = remember { TextFieldState(parts.getOrNull(1)?.trim().orEmpty().ifEmpty { "1024" }) }
+                                    val wState = remember { TextFieldState("1024") }
+                                    val hState = remember { TextFieldState("1024") }
+                                    // 同步外部 size 变化(如导入配置)到输入框,避免 remember 无 key 导致不同步
+                                    LaunchedEffect(size) {
+                                        val parts = size.split("x", "X", limit = 2)
+                                        val w = parts.getOrNull(0)?.trim().orEmpty().ifEmpty { "1024" }
+                                        val h = parts.getOrNull(1)?.trim().orEmpty().ifEmpty { "1024" }
+                                        if (w != wState.text.toString()) wState.edit { replace(0, length, w) }
+                                        if (h != hState.text.toString()) hState.edit { replace(0, length, h) }
+                                    }
                                     LaunchedEffect(wState.text, hState.text) {
                                         delay(500)
                                         val w = wState.text.toString().trim()

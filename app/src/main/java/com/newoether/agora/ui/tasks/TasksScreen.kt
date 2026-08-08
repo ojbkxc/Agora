@@ -333,7 +333,7 @@ private fun TaskCard(
                 )
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null)
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.options))
                     }
                     DropdownMenu(
                         expanded = menuOpen,
@@ -689,7 +689,7 @@ private fun ScheduleGroup(
 ) {
     val context = LocalContext.current
     val parsedSchedule = remember(cronExpr, runAt) { TaskSchedule.parse(cronExpr, runAt) }
-    val cronOnlyValid = cronExpr.isNotBlank() && CronExpression.isValid(cronExpr)
+    val cronOnlyValid = remember(cronExpr) { cronExpr.isNotBlank() && CronExpression.isValid(cronExpr) }
     // Unmappable but valid cron: keep it, don't rewrite it behind the user's back.
     val isCustomCron = parsedSchedule == null && cronOnlyValid
     val schedule = parsedSchedule ?: TaskSchedule.default()

@@ -138,7 +138,10 @@ fun VideoPlayer(
         }
     }
 
-    val progress = if (durationMs > 0) currentPositionMs.toFloat() / durationMs else 0f
+    val naturalProgress = if (durationMs > 0) currentPositionMs.toFloat() / durationMs else 0f
+    // 拖动时使用本地状态显示,松手时才执行实际 seek,避免每帧 seek 导致卡顿
+    var seekValue by remember { mutableStateOf<Float?>(null) }
+    val progress = seekValue ?: naturalProgress
 
     fun formatTime(ms: Long): String {
         val s = (ms / 1000)
@@ -232,8 +235,15 @@ fun VideoPlayer(
                 // Seekbar
                 Slider(
                     value = progress,
-                    onValueChange = { player.seekTo((it * durationMs).roundToLong()); controlsVisible = true },
-                    onValueChangeFinished = { scheduleAutoHide() },
+                    onValueChange = {
+                        seekValue = it
+                        controlsVisible = true
+                    },
+                    onValueChangeFinished = {
+                        player.seekTo((progress * durationMs).roundToLong())
+                        seekValue = null
+                        scheduleAutoHide()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = SliderDefaults.colors(
                         thumbColor = Color.White,

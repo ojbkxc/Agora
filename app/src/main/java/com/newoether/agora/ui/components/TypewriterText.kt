@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
@@ -80,7 +81,9 @@ fun TypewriterText(
                 text = "|",
                 style = style,
                 fontWeight = fontWeight,
-                color = color.copy(alpha = cursorAlpha),
+                // color 为 Color.Unspecified 时继承 LocalContentColor,避免光标变为透明黑
+                color = (if (color == Color.Unspecified) LocalContentColor.current else color)
+                    .copy(alpha = cursorAlpha),
                 modifier = Modifier.alpha(cursorAlpha),
             )
         }
