@@ -259,8 +259,8 @@ fun WelcomeScreen(
             modelFetchError = null
             fetchJob = scope.launch {
                 try {
-                    kotlinx.coroutines.delay(300) // debounce swipe-through + let async key save commit
-                    val models = viewModel.fetchModelsForProvider(selectedProvider!!)
+                    kotlinx.coroutines.delay(300) // debounce swipe-through
+                    val models = viewModel.fetchModelsForProvider(selectedProvider!!, apiKeyText)
                     if (models.isEmpty()) {
                         modelFetchError = "Model fetch returned empty — check API Key and Base URL"
                     }

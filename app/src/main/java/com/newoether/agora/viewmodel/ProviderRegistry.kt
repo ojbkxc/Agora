@@ -196,11 +196,15 @@ class ProviderRegistry(
      * Fetches the live model list for a single provider and caches it. Unlike a full
      * sync this carries no global side effects (no snackbar, no syncing flag).
      */
-    suspend fun fetchModelsForProvider(name: String): List<String> {
+    suspend fun fetchModelsForProvider(name: String, apiKey: String? = null): List<String> {
         if (name == Constants.PROVIDER_LOCAL) return emptyList()
         ensureProvidersRegistered()
         val provider = providers[name] ?: return emptyList()
-        val activeKey = settings.apiKeys.value.find { it.id == settings.activeApiKeyIds.value[name] }?.key ?: ""
+        // When the caller already has the cleartext key (e.g. onboarding just captured it),
+        // use it directly and skip the DataStore round-trip. Otherwise fall back to
+        // awaitActiveKey which reads directly from DataStore rather than the eagerly-shared
+        // StateFlow — avoiding the race where upsertApiKey's async write hasn't completed.
+        val activeKey = apiKey?.takeIf { it.isNotBlank() } ?: settings.awaitActiveKey(name) ?: ""
         if (!isConfigured(name, activeKey)) return emptyList()
         val baseUrl = settings.providerBaseUrls.value[name]?.takeIf { it.isNotBlank() } ?: provider.defaultBaseUrl
 

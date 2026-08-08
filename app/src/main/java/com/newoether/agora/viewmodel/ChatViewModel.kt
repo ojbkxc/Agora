@@ -1320,7 +1320,7 @@ class ChatViewModel(
      * flow updates the list. Returns the prefixed model ids, or empty on
      * failure / unconfigured provider.
      */
-    suspend fun fetchModelsForProvider(name: String): List<String> = providerRegistry.fetchModelsForProvider(name)
+    suspend fun fetchModelsForProvider(name: String, apiKey: String? = null): List<String> = providerRegistry.fetchModelsForProvider(name, apiKey)
 
     fun computeProviderFingerprint(): String = providerRegistry.computeFingerprint()
 
@@ -1331,7 +1331,6 @@ class ChatViewModel(
             val successProviders = Collections.synchronizedList(mutableListOf<String>())
             val failedProviders = Collections.synchronizedList(mutableListOf<String>())
             val failedReasons = Collections.synchronizedList(mutableListOf<String>())
-            var skippedCount = 0
 
             // Ensure custom providers are loaded into the providers map before iterating
             providerRegistry.ensureProvidersRegistered()
@@ -1344,12 +1343,6 @@ class ChatViewModel(
                             if (name == Constants.PROVIDER_LOCAL) return@async
 
                             try {
-                                if (!providerRegistry.isConfigured(name, settings.resolveActiveKey(name) ?: "")) {
-                                    skippedCount++
-                                    settings.saveAvailableModels(name, emptyList())
-                                    return@async
-                                }
-
                                 val models = providerRegistry.fetchModelsForProvider(name)
                                 if (models.isNotEmpty()) {
                                     successProviders.add(name)
@@ -1382,7 +1375,7 @@ class ChatViewModel(
                         appContext.getString(R.string.sync_partial, successProviders.joinToString(), failedProviders.joinToString())
                     successProviders.isEmpty() && failedProviders.isNotEmpty() ->
                         appContext.getString(R.string.sync_failed_providers, failedReasons.joinToString("\n"))
-                    else -> if (skippedCount > 0) appContext.getString(R.string.sync_no_providers) else appContext.getString(R.string.sync_completed)
+                    else -> appContext.getString(R.string.sync_completed)
                 }
             } catch (e: Exception) {
                 appContext.getString(R.string.sync_failed_providers, e.message ?: appContext.getString(R.string.unknown_error))
