@@ -1,7 +1,6 @@
 package com.newoether.agora.viewmodel
 
 import com.newoether.agora.api.RustCustomAnthropicProvider
-import com.newoether.agora.api.RustCustomGeminiProvider
 import com.newoether.agora.api.RustCustomOpenAiProvider
 import com.newoether.agora.data.CustomEndpointProtocol
 import com.newoether.agora.data.CustomEndpointResolution
@@ -20,21 +19,14 @@ class CustomProviderFactoryTest {
             CustomProviderConfig("OpenAI proxy", CustomEndpointProtocol.OPENAI),
             url,
         )
-        val google = createCustomProvider(
-            CustomProviderConfig("Google proxy", CustomEndpointProtocol.GOOGLE),
-            url,
-        )
         val anthropic = createCustomProvider(
             CustomProviderConfig("Anthropic proxy", CustomEndpointProtocol.ANTHROPIC),
             url,
         )
 
         assertTrue(openAi is RustCustomOpenAiProvider)
-        assertTrue(google is RustCustomGeminiProvider)
         assertTrue(anthropic is RustCustomAnthropicProvider)
-        assertEquals("Google proxy", google?.name)
         assertEquals("Anthropic proxy", anthropic?.name)
-        assertEquals(url, google?.defaultBaseUrl)
         assertEquals(url, anthropic?.defaultBaseUrl)
     }
 
@@ -54,13 +46,6 @@ class CustomProviderFactoryTest {
             listOf("https://example.test/v1", "https://example.test"),
             customEndpointBaseUrlCandidates(
                 CustomEndpointProtocol.OPENAI,
-                "https://example.test",
-            ),
-        )
-        assertEquals(
-            listOf("https://example.test"),
-            customEndpointBaseUrlCandidates(
-                CustomEndpointProtocol.GOOGLE,
                 "https://example.test",
             ),
         )
@@ -92,21 +77,6 @@ class CustomProviderFactoryTest {
             listOf(url, "https://example.test/v1", "https://example.test"),
             customEndpointBaseUrlCandidates(CustomEndpointProtocol.ANTHROPIC, url),
         )
-        assertEquals(
-            listOf(url, "https://example.test"),
-            customEndpointBaseUrlCandidates(CustomEndpointProtocol.GOOGLE, url),
-        )
-    }
-
-    @Test
-    fun oldPersistedV1CanRecoverWhenSwitchingToGoogle() {
-        assertEquals(
-            listOf("https://example.test/v1", "https://example.test"),
-            customEndpointBaseUrlCandidates(
-                CustomEndpointProtocol.GOOGLE,
-                "https://example.test/v1",
-            ),
-        )
     }
 
     @Test
@@ -118,7 +88,7 @@ class CustomProviderFactoryTest {
         )
 
         assertTrue(resolution.matches(CustomEndpointProtocol.OPENAI, "https://example.test"))
-        assertTrue(!resolution.matches(CustomEndpointProtocol.GOOGLE, "https://example.test"))
+        assertTrue(!resolution.matches(CustomEndpointProtocol.ANTHROPIC, "https://example.test"))
         assertTrue(!resolution.matches(CustomEndpointProtocol.OPENAI, "https://other.test"))
     }
 }

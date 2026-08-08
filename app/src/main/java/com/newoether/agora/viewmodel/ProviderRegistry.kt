@@ -3,9 +3,7 @@ package com.newoether.agora.viewmodel
 import com.newoether.agora.api.LlmProvider
 import com.newoether.agora.api.RustAnthropicProvider
 import com.newoether.agora.api.RustCustomAnthropicProvider
-import com.newoether.agora.api.RustCustomGeminiProvider
 import com.newoether.agora.api.RustCustomOpenAiProvider
-import com.newoether.agora.api.RustGeminiProvider
 import com.newoether.agora.api.RustOllamaProvider
 import com.newoether.agora.api.RustOpenAiProvider
 
@@ -29,7 +27,6 @@ internal fun createCustomProvider(
     baseUrl: String,
 ): LlmProvider? = when (config.protocol) {
     CustomEndpointProtocol.OPENAI -> RustCustomOpenAiProvider(config.name, baseUrl)
-    CustomEndpointProtocol.GOOGLE -> RustCustomGeminiProvider(config.name, baseUrl)
     CustomEndpointProtocol.ANTHROPIC -> RustCustomAnthropicProvider(config.name, baseUrl)
     CustomEndpointProtocol.UNKNOWN -> null
 }
@@ -52,14 +49,6 @@ internal fun customEndpointBaseUrlCandidates(
                 add(resolver.withV1(unversioned))
                 add(unversioned)
             }
-        }.distinct()
-        // GeminiProvider owns its v1beta completion so both model discovery and generation
-        // use the same exact base URL semantics.
-        CustomEndpointProtocol.GOOGLE -> buildList {
-            add(normalized)
-            // Compatibility with the former sync implementation, which may have persisted
-            // its derived terminal `/v1` into the user-facing Base URL.
-            if (unversioned != null) add(unversioned)
         }.distinct()
         CustomEndpointProtocol.UNKNOWN -> emptyList()
     }
@@ -104,28 +93,9 @@ class ProviderRegistry(
     private val scope: CoroutineScope,
 ) {
     private val builtInProviders: Map<String, LlmProvider> = mapOf(
-        Constants.PROVIDER_GOOGLE to RustGeminiProvider(),
         Constants.PROVIDER_OPENAI to RustOpenAiProvider(),
         Constants.PROVIDER_ANTHROPIC to RustAnthropicProvider(),
-        // DeepSeek/Groq/Qwen/OpenRouter 使用 OpenAI 兼容协议，但各有独立的默认 base URL。
-        // 传入 providerTag 让 Rust 侧的 ModelId::parse 能识别供应商并选择正确工厂方法。
-        Constants.PROVIDER_DEEPSEEK to RustOpenAiProvider(
-            providerTag = "deepseek-chat",
-            defaultBaseUrl = "https://api.deepseek.com",
-        ),
-        Constants.PROVIDER_QWEN to RustOpenAiProvider(
-            providerTag = "qwen-plus",
-            defaultBaseUrl = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-        ),
-        Constants.PROVIDER_GROQ to RustOpenAiProvider(
-            providerTag = "groq",
-            defaultBaseUrl = "https://api.groq.com/openai/v1",
-        ),
         Constants.PROVIDER_OLLAMA to RustOllamaProvider(),
-        Constants.PROVIDER_OPEN_ROUTER to RustOpenAiProvider(
-            providerTag = "openrouter",
-            defaultBaseUrl = "https://openrouter.ai/api/v1",
-        ),
     )
 
     // Declared as MutableMap so `in`/`contains` keep Map (containsKey) semantics (KT-18053).
@@ -247,14 +217,7 @@ class ProviderRegistry(
         val provider = providers[name] ?: return emptyList()
         val activeKey = settings.apiKeys.value.find { it.id == settings.activeApiKeyIds.value[name] }?.key ?: ""
         if (!isConfigured(name, activeKey)) return emptyList()
-        val baseUrl = if (!isBuiltIn(name)) {
-            settings.providerBaseUrls.value[name]?.takeIf { it.isNotBlank() } ?: provider.defaultBaseUrl
-        } else {
-            // Built-in: 空白持久化值等价于未配置，回退到 provider.defaultBaseUrl。
-            // 这确保 DeepSeek/Groq/Qwen/OpenRouter 等内置供应商在用户未配置 base URL 时
-            // 使用各自正确的默认 API 地址，而非 OpenAI 的默认 URL。
-            settings.providerBaseUrls.value[name]?.takeIf { it.isNotBlank() } ?: provider.defaultBaseUrl
-        }
+        val baseUrl = settings.providerBaseUrls.value[name]?.takeIf { it.isNotBlank() } ?: provider.defaultBaseUrl
 
         // Resolve protocol-specific versioning once during model sync. The successful
         // effective URL is cached separately from the user's Base URL and is only reusable

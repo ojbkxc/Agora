@@ -13,7 +13,7 @@ use crate::api::http_client::AgoraHttpClient;
 use crate::api::provider::LlmProvider;
 use crate::api::types::{ChatMessage, ProviderConfig, StreamEvent};
 use crate::api::{
-    AnthropicProvider, GeminiProvider, OllamaProvider, OpenAiProvider,
+    AnthropicProvider, OllamaProvider, OpenAiProvider,
 };
 use crate::error::AgoraError;
 use crate::jni::util;
@@ -124,21 +124,14 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
     // 根据 provider_type 创建对应的 Provider
     let provider: Arc<dyn LlmProvider> = match provider_type.as_str() {
         "openai" => {
-            let model_id = ModelId::parse(&config.model_id);
-            match model_id.provider() {
-                crate::model::PROVIDER_DEEPSEEK => Arc::new(OpenAiProvider::new_deepseek()),
-                crate::model::PROVIDER_GROQ => Arc::new(OpenAiProvider::new_groq()),
-                crate::model::PROVIDER_QWEN => Arc::new(OpenAiProvider::new_qwen()),
-                crate::model::PROVIDER_OPENROUTER => Arc::new(OpenAiProvider::new_openrouter()),
-                crate::model::PROVIDER_UNKNOWN => {
-                    // 自定义端点
-                    let base_url = config
-                        .base_url
-                        .clone()
-                        .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
-                    Arc::new(OpenAiProvider::new_custom("Custom".to_string(), base_url))
+            if let Some(ref base_url) = config.base_url {
+                if !base_url.is_empty() && !base_url.starts_with("https://api.openai.com") {
+                    Arc::new(OpenAiProvider::new_custom("Custom".to_string(), base_url.clone()))
+                } else {
+                    Arc::new(OpenAiProvider::new_openai())
                 }
-                _ => Arc::new(OpenAiProvider::new_openai()),
+            } else {
+                Arc::new(OpenAiProvider::new_openai())
             }
         }
         "anthropic" => {
@@ -157,18 +150,24 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
             }
         }
         "gemini" => {
-            // 如果配置了自定义 base_url，使用 new_custom 创建自定义 Gemini 兼容提供商
+            // 保留 Gemini 处理以兼容旧数据，但 Kotlin 侧已不再创建新 Gemini 供应商
             if let Some(ref base_url) = config.base_url {
                 if !base_url.is_empty() && !base_url.starts_with("https://generativelanguage.googleapis.com") {
-                    Arc::new(GeminiProvider::new_custom(
-                        "Custom Gemini".to_string(),
+                    Arc::new(OpenAiProvider::new_custom(
+                        "Gemini (OpenAI compat)".to_string(),
                         base_url.clone(),
                     ))
                 } else {
-                    Arc::new(GeminiProvider::new())
+                    Arc::new(OpenAiProvider::new_custom(
+                        "Gemini (OpenAI compat)".to_string(),
+                        "https://generativelanguage.googleapis.com/v1beta/openai".to_string(),
+                    ))
                 }
             } else {
-                Arc::new(GeminiProvider::new())
+                Arc::new(OpenAiProvider::new_custom(
+                    "Gemini (OpenAI compat)".to_string(),
+                    "https://generativelanguage.googleapis.com/v1beta/openai".to_string(),
+                ))
             }
         }
         "ollama" => Arc::new(OllamaProvider::new()),

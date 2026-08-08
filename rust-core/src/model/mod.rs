@@ -6,11 +6,6 @@
 /// Provider 常量
 pub const PROVIDER_OPENAI: &str = "OpenAI";
 pub const PROVIDER_ANTHROPIC: &str = "Anthropic";
-pub const PROVIDER_GOOGLE: &str = "Google";
-pub const PROVIDER_DEEPSEEK: &str = "DeepSeek";
-pub const PROVIDER_QWEN: &str = "Qwen";
-pub const PROVIDER_GROQ: &str = "Groq";
-pub const PROVIDER_OPENROUTER: &str = "Open Router";
 pub const PROVIDER_UNKNOWN: &str = "Unknown";
 
 /// ModelId — "ProviderName:modelId" 格式的类型化包装
@@ -43,16 +38,6 @@ impl ModelId {
             PROVIDER_OPENAI
         } else if s.starts_with("claude-") {
             PROVIDER_ANTHROPIC
-        } else if s.contains("deepseek") {
-            PROVIDER_DEEPSEEK
-        } else if s.contains("qwen") {
-            PROVIDER_QWEN
-        } else if s.contains("groq") {
-            PROVIDER_GROQ
-        } else if s.contains("openrouter") {
-            PROVIDER_OPENROUTER
-        } else if s.contains("models/") || s.starts_with("gemini") {
-            PROVIDER_GOOGLE
         } else {
             PROVIDER_UNKNOWN
         };
@@ -102,10 +87,9 @@ mod tests {
 
     #[test]
     fn test_parse_prefixed_complex() {
-        let id = ModelId::parse("Google:models/gemini-2.5-flash");
-        assert_eq!(id.provider(), "Google");
-        assert_eq!(id.model_id(), "models/gemini-2.5-flash");
-        assert_eq!(id.api_model_name(), "gemini-2.5-flash");
+        let id = ModelId::parse("OpenAI:gpt-4o");
+        assert_eq!(id.provider(), "OpenAI");
+        assert_eq!(id.model_id(), "gpt-4o");
     }
 
     #[test]
@@ -141,38 +125,16 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_legacy_deepseek() {
-        let id = ModelId::parse("deepseek-chat");
-        assert_eq!(id.provider(), "DeepSeek");
-    }
-
-    #[test]
-    fn test_parse_legacy_qwen() {
-        let id = ModelId::parse("qwen-turbo");
-        assert_eq!(id.provider(), "Qwen");
-    }
-
-    #[test]
-    fn test_parse_legacy_groq() {
-        let id = ModelId::parse("groq-llama");
-        assert_eq!(id.provider(), "Groq");
-    }
-
-    #[test]
-    fn test_parse_legacy_gemini() {
+    fn test_parse_legacy_unknown() {
         let id = ModelId::parse("gemini-pro");
-        assert_eq!(id.provider(), "Google");
+        assert_eq!(id.provider(), "Unknown");
+        let id2 = ModelId::parse("my-custom-model");
+        assert_eq!(id2.provider(), "Unknown");
     }
 
     #[test]
     fn test_parse_legacy_models_prefix() {
-        let id = ModelId::parse("models/gemini-2.5-pro");
-        assert_eq!(id.provider(), "Google");
-    }
-
-    #[test]
-    fn test_parse_legacy_unknown() {
-        let id = ModelId::parse("my-custom-model");
+        let id = ModelId::parse("models/my-model");
         assert_eq!(id.provider(), "Unknown");
     }
 
@@ -203,8 +165,8 @@ mod tests {
 
     #[test]
     fn test_api_model_name_with_models_prefix() {
-        let id = ModelId::new("Google", "models/gemini-2.5-pro");
-        assert_eq!(id.api_model_name(), "gemini-2.5-pro");
+        let id = ModelId::new("Unknown", "models/my-model");
+        assert_eq!(id.api_model_name(), "my-model");
     }
 
     #[test]

@@ -1,5 +1,5 @@
 // LLM Provider trait 定义
-// 所有 LLM 提供商（OpenAI、Anthropic、Gemini、Ollama 等）实现此 trait
+// 所有 LLM 提供商（OpenAI、Anthropic、Ollama 等）实现此 trait
 
 use async_trait::async_trait;
 
@@ -23,7 +23,7 @@ pub type StreamCallback = Box<dyn Fn(StreamEvent) + Send + Sync>;
 /// 而不是先收集再返回，从而实现真正的流式体验。
 #[async_trait]
 pub trait LlmProvider: Send + Sync {
-    /// 提供商名称（如 `"openai"`, `"anthropic"`, `"gemini"`, `"ollama"`）
+    /// 提供商名称（如 `"openai"`, `"anthropic"`, `"ollama"`）
     fn name(&self) -> &str;
 
     /// 该提供商的默认 API 基础 URL

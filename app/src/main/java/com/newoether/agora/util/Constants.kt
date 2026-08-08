@@ -51,12 +51,7 @@ object Constants {
     const val PROVIDER_LOCAL = "Local"
     const val PROVIDER_OPENAI = "OpenAI"
     const val PROVIDER_OLLAMA = "Ollama"
-    const val PROVIDER_GOOGLE = "Google"
     const val PROVIDER_ANTHROPIC = "Anthropic"
-    const val PROVIDER_DEEPSEEK = "DeepSeek"
-    const val PROVIDER_QWEN = "Qwen"
-    const val PROVIDER_GROQ = "Groq"
-    const val PROVIDER_OPEN_ROUTER = "Open Router"
     const val PROVIDER_UNKNOWN = "Unknown"
     /** Placeholder model ID used as StateFlow/DataStore cold-start fallback and
      *  template preview sample. NOT the real default model — it is overwritten

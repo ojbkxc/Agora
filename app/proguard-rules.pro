@@ -51,11 +51,11 @@
 -keep class com.newoether.agora.api.RustEmbeddingClient$* { *; }
 -keep class com.newoether.agora.api.RustOpenAiProvider { *; }
 -keep class com.newoether.agora.api.RustAnthropicProvider { *; }
--keep class com.newoether.agora.api.RustGeminiProvider { *; }
+
 -keep class com.newoether.agora.api.RustOllamaProvider { *; }
 -keep class com.newoether.agora.api.RustCustomOpenAiProvider { *; }
 -keep class com.newoether.agora.api.RustCustomAnthropicProvider { *; }
--keep class com.newoether.agora.api.RustCustomGeminiProvider { *; }
+
 
 # RustSharedTypes.kt — every @Serializable data class (RustProviderConfig,
 # RustChatMessage, RustStreamEvent, RustStreamEventData, RustGenerationError,

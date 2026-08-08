@@ -31,10 +31,6 @@ data class ModelId(
                 prefixed.startsWith("gpt-") || prefixed.startsWith("o1") ||
                     prefixed.startsWith("o3") || prefixed.startsWith("o4") -> Constants.PROVIDER_OPENAI
                 prefixed.startsWith("claude-") -> Constants.PROVIDER_ANTHROPIC
-                prefixed.contains("deepseek") -> Constants.PROVIDER_DEEPSEEK
-                prefixed.contains("qwen") -> Constants.PROVIDER_QWEN
-                prefixed.contains("groq") -> Constants.PROVIDER_GROQ
-                prefixed.contains("models/") || prefixed.startsWith("gemini") -> Constants.PROVIDER_GOOGLE
                 else -> Constants.PROVIDER_UNKNOWN
             }
             return ModelId(provider, prefixed)

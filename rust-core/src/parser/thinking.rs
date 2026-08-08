@@ -1,6 +1,6 @@
 /// ThinkingParser — 结构化思考块解析器（对应 Kotlin ThinkingParser）
 ///
-/// 处理 Anthropic/Gemini 风格的 thinking delta 事件：
+/// 处理 Anthropic 风格的 thinking delta 事件：
 /// - thinking_delta: 累积思考文本
 /// - signature_delta: 记录签名
 /// - content_block_start: 提取标题

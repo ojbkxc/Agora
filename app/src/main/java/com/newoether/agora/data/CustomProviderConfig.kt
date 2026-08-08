@@ -11,17 +11,17 @@ import kotlinx.serialization.encoding.Encoder
 @Serializable(with = CustomEndpointProtocolSerializer::class)
 enum class CustomEndpointProtocol(val wireValue: String) {
     OPENAI("openai"),
-    GOOGLE("google"),
     ANTHROPIC("anthropic"),
     UNKNOWN("unknown");
 
     companion object {
-        val selectable: List<CustomEndpointProtocol> = listOf(OPENAI, GOOGLE, ANTHROPIC)
+        val selectable: List<CustomEndpointProtocol> = listOf(OPENAI, ANTHROPIC)
 
         fun fromWireValue(value: String): CustomEndpointProtocol = when (value.trim().lowercase()) {
             "openai" -> OPENAI
-            "google", "gemini" -> GOOGLE
             "anthropic", "claude" -> ANTHROPIC
+            // Legacy: map old "google"/"gemini" to OPENAI (they were OpenAI-compatible in practice)
+            "google", "gemini" -> OPENAI
             else -> UNKNOWN
         }
     }

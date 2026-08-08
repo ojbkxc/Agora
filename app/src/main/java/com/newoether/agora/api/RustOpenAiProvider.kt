@@ -21,10 +21,6 @@ import java.io.IOException
  * streaming callback into a Kotlin [Flow].
  */
 open class RustOpenAiProvider(
-    /** 供应商标识，用于 fetchModels 时让 Rust 选择正确的工厂方法和默认 URL。
-     *  内置供应商（DeepSeek/Groq/Qwen/OpenRouter）各自有正确的默认 base URL，
-     *  空字符串表示 OpenAI 或自定义端点。 */
-    open val providerTag: String = "",
     /** 默认 base URL，内置供应商可覆盖为各自的 API 地址。 */
     override val defaultBaseUrl: String = "https://api.openai.com/v1",
 ) : LlmProvider {
@@ -143,15 +139,11 @@ open class RustOpenAiProvider(
         withContext(Dispatchers.IO) {
             try {
                 NativeLib.ensureLoaded()
-                // 传入 providerTag 作为 modelId，让 Rust 的 ModelId::parse 能识别供应商
-                // 并选择正确的工厂方法（如 new_deepseek/new_groq 等），
-                // 从而使用供应商自己的默认 base URL。
-                val effectiveModelId = providerTag
                 val effectiveBaseUrl = baseUrl ?: defaultBaseUrl
                 val providerConfigJson = json.encodeToString(
                     RustProviderConfig(
                         apiKey = apiKey,
-                        modelId = effectiveModelId,
+                        modelId = "",
                         baseUrl = effectiveBaseUrl
                     )
                 )
