@@ -29,6 +29,12 @@ impl GeminiProvider {
             default_base_url: "https://generativelanguage.googleapis.com/v1beta".to_string(),
         }
     }
+
+    pub fn new_custom(_name: String, base_url: String) -> Self {
+        Self {
+            default_base_url: base_url,
+        }
+    }
 }
 
 impl Default for GeminiProvider {

@@ -156,7 +156,21 @@ pub extern "system" fn Java_com_newoether_agora_api_RustProvider_nativeCreatePro
                 Arc::new(AnthropicProvider::new())
             }
         }
-        "gemini" => Arc::new(GeminiProvider::new()),
+        "gemini" => {
+            // 如果配置了自定义 base_url，使用 new_custom 创建自定义 Gemini 兼容提供商
+            if let Some(ref base_url) = config.base_url {
+                if !base_url.is_empty() && !base_url.starts_with("https://generativelanguage.googleapis.com") {
+                    Arc::new(GeminiProvider::new_custom(
+                        "Custom Gemini".to_string(),
+                        base_url.clone(),
+                    ))
+                } else {
+                    Arc::new(GeminiProvider::new())
+                }
+            } else {
+                Arc::new(GeminiProvider::new())
+            }
+        }
         "ollama" => Arc::new(OllamaProvider::new()),
         _ => {
             util::handle_error(

@@ -5,12 +5,10 @@ class CustomOpenAiProvider(
     override val defaultBaseUrl: String
 ) : BaseOpenAiProvider() {
 
-    override val retryableStatusCodes: Set<Int> = setOf(401, 429, 502, 503, 504)
+    // 401 是确定性错误（API Key 不会在重试间改变），不应重试
+    override val retryableStatusCodes: Set<Int> = setOf(429, 502, 503, 504)
 
     override val retryMissingV1BaseUrl: Boolean = true
-
-    override fun retryDelayMillis(statusCode: Int, attempt: Int): Long =
-        if (statusCode == 401) 5000L else super.retryDelayMillis(statusCode, attempt)
 
     // Reasoning arrives either as reasoning_content deltas (vLLM, DeepSeek-compatible servers)
     // or inline <think> tags in content (llama.cpp server, LM Studio) — parse both.
