@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -162,8 +163,35 @@ fun SettingsProviderDetailPage(
                 )
             }
 
-            // Local models section removed 鈥?on-device GGUF chat models are no longer
-            // supported after the llama.cpp native layer removal.
+            // 拉取模型按钮 — 单供应商模型同步
+            if (!isLocal) {
+                val isSyncing by viewModel.isSyncingModels.collectAsState()
+                SettingsGroup(
+                    title = stringResource(R.string.models_available),
+                    items = {
+                        add {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.models_sync)) },
+                                supportingContent = { Text(stringResource(R.string.models_sync_desc)) },
+                                leadingContent = {
+                                    if (isSyncing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                },
+                                modifier = Modifier.clickable(enabled = !isSyncing) {
+                                    viewModel.fetchAvailableModels()
+                                }
+                            )
+                        }
+                    },
+                )
+            }
 
             // API Keys (non-Local)
             if (!isLocal) {

@@ -138,4 +138,35 @@ impl AgoraError {
             _ => None,
         }
     }
+
+    /// 将 AgoraError 映射为 GenerationError，保留结构化错误类型信息。
+    /// 避免所有错误都折叠为 Unknown，让 Kotlin 侧能根据错误类型
+    /// 显示差异化的用户提示（如 401 提示检查 API Key）。
+    pub fn to_generation_error(&self) -> crate::api::types::GenerationError {
+        match self {
+            AgoraError::Api { code, message, error_type } => {
+                crate::api::types::GenerationError::Api {
+                    code: code.clone(),
+                    message: message.clone(),
+                    error_type: error_type.clone(),
+                }
+            }
+            AgoraError::Network { status_code, message } => {
+                crate::api::types::GenerationError::Network {
+                    status_code: *status_code,
+                    message: message.clone(),
+                }
+            }
+            AgoraError::Timeout => crate::api::types::GenerationError::Timeout,
+            AgoraError::RequestFormat { provider, violations } => {
+                crate::api::types::GenerationError::RequestFormat {
+                    provider: provider.clone(),
+                    violations: violations.clone(),
+                }
+            }
+            _ => crate::api::types::GenerationError::Unknown {
+                message: self.to_string(),
+            },
+        }
+    }
 }

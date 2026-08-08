@@ -148,7 +148,7 @@ class ProviderRegistry(
 
     fun getEffectiveBaseUrl(providerName: String): String? {
         val configuredBaseUrl = settings.providerBaseUrls.value[providerName]?.takeIf { it.isNotBlank() }
-            ?: return providers[providerName]?.takeIf { !isBuiltIn(providerName) }?.defaultBaseUrl
+            ?: return providers[providerName]?.defaultBaseUrl
         val customConfig = settings.customProviders.value.firstOrNull { it.name == providerName }
             ?: return configuredBaseUrl
         val resolution = sequenceOf(

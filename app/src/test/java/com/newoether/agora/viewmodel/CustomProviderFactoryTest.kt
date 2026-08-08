@@ -1,8 +1,8 @@
 package com.newoether.agora.viewmodel
 
-import com.newoether.agora.api.anthropic.AnthropicProvider
-import com.newoether.agora.api.gemini.GeminiProvider
-import com.newoether.agora.api.openai.CustomOpenAiProvider
+import com.newoether.agora.api.RustCustomAnthropicProvider
+import com.newoether.agora.api.RustCustomGeminiProvider
+import com.newoether.agora.api.RustCustomOpenAiProvider
 import com.newoether.agora.data.CustomEndpointProtocol
 import com.newoether.agora.data.CustomEndpointResolution
 import com.newoether.agora.data.CustomProviderConfig
@@ -29,9 +29,9 @@ class CustomProviderFactoryTest {
             url,
         )
 
-        assertTrue(openAi is CustomOpenAiProvider)
-        assertTrue(google is GeminiProvider)
-        assertTrue(anthropic is AnthropicProvider)
+        assertTrue(openAi is RustCustomOpenAiProvider)
+        assertTrue(google is RustCustomGeminiProvider)
+        assertTrue(anthropic is RustCustomAnthropicProvider)
         assertEquals("Google proxy", google?.name)
         assertEquals("Anthropic proxy", anthropic?.name)
         assertEquals(url, google?.defaultBaseUrl)

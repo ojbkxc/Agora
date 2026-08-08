@@ -218,13 +218,10 @@ impl LlmProvider for OllamaProvider {
             break;
         }
 
-        // 如果生成失败，通过回调推送错误事件
+        // 如果生成失败，通过回调推送错误事件 — 保留结构化错误类型
         if let Some(err) = last_error {
             on_event(StreamEvent::Error {
-                error: GenerationError::Network {
-                    status_code: err.status_code().unwrap_or(0),
-                    message: err.to_string(),
-                },
+                error: err.to_generation_error(),
             });
         }
 

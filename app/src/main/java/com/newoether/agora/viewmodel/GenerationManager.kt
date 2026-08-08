@@ -841,9 +841,12 @@ class GenerationManager(
                     is StreamEvent.Error -> {
                         flushThoughtSegment()
                         retryText = null
+                        // 无论是否处于工具调用阶段，都必须置位 ERROR 状态，
+                        // 否则工具循环 (currentStatus != ERROR) 不会终止。
+                        currentStatus = MessageStatus.ERROR
+                        // 仅在非工具调用阶段覆写 totalText，避免吞掉已生成的工具调用文本
                         if (toolCallData == null && toolCallDataList.isEmpty()) {
                             totalText = event.message
-                            currentStatus = MessageStatus.ERROR
                         }
                     }
                     is StreamEvent.ToolCallRequest -> {

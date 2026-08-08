@@ -1310,13 +1310,11 @@ impl LlmProvider for AnthropicProvider {
             break;
         }
 
-        // 推送最终错误事件（与 OpenAI Provider 一致，确保 UI 能收到错误信息）
+        // 推送最终错误事件 — 保留结构化错误类型，避免全部折叠为 Unknown
         let err = last_error
             .unwrap_or_else(|| AgoraError::Unknown("Unknown error during generation".to_string()));
         on_event(StreamEvent::Error {
-            error: GenerationError::Unknown {
-                message: err.to_string(),
-            },
+            error: err.to_generation_error(),
         });
         Err(err)
     }
