@@ -24,3 +24,21 @@
 
 # Compose
 -dontwarn androidx.compose.**
+
+# JNI native methods (llama.cpp / proot)
+-keepclasseswithmembernames class * { native <methods>; }
+-keep class com.newoether.agora.api.LlamaEngine { *; }
+-keep class com.newoether.agora.api.LlamaChatEngine { *; }
+
+# Lottie
+-keep class com.airbnb.lottie.** { *; }
+
+# Coil
+-dontwarn coil.**
+
+# Media3 / ExoPlayer
+-dontwarn androidx.media3.**
+
+# jlatexmath
+-keep class jp.** { *; }
+-dontwarn jp.**
