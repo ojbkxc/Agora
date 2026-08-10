@@ -580,10 +580,12 @@ fun MainNavigation(
                     val url = CrashReporter.issueUrl(report)
                     crashContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                     dismissPendingCrash()
-                    try {
-                        snackbarHostState.showSnackbar(crashSubmittedMsg)
-                    } finally {
-                        snackbarVersion++
+                    ratingScope.launch {
+                        try {
+                            snackbarHostState.showSnackbar(crashSubmittedMsg)
+                        } finally {
+                            snackbarVersion++
+                        }
                     }
                 }) { Text(stringResource(R.string.crash_submit)) }
             },
