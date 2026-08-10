@@ -27,6 +27,8 @@ fi
 export CGO_ENABLED=1
 export GOFLAGS=-mod=mod
 
+mkdir -p "$(dirname "$AAR_OUTPUT")"
+
 cd "$SCRIPT_DIR"
 
 echo "Initializing gomobile..."
@@ -39,8 +41,6 @@ gomobile bind \
     -ldflags="-s -w" \
     -o "$AAR_OUTPUT" \
     ./mobile
-
-mkdir -p "$(dirname "$AAR_OUTPUT")"
 
 echo "=== conch.aar built successfully ==="
 ls -lh "$AAR_OUTPUT"
