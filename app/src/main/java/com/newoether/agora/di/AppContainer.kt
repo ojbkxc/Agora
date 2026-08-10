@@ -86,7 +86,7 @@ class AppContainer(private val appContext: Context) {
             if (!manager.isAvailable) return
             val apiKey = manager.getOrGenerateApiKey(appContext)
             if (manager.start(appContext, apiKey)) {
-                com.newoether.agora.util.DebugLog.i("AppContainer", "Embedded Conch started")
+                com.newoether.agora.util.DebugLog.d("AppContainer", "Embedded Conch started")
             }
         } catch (e: Exception) {
             com.newoether.agora.util.DebugLog.w("AppContainer", "Failed to start embedded Conch", e)
