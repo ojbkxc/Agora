@@ -104,7 +104,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.1` / versionCode `2` | `defaultConfig` |
+| 版本 | versionName `1.0.2` / versionCode `3` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -207,7 +207,7 @@ Agora/
 - **变更已推送**：commit `3e39e75d` → `origin/master`。
 
 ### 🟡 已知问题
-- **未通过 CI 编译验证**：当前改动尚未通过 GitHub CI 实际构建验证（需 push tag `v1.0.0` 触发流水线）。本地离线无法 `./gradlew assembleFdroidRelease`。
+- **MarkdownDimens 崩溃修复待 CI 验证**：`ChatMarkdownCodeBlock` 在 `AlertDialog` 中独立调用时缺 `LocalMarkdownDimens` 等 CompositionLocal，已修复（MessageBubbleAssets.kt），待 push CI 全绿确认。
 - **PRoot 二进制需 CI 构建**：`build-proot.sh` 产物（`libproot_*.so`, `libtalloc.so`）被 `.gitignore` 忽略，CI 中由 `./build-proot.sh force` 现场构建。
 - **签名密钥**：Release 签名需在 GitHub Secrets 配置 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`；未配置时回退 debug 签名。
 
@@ -324,6 +324,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-10 修复 `IllegalStateException: No local MarkdownDimens` 崩溃：`ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397）被 `MainActivity.kt:447` 的 `AlertDialog` 直接调用，而 Dialog 拥有独立 CompositionLocal 上下文，父级 `Markdown` 组件提供的 `LocalMarkdownDimens`/`LocalMarkdownColors`/`LocalMarkdownPadding` 不透传进 Dialog，导致 `compositionLocalOf` 抛错。修复：在 `ChatMarkdownCodeBlock` 内部用 `CompositionLocalProvider` 自给自足提供 `LocalMarkdownDimens`（默认 `markdownDimens()`）+ `LocalMarkdownColors`/`LocalMarkdownTypography`/`LocalMarkdownPadding`（取自 `assets.renderContext`，样式与 chat 代码块一致）。新增 3 个 import。文件 849→860 行（≤999 ✓）。待 push CI 验证。
 - 2026-08-10 v1.0.1 发版成功：CI 全绿（get-version ✓ / build-android ✓ / release ✓），产物 `Agora-v1.0.1-android-arm64-v8a.apk` (27.56 MB) 已发布到 GitHub Release。回写 §4/§6/§9。
 - 2026-08-10 修复 CI release job 403 权限错误：build.yml 添加 `permissions: contents: write`，使 `GITHUB_TOKEN` 有权创建 Release。重新打 tag v1.0.1 触发 CI，全绿。
 - 2026-08-10 修复 values-zh 资源重复键编译错误：删除多余的 `automation_strings.xml`（88 键已在 `strings.xml` 中），消除 Android duplicate resource 错误。
