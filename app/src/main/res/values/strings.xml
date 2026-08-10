@@ -801,9 +801,7 @@
     <string name="about_issue_tracker">Issue Tracker</string>
     <string name="about_contribute">Contribute</string>
     <string name="about_privacy_policy">Privacy Policy</string>
-    <string name="about_source_code">Source Code</string>
     <string name="about_version">Version</string>
-    <string name="about_rating">Rate the App</string>
     <string name="about_rating_desc">This project was developed by a single person. I truly appreciate your feedback.</string>
     <string name="about_updates">Updates</string>
     <string name="about_check_updates">Check for Updates</string>
