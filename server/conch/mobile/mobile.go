@@ -133,7 +133,7 @@ func Start(apiKeyStr string, port int, jobDir string) error {
 		})
 	})
 
-	ctx, c := context.WithCancel(context.Background())
+	_, c := context.WithCancel(context.Background())
 	cancel = c
 
 	srv = &http.Server{
