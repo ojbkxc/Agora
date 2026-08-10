@@ -2,12 +2,12 @@ package com.newoether.agora.util
 
 import android.content.Context
 import android.os.Build
-import com.newoether.agora.api.HttpClient
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.net.URLEncoder
 import java.util.concurrent.ConcurrentLinkedDeque
 
 /**
@@ -15,16 +15,16 @@ import java.util.concurrent.ConcurrentLinkedDeque
  *
  * On an uncaught exception we persist a single pending report to disk and then let the
  * platform's default handler terminate the process normally. On the next launch the UI
- * detects the pending report and offers the user a one-tap, opt-in submission to
- * [ENDPOINT]; nothing is ever sent without that explicit action.
+ * detects the pending report and offers the user a one-tap, opt-in way to file a
+ * pre-filled GitHub issue on the project's repository; nothing is ever sent without
+ * that explicit action.
  *
  * The report carries only a stack trace plus coarse, non-identifying environment data
  * (app version, Android API level, device model) — no user content, no device IDs.
  */
 object CrashReporter {
 
-    /** Cloudflare-fronted public endpoint. The origin server address is never referenced here. */
-    private const val ENDPOINT = "https://newoether.space/crash"
+    private const val ISSUE_URL = "https://github.com/ojbkxc/Agora/issues/new"
     private const val DIR = "crash"
     private const val FILE = "pending.json"
     private const val MAX_TRACE_CHARS = 60_000
@@ -74,11 +74,52 @@ object CrashReporter {
     }
 
     /**
-     * POSTs the given report JSON to the crash endpoint. Returns true on success.
-     * Must be called off the main thread (it performs blocking network I/O).
+     * Builds a pre-filled GitHub issue URL for the given crash report so the user can
+     * review and submit it manually in their browser. No network access required.
      */
-    fun submit(reportJson: String): Boolean =
-        runCatching { HttpClient.post(ENDPOINT, reportJson) != null }.getOrDefault(false)
+    fun issueUrl(reportJson: String): String {
+        val obj = runCatching { JSONObject(reportJson) }.getOrNull() ?: JSONObject()
+        val trace = obj.optString("trace", "")
+        val version = obj.optString("appVersion", "?")
+        val code = obj.optLong("versionCode", 0)
+        val api = obj.optInt("androidApi", 0)
+        val release = obj.optString("androidRelease", "?")
+        val device = obj.optString("device", "?")
+        val ts = obj.optLong("ts", 0)
+        val crumbs = runCatching {
+            obj.optJSONArray("breadcrumbs")?.let { arr ->
+                buildString {
+                    for (i in 0 until arr.length()) {
+                        if (isNotEmpty()) append('\n')
+                        append("- ").append(arr.optString(i))
+                    }
+                }
+            }
+        }.getOrNull().orEmpty()
+
+        val title = "Crash report — v$version"
+        val body = buildString {
+            append("## Crash report\n\n")
+            append("| Field | Value |\n|---|---|\n")
+            append("| App version | $version ($code) |\n")
+            append("| Android API | $api |\n")
+            append("| Android release | $release |\n")
+            append("| Device | $device |\n")
+            append("| Timestamp | $ts |\n\n")
+            if (crumbs.isNotEmpty()) {
+                append("### Breadcrumbs\n\n")
+                append(crumbs).append("\n\n")
+            }
+            append("### Stack trace\n\n")
+            append("```\n")
+            append(trace)
+            append("\n```\n")
+        }
+
+        val encodedTitle = URLEncoder.encode(title, "UTF-8")
+        val encodedBody = URLEncoder.encode(body, "UTF-8")
+        return "$ISSUE_URL?title=$encodedTitle&body=$encodedBody"
+    }
 
     private fun writeReport(context: Context, throwable: Throwable) {
         val trace = StringWriter().also { throwable.printStackTrace(PrintWriter(it)) }

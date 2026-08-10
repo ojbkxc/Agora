@@ -16,7 +16,7 @@ fun DocumentationFab(docPath: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val locale = LocalConfiguration.current.locales[0]
     val langTag = locale.toLanguageTag()
-    val baseUrl = "https://newo-ether.github.io/Agora/"
+    val baseUrl = "https://ojbkxc.github.io/Agora/"
     // Map the resolved locale to the docs URL prefix.
     // "en" and anything unrecognised → root (English); each supported
     // language maps to its own subdirectory under the docs site.

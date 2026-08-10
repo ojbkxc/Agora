@@ -119,4 +119,4 @@ Yes. The app UI supports **English**, **中文 (Chinese)**, and **繁體中文 (
 
 ### How do I report a bug or request a feature?
 
-Open an issue on [GitHub](https://github.com/newo-ether/Agora/issues). For contributions, see the [Contributing](https://github.com/newo-ether/Agora#contributing) section of the README.
+Open an issue on [GitHub](https://github.com/ojbkxc/Agora/issues). For contributions, see the [Contributing](https://github.com/ojbkxc/Agora#contributing) section of the README.

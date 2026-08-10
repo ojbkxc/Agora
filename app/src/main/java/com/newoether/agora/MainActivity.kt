@@ -577,20 +577,13 @@ fun MainNavigation(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    pendingCrash = null
-                    ratingScope.launch {
-                        val ok = withContext(Dispatchers.IO) {
-                            CrashReporter.submit(report).also { submitted ->
-                                if (submitted) CrashReporter.clear(crashContext)
-                            }
-                        }
-                        if (ok) {
-                            try {
-                                snackbarHostState.showSnackbar(crashSubmittedMsg)
-                            } finally {
-                                snackbarVersion++
-                            }
-                        }
+                    val url = CrashReporter.issueUrl(report)
+                    crashContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    dismissPendingCrash()
+                    try {
+                        snackbarHostState.showSnackbar(crashSubmittedMsg)
+                    } finally {
+                        snackbarVersion++
                     }
                 }) { Text(stringResource(R.string.crash_submit)) }
             },

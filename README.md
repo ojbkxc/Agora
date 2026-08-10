@@ -19,11 +19,11 @@
 &nbsp;&nbsp;
 [![Google Play](https://img.shields.io/badge/Google_Play-Install-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.newoether.agora)
 &nbsp;&nbsp;
-[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/newo-ether/Agora/releases)
+[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/ojbkxc/Agora/releases)
 
 - **F-Droid (Recommended)** — Install via [F-Droid](https://f-droid.org/), search for **Agora**.
 - **Google Play** — Install from [Google Play Store](https://play.google.com/store/apps/details?id=com.newoether.agora).
-- **GitHub Releases** — Download the latest `.apk` from the [Releases page](https://github.com/newo-ether/Agora/releases).
+- **GitHub Releases** — Download the latest `.apk` from the [Releases page](https://github.com/ojbkxc/Agora/releases).
 - **Build from Source** — Clone and build with Android Studio (see [Getting Started](#getting-started)).
 
 ---
@@ -117,7 +117,7 @@
 
 ## Documentation
 
-📖 **[Browse the User Manual](https://newo-ether.github.io/Agora/)** — 24 pages covering installation, providers, tools, search, memory, shell, and more.
+📖 **[Browse the User Manual](https://ojbkxc.github.io/Agora/)** — 24 pages covering installation, providers, tools, search, memory, shell, and more.
 
 🏗️ **[Architecture Guide](ARCHITECTURE.md)** — complete codebase walkthrough: data layer, API providers, JNI, UI, and data flows.
 

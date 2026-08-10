@@ -31,7 +31,7 @@ class OpenRouterProvider : BaseOpenAiProvider() {
     }
 
     override fun getExtraHeaders(config: ProviderConfig): Map<String, String> = mapOf(
-        "HTTP-Referer" to "https://github.com/newo-ether/Agora",
+        "HTTP-Referer" to "https://github.com/ojbkxc/Agora",
         "X-Title" to "Agora"
     )
 

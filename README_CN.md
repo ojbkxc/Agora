@@ -19,11 +19,11 @@
 &nbsp;&nbsp;
 [![Google Play](https://img.shields.io/badge/Google_Play-安装-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.newoether.agora)
 &nbsp;&nbsp;
-[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/newo-ether/Agora/releases)
+[![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/ojbkxc/Agora/releases)
 
 - **F-Droid（推荐）** — 通过 [F-Droid](https://f-droid.org/) 安装，搜索 **Agora**。
 - **Google Play** — 从 [Google Play 商店](https://play.google.com/store/apps/details?id=com.newoether.agora) 安装。
-- **GitHub Releases** — 从 [Releases 页面](https://github.com/newo-ether/Agora/releases) 下载最新 `.apk`。
+- **GitHub Releases** — 从 [Releases 页面](https://github.com/ojbkxc/Agora/releases) 下载最新 `.apk`。
 - **从源码构建** — 用 Android Studio 克隆并构建（详见[快速开始](#快速开始)）。
 
 ---
@@ -118,7 +118,7 @@
 
 ## 文档
 
-📖 **[浏览用户手册](https://newo-ether.github.io/Agora/)** — 24 个页面，涵盖安装、提供商、工具、搜索、记忆、Shell 等。
+📖 **[浏览用户手册](https://ojbkxc.github.io/Agora/)** — 24 个页面，涵盖安装、提供商、工具、搜索、记忆、Shell 等。
 
 🏗️ **[架构指南](ARCHITECTURE.md)** — 完整的代码库导览：数据层、API 提供商、JNI、UI 及数据流。
 

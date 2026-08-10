@@ -825,7 +825,7 @@
     <string name="rating_submitting">Submitting…</string>
     <string name="rating_success">Thanks for your feedback!</string>
     <string name="rating_failed">Failed to submit. Please try again.</string>
-    <string name="rating_privacy">Your rating will be uploaded anonymously to newoether.space. Only the fields you fill in are transmitted. No other data is collected.</string>
+    <string name="rating_privacy">Your rating opens as a pre-filled GitHub issue in your browser. You can review it before submitting.</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">Data Control</string>
@@ -1027,7 +1027,7 @@
     <string name="crash_message">Sorry about that. You can help fix this by sending an anonymous crash report.</string>
     <string name="crash_submit">Submit report</string>
     <string name="crash_dismiss">Don\'t send</string>
-    <string name="crash_privacy_note">Only the crash log is sent to newoether.space. No other information is collected.</string>
+    <string name="crash_privacy_note">The crash log opens as a pre-filled GitHub issue in your browser. You can review it before submitting.</string>
     <string name="crash_submitted">Crash report sent. Thank you!</string>
     <string name="settings_group_network">Network</string>
     <string name="settings_proxy">Proxy</string>

@@ -119,4 +119,4 @@ Agora 支持 GGUF 格式的聊天和嵌入模型。聊天模型需要能装入�
 
 ### 如何反馈问题或请求功能？
 
-在 [GitHub](https://github.com/newo-ether/Agora/issues) 上提交 issue。贡献方式见 README 的 [Contributing](https://github.com/newo-ether/Agora#contributing) 部分。
+在 [GitHub](https://github.com/ojbkxc/Agora/issues) 上提交 issue。贡献方式见 README 的 [Contributing](https://github.com/ojbkxc/Agora#contributing) 部分。

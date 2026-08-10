@@ -946,7 +946,7 @@
     <string name="rating_submitting">提交中…</string>
     <string name="rating_success">感谢您的反馈！</string>
     <string name="rating_failed">提交失败，请重试。</string>
-    <string name="rating_privacy">您的评分将以匿名方式上传至 newoether.space。仅上传您填写的字段，不会收集其他数据。</string>
+    <string name="rating_privacy">您的评分将在浏览器中打开为预填的 GitHub issue，您可在提交前审阅。</string>
 
     <!-- Data Control -->
     <string name="settings_data_control">数据控制</string>
@@ -1126,7 +1126,7 @@
     <string name="crash_message">很抱歉。您可以通过发送匿名崩溃报告来帮助修复此问题。</string>
     <string name="crash_submit">提交报告</string>
     <string name="crash_dismiss">不发送</string>
-    <string name="crash_privacy_note">仅向 newoether.space 发送崩溃日志，不收集任何其他信息。</string>
+    <string name="crash_privacy_note">崩溃日志将在浏览器中打开为预填的 GitHub issue，您可在提交前审阅。</string>
     <string name="crash_submitted">崩溃报告已发送，谢谢！</string>
     <string name="settings_group_network">网络</string>
     <string name="settings_proxy">代理</string>

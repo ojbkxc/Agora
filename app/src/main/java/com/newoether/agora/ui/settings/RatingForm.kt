@@ -25,13 +25,10 @@ import androidx.compose.ui.unit.dp
 import com.newoether.agora.R
 import com.newoether.agora.ui.components.clearFocusOnTap
 import com.newoether.agora.ui.theme.ChatType
-import com.newoether.agora.api.HttpClient
-import kotlinx.coroutines.Dispatchers
+import android.content.Intent
+import android.net.Uri
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URLEncoder
 
 @Composable
 fun RatingForm(
@@ -40,27 +37,12 @@ fun RatingForm(
     val context = LocalContext.current
     var rating by remember { mutableIntStateOf(0) }
     var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
     var submitted by remember { mutableStateOf(false) }
     var submitError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    fun jsonEscape(s: String): String = buildString {
-        append('"')
-        s.forEach { c ->
-            when (c) {
-                '"' -> append("\\\"")
-                '\\' -> append("\\\\")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
-                else -> append(c)
-            }
-        }
-        append('"')
-    }
 
     Column(Modifier.clearFocusOnTap()) {
         Text(
@@ -119,15 +101,6 @@ fun RatingForm(
             modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
         )
 
-        // Email
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text(stringResource(R.string.rating_your_email)) },
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
-        )
 
         // Comment
         val commentMaxLen = 10000
@@ -196,37 +169,21 @@ fun RatingForm(
                         submitting = true
                         submitError = false
                         try {
-                            val submittedRating = rating
-                            val submittedName = name
-                            val submittedEmail = email
-                            val submittedComment = comment
-                            val accepted = withContext(Dispatchers.IO) {
-                                val json = buildString {
-                                    append(
-                                        "{\"rating\":$submittedRating,\"app\":" +
-                                            jsonEscape(context.packageName)
-                                    )
-                                    if (submittedName.isNotBlank()) {
-                                        append(",\"name\":${jsonEscape(submittedName)}")
-                                    }
-                                    if (submittedEmail.isNotBlank()) {
-                                        append(",\"email\":${jsonEscape(submittedEmail)}")
-                                    }
-                                    if (submittedComment.isNotBlank()) {
-                                        append(",\"comment\":${jsonEscape(submittedComment)}")
-                                    }
-                                    append("}")
+                            val title = "Rating: $rating/5"
+                            val body = buildString {
+                                append("## User Rating\n\n")
+                                append("Rating: **").append(rating).append("/5**\n\n")
+                                if (name.isNotBlank()) {
+                                    append("Name: ").append(name).append("\n\n")
                                 }
-                                val body = json.toRequestBody("application/json".toMediaType())
-                                val request = Request.Builder()
-                                    .url("https://newoether.space/api/rating")
-                                    .post(body)
-                                    .build()
-                                HttpClient.client.newCall(request).execute().use {
-                                    it.isSuccessful
+                                if (comment.isNotBlank()) {
+                                    append("### Comment\n\n").append(comment).append("\n")
                                 }
                             }
-                            if (!accepted) error("Rating endpoint rejected the request")
+                            val encodedTitle = URLEncoder.encode(title, "UTF-8")
+                            val encodedBody = URLEncoder.encode(body, "UTF-8")
+                            val url = "https://github.com/ojbkxc/Agora/issues/new?title=$encodedTitle&body=$encodedBody"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                             submitted = true
                             onSubmitted()
                         } catch (_: Exception) {
