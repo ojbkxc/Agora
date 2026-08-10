@@ -324,7 +324,8 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
-- 2026-08-10 修复 `IllegalStateException: No local MarkdownDimens` 崩溃：`ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397）被 `MainActivity.kt:447` 的 `AlertDialog` 直接调用，而 Dialog 拥有独立 CompositionLocal 上下文，父级 `Markdown` 组件提供的 `LocalMarkdownDimens`/`LocalMarkdownColors`/`LocalMarkdownPadding` 不透传进 Dialog，导致 `compositionLocalOf` 抛错。修复：在 `ChatMarkdownCodeBlock` 内部用 `CompositionLocalProvider` 自给自足提供 `LocalMarkdownDimens`（默认 `markdownDimens()`）+ `LocalMarkdownColors`/`LocalMarkdownTypography`/`LocalMarkdownPadding`（取自 `assets.renderContext`，样式与 chat 代码块一致）。新增 3 个 import。文件 849→860 行（≤999 ✓）。待 push CI 验证。
+- 2026-08-10 v1.0.2 发版：bump versionCode 2→3 / versionName 1.0.1→1.0.2，打 tag `v1.0.2` push 触发 CI。修复 `IllegalStateException: No local MarkdownDimens` 崩溃（修复已在 master commit `01f862ea`，但 v1.0.1 tag 在其之前，故 v1.0.1 APK 含此 bug）。待 CI 全绿确认发版成功。
+- 2026-08-10 修复 `IllegalStateException: No local MarkdownDimens` 崩溃：`ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397）被 `MainActivity.kt:447` 的 `AlertDialog` 直接调用，而 Dialog 拥有独立 CompositionLocal 上下文，父级 `Markdown` 组件提供的 `LocalMarkdownDimens`/`LocalMarkdownColors`/`LocalMarkdownPadding` 不透传进 Dialog，导致 `compositionLocalOf` 抛错。修复：在 `ChatMarkdownCodeBlock` 内部用 `CompositionLocalProvider` 自给自足提供 `LocalMarkdownDimens`（默认 `markdownDimens()`）+ `LocalMarkdownColors`/`LocalMarkdownTypography`/`LocalMarkdownPadding`（取自 `assets.renderContext`，样式与 chat 代码块一致）。新增 3 个 import。文件 849→860 行（≤999 ✓）。修复已在 commit `01f862ea`。
 - 2026-08-10 v1.0.1 发版成功：CI 全绿（get-version ✓ / build-android ✓ / release ✓），产物 `Agora-v1.0.1-android-arm64-v8a.apk` (27.56 MB) 已发布到 GitHub Release。回写 §4/§6/§9。
 - 2026-08-10 修复 CI release job 403 权限错误：build.yml 添加 `permissions: contents: write`，使 `GITHUB_TOKEN` 有权创建 Release。重新打 tag v1.0.1 触发 CI，全绿。
 - 2026-08-10 修复 values-zh 资源重复键编译错误：删除多余的 `automation_strings.xml`（88 键已在 `strings.xml` 中），消除 Android duplicate resource 错误。

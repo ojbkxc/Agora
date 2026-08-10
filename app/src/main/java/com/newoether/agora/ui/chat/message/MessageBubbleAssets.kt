@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,10 +42,8 @@ import com.newoether.agora.ui.theme.ChatType
 import com.mikepenz.markdown.compose.LocalMarkdownColors
 import com.mikepenz.markdown.compose.LocalMarkdownDimens
 import com.mikepenz.markdown.compose.LocalMarkdownPadding
-import com.mikepenz.markdown.compose.LocalMarkdownTypography
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
-import com.mikepenz.markdown.model.markdownDimens
 import com.mikepenz.markdown.model.markdownPadding
 import com.mikepenz.markdown.model.MarkdownColors
 import com.mikepenz.markdown.model.MarkdownPadding
@@ -399,33 +396,25 @@ internal fun ChatMarkdownCodeBlock(
     modifier: Modifier = Modifier,
 ) {
     val assets = rememberChatMarkdownAssets(MaterialTheme.colorScheme.onSurface)
-    val dimens = remember { markdownDimens() }
-    CompositionLocalProvider(
-        LocalMarkdownDimens provides dimens,
-        LocalMarkdownColors provides assets.renderContext.colors,
-        LocalMarkdownTypography provides assets.renderContext.typography,
-        LocalMarkdownPadding provides assets.renderContext.padding,
+    MarkdownCodeBackground(
+        color = assets.renderContext.colors.codeBackground,
+        shape = RoundedCornerShape(LocalMarkdownDimens.current.codeBackgroundCornerSize),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        showHeader = true,
+        language = null,
+        code = code,
     ) {
-        MarkdownCodeBackground(
-            color = assets.renderContext.colors.codeBackground,
-            shape = RoundedCornerShape(dimens.codeBackgroundCornerSize),
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            showHeader = true,
-            language = null,
-            code = code,
-        ) {
-            MarkdownBasicText(
-                text = AnnotatedString(code),
-                style = assets.renderContext.typography.code.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
-                ),
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(assets.renderContext.padding.codeBlock),
-            )
-        }
+        MarkdownBasicText(
+            text = AnnotatedString(code),
+            style = assets.renderContext.typography.code.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+            ),
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(assets.renderContext.padding.codeBlock),
+        )
     }
 }
 
