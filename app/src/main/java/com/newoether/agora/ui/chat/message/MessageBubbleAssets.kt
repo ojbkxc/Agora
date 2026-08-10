@@ -399,7 +399,7 @@ internal fun ChatMarkdownCodeBlock(
     modifier: Modifier = Modifier,
 ) {
     val assets = rememberChatMarkdownAssets(MaterialTheme.colorScheme.onSurface)
-    val dimens = remember { markdownDimens() }
+    val dimens = markdownDimens()
     CompositionLocalProvider(
         LocalMarkdownDimens provides dimens,
         LocalMarkdownColors provides assets.renderContext.colors,
