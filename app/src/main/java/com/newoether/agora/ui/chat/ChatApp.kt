@@ -719,6 +719,7 @@ fun ChatApp(
                         showButton = showButton,
                         motionPolicy = motionPolicy,
                         bottomBarHeight = bottomBarHeight,
+                        modifier = Modifier.align(Alignment.BottomCenter),
                         onRequestScroll = { scrollCoordinator.requestAbsoluteBottomScroll() },
                     )
 
@@ -726,6 +727,7 @@ fun ChatApp(
                         shareSelectionActive = shareSelectionActive,
                         motionPolicy = motionPolicy,
                         bottomBarHeight = bottomBarHeight,
+                        modifier = Modifier.align(Alignment.BottomCenter),
                         allSelected = selectableShareMessageIds.isNotEmpty() &&
                             selectedShareMessageIds.containsAll(selectableShareMessageIds),
                         hasSelection = selectedShareMessageIds.isNotEmpty(),

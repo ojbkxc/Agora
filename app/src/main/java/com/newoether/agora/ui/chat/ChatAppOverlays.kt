@@ -36,6 +36,7 @@ internal fun ChatAppScrollToBottomFab(
     showButton: Boolean,
     motionPolicy: AgoraMotionPolicy,
     bottomBarHeight: androidx.compose.ui.unit.Dp,
+    modifier: Modifier,
     onRequestScroll: () -> Unit,
 ) {
     val fabElevation by animateDpAsState(
@@ -61,7 +62,7 @@ internal fun ChatAppScrollToBottomFab(
         } else {
             fadeOut(tween(400))
         },
-        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomBarHeight + 8.dp)
+        modifier = modifier.padding(bottom = bottomBarHeight + 8.dp)
     ) {
         Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             FloatingActionButton(onClick = onRequestScroll, containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp), contentColor = MaterialTheme.colorScheme.onSurface, shape = CircleShape, elevation = FloatingActionButtonDefaults.elevation(fabElevation), modifier = Modifier.size(40.dp)) {
@@ -76,6 +77,7 @@ internal fun ChatAppShareSelectionOverlay(
     shareSelectionActive: Boolean,
     motionPolicy: AgoraMotionPolicy,
     bottomBarHeight: androidx.compose.ui.unit.Dp,
+    modifier: Modifier,
     allSelected: Boolean,
     hasSelection: Boolean,
     onDismiss: () -> Unit,
@@ -100,8 +102,7 @@ internal fun ChatAppShareSelectionOverlay(
         } else {
             fadeOut(tween(180))
         },
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
+        modifier = modifier
             .padding(bottom = bottomBarHeight + 10.dp),
     ) {
         ShareSelectionFab(
