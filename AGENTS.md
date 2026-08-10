@@ -322,7 +322,8 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
-- 2026-08-10 发布 v1.0.1：更新 `app/build.gradle.kts` 版本号为 `versionCode=2` / `versionName="1.0.1"`；打 tag `v1.0.1` 推送触发 CI 流水线构建 `Agora-v1.0.1-android-arm64-v8a.apk` 并发布到 GitHub Release。下一步：据 CI 报错迭代修复至全绿。
+- 2026-08-10 发布 v1.0.1：更新 `app/build.gradle.kts` 版本号为 `versionCode=2` / `versionName="1.0.1"`；修复 `values-zh/` 跨文件重复键编译错误（删除多余的 `automation_strings.xml`，其内容已在 `strings.xml` 中）；重新打 tag `v1.0.1` 推送触发 CI 流水线构建 `Agora-v1.0.1-android-arm64-v8a.apk`。下一步：据 CI 报错迭代修复至全绿。
+- 2026-08-10 发布 v1.0.1（首次尝试）：更新版本号为 `versionCode=2` / `versionName="1.0.1"`；打 tag `v1.0.1` 推送触发 CI。后发现 `values-zh/automation_strings.xml` 与 `strings.xml` 存在 88 个重复键会导致编译失败，已修复。
 - 2026-08-10 重写 AGENTS.md 参照 AXON 严谨流程：新增 §R0 强制规则（10 条，含 i18n/字体/CI 验证/auto-continue）、§R2 GitHub CI 编译验证策略、§0 标准流程、§1 项目定位、§2 硬约束、§3 仓库结构、§4 当前进度、§5 关键接口契约、§6 下一步任务、§7 编码约定、§8 常用命令、§10 参考索引。未改代码，仅重写 AGENTS.md。下一步：push tag v1.0.0 触发 CI 验证。
 - 2026-08-10 语言精简 + 字体删除 + 流水线改造 + 首版 AGENTS.md：删除 10 个非 en/zh 语言资源目录 + 9 个文档语言目录；删除 9 个 TTF 字体文件（~23.1MB）改用系统字体；版本号改为 1.0.0/1；重写 `.github/workflows/build.yml`（tag 触发 → APK → GitHub Release，产物 `Agora-v{VERSION}-android-arm64-v8a.apk`）；创建 AGENTS.md；从 `.gitignore` 移除 AGENTS.md 忽略规则。已推送 commit `5f0de741` → `origin/master`（308 文件，+361/-35086 行）。未通过 CI 编译验证。
 
