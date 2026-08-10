@@ -746,28 +746,6 @@ fun ChatApp(
                         isSwitching = isSwitching,
                         isTransitioningToNewChat = isTransitioningToNewChat,
                     )
-                            },
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = isSwitching && !isTransitioningToNewChat,
-                        enter = fadeIn(animationSpec = tween(200)),
-                        exit = fadeOut(animationSpec = tween(200))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.background),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp),
-                                strokeWidth = 5.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
                 }
             }
 
