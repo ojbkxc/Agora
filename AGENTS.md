@@ -207,7 +207,7 @@ Agora/
 - **变更已推送**：commit `3e39e75d` → `origin/master`。
 
 ### 🟡 已知问题
-- **MarkdownDimens 崩溃修复待 CI 验证**：`ChatMarkdownCodeBlock` 在 `AlertDialog` 中独立调用时缺 `LocalMarkdownDimens` 等 CompositionLocal，已修复（MessageBubbleAssets.kt），待 push CI 全绿确认。
+- **v1.0.2 CI 待确认**：tag `v1.0.2` 已 push 触发 CI，待全绿确认发版成功（本地 `gh` token 失效，无法本地监控，需在 https://github.com/ojbkxc/Agora/actions 查看）。
 - **PRoot 二进制需 CI 构建**：`build-proot.sh` 产物（`libproot_*.so`, `libtalloc.so`）被 `.gitignore` 忽略，CI 中由 `./build-proot.sh force` 现场构建。
 - **签名密钥**：Release 签名需在 GitHub Secrets 配置 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`；未配置时回退 debug 签名。
 
