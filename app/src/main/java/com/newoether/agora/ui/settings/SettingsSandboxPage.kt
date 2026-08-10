@@ -46,7 +46,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -519,7 +518,7 @@ fun SettingsSandboxPage(
                                                         override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = available
                                                     }),
                                                 style = MaterialTheme.typography.bodySmall.copy(
-                                                    fontFamily = FontFamily(Font(R.font.jetbrains_mono_regular)),
+                                                    fontFamily = FontFamily.Monospace,
                                                     lineHeight = 18.sp
                                                 ),
                                                 color = terminalFg

@@ -1,15 +1,40 @@
-name: Build APK
+name: Build & Release
 
 on:
   push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'version (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
 
 jobs:
-  build:
+  get-version:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  build-android:
+    needs: get-version
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.get-version.outputs.version }}
+      TAG: ${{ needs.get-version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,6 +48,12 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: "ndk;28.2.13676358"
+
+      - name: Set NDK environment
+        run: |
+          NDK_HOME=$(ls -d $ANDROID_HOME/ndk/28.2.13676358 2>/dev/null || ls -d $ANDROID_HOME/ndk/*/ 2>/dev/null | sort -V | tail -1 | sed 's:/$::')
+          echo "ANDROID_NDK_HOME=$NDK_HOME" >> $GITHUB_ENV
+          echo "NDK_HOME=$NDK_HOME"
 
       - name: Restore signing key
         if: ${{ env.KEYSTORE_BASE64 != '' }}
@@ -40,6 +71,11 @@ jobs:
           keyPassword=$KEY_PASSWORD
           EOF
 
+      - name: Build PRoot native binaries
+        run: |
+          chmod +x build-proot.sh
+          ./build-proot.sh force
+
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Test and verify Kotlin source budget
@@ -51,8 +87,49 @@ jobs:
       - name: Build F-Droid Release APK
         run: ./gradlew assembleFdroidRelease
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Rename and collect APK
+        run: |
+          mkdir -p dist
+          APK=$(find app/build/outputs/apk/fdroid/release -name '*.apk' -print -quit)
+          cp "$APK" "dist/Agora-v${VERSION}-android-arm64-v8a.apk"
+          echo "Produced: dist/Agora-v${VERSION}-android-arm64-v8a.apk"
+          ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: agora-fdroid-release
-          path: app/build/outputs/apk/fdroid/release/*.apk
+          name: dist-android
+          path: dist/*.apk
+          if-no-files-found: error
+
+  release:
+    needs: [get-version, build-android]
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.get-version.outputs.tag }}
+      VERSION: ${{ needs.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          {
+            echo "## Agora $TAG"
+            echo ""
+            echo "### Downloads"
+            echo ""
+            echo "- \`Agora-v${VERSION}-android-arm64-v8a.apk\` — Android APK (arm64-v8a)"
+          } > /tmp/release_notes.md
+          gh release create "$TAG" \
+            --title "Agora $TAG" \
+            --notes-file /tmp/release_notes.md \
+            --target ${{ github.sha }} \
+            $(find dist -type f)

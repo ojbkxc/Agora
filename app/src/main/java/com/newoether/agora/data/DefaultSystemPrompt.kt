@@ -4,30 +4,11 @@ import java.util.Locale
 
 object DefaultSystemPrompt {
     private const val ENGLISH_TITLE = "Default"
-    private const val ARABIC_TITLE = "\u0627\u0641\u062a\u0631\u0627\u0636\u064a"
-    private const val FRENCH_TITLE = "Par d\u00e9faut"
-    private const val JAPANESE_TITLE = "\u30c7\u30d5\u30a9\u30eb\u30c8"
-    private const val KOREAN_TITLE = "\uae30\ubcf8"
-    private const val PORTUGUESE_TITLE = "Padr\u00e3o"
-    private const val RUSSIAN_TITLE = "\u041f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e"
     private const val SIMPLIFIED_CHINESE_TITLE = "\u9ed8\u8ba4"
-    private const val TRADITIONAL_CHINESE_TITLE = "\u9810\u8a2d"
 
     fun titleForLocale(locale: Locale): String =
         when (locale.language.lowercase(Locale.ROOT)) {
-            "ar" -> ARABIC_TITLE
-            "de" -> "Standard"
-            "es" -> "Predeterminado"
-            "fr" -> FRENCH_TITLE
-            "ja" -> JAPANESE_TITLE
-            "ko" -> KOREAN_TITLE
-            "pt" -> PORTUGUESE_TITLE
-            "ru" -> RUSSIAN_TITLE
-            "zh" -> if (locale.script.equals("Hant", ignoreCase = true) ||
-                locale.country.equals("TW", ignoreCase = true) ||
-                locale.country.equals("HK", ignoreCase = true) ||
-                locale.country.equals("MO", ignoreCase = true)
-            ) TRADITIONAL_CHINESE_TITLE else SIMPLIFIED_CHINESE_TITLE
+            "zh" -> SIMPLIFIED_CHINESE_TITLE
             else -> ENGLISH_TITLE
         }
 

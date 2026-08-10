@@ -21,16 +21,8 @@ fun DocumentationFab(docPath: String, modifier: Modifier = Modifier) {
     // "en" and anything unrecognised → root (English); each supported
     // language maps to its own subdirectory under the docs site.
     val langPrefix = when {
-        langTag == "zh-Hant"  -> "zh-Hant/"
         langTag.startsWith("zh") -> "zh/"
-        else -> {
-            val lang = locale.language
-            when (lang) {
-                "es", "fr", "de", "ru", "ja", "ko", "ar" -> "$lang/"
-                "pt" -> "pt-BR/"
-                else -> ""  // en or unknown → root (English)
-            }
-        }
+        else -> ""  // en or unknown → root (English)
     }
 
     AnimatedActionFab(

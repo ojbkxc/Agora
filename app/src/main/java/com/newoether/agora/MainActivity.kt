@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -90,16 +89,6 @@ class MainActivity : ComponentActivity() {
         val locale = when (langCode) {
             "zh" -> java.util.Locale("zh", "CN")
             "en" -> java.util.Locale("en")
-            "es" -> java.util.Locale("es")
-            "fr" -> java.util.Locale("fr")
-            "de" -> java.util.Locale("de")
-            "ru" -> java.util.Locale("ru")
-            "pt-BR" -> java.util.Locale("pt", "BR")
-            "ja" -> java.util.Locale("ja")
-            "ko" -> java.util.Locale("ko")
-            "ar" -> java.util.Locale("ar")
-            "vi" -> java.util.Locale("vi")
-            "zh-Hant" -> java.util.Locale.forLanguageTag("zh-Hant")
             else -> null
         }
         if (locale != null) {
@@ -576,7 +565,7 @@ fun MainNavigation(
                                 Text(
                                     text = trace,
                                     style = MaterialTheme.typography.bodySmall.copy(
-                                        fontFamily = FontFamily(Font(R.font.jetbrains_mono_regular)),
+                                        fontFamily = FontFamily.Monospace,
                                         lineHeight = 16.sp
                                     ),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant

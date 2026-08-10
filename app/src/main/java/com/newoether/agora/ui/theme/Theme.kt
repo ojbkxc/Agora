@@ -12,7 +12,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import java.io.File
 
@@ -33,18 +32,16 @@ private fun effectiveFontFamily(
             if (file.exists()) {
                 try {
                     FontFamily(
-                        Font(file, FontWeight.ExtraLight),
-                        Font(file, FontWeight.Light),
                         Font(file, FontWeight.Normal),
                         Font(file, FontWeight.Medium),
                         Font(file, FontWeight.Bold),
                     )
                 } catch (_: Exception) {
-                    OutfitFamily
+                    FontFamily.Default
                 }
-            } else OutfitFamily
+            } else FontFamily.Default
         }
-        else -> OutfitFamily
+        else -> FontFamily.Default
     }
 }
 

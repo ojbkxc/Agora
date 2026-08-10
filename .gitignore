@@ -36,4 +36,3 @@ app/src/fdroid/jniLibs/arm64-v8a/
 # Claude Code
 /.claude/
 signing.properties
-AGENTS.md

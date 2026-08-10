@@ -11,9 +11,6 @@ class DefaultSystemPromptTest {
     fun titleForLocale_usesChineseDefaultForChineseLocale() {
         assertEquals("Default", DefaultSystemPrompt.titleForLocale(Locale.ENGLISH))
         assertEquals("\u9ed8\u8ba4", DefaultSystemPrompt.titleForLocale(Locale.SIMPLIFIED_CHINESE))
-        assertEquals("\u9810\u8a2d", DefaultSystemPrompt.titleForLocale(Locale.forLanguageTag("zh-Hant")))
-        assertEquals("Predeterminado", DefaultSystemPrompt.titleForLocale(Locale.forLanguageTag("es")))
-        assertEquals("Par d\u00e9faut", DefaultSystemPrompt.titleForLocale(Locale.FRENCH))
     }
 
     @Test
