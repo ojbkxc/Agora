@@ -190,11 +190,17 @@ Agora/
 │   └── talloc/                        # 内联源码
 ├── build-logic/                       # Gradle included build（字节码修复 + 源码大小策略）
 ├── docs/                              # MkDocs 用户手册（en + zh）
-├── fastlane/                          # 应用商店元数据（en-US + zh-CN）
+├── fastlane/                          # fastlane 自动化（Fastfile/Appfile/Gemfile + 元数据 en-US + zh-CN）
+│   ├── Fastfile                       # lane 定义（build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release）
+│   ├── Appfile                        # package_name("com.newoether.agora")
+│   ├── Gemfile                        # fastlane Ruby 依赖
+│   └── metadata/android/             # F-Droid 元数据（en-US + zh-CN，含 changelogs + screenshots）
 ├── scripts/                           # 辅助脚本（round_icon.py）
 ├── config/                            # 源码大小基线配置
 └── .github/workflows/
     ├── build.yml                      # CI/CD: 构建 APK + GitHub Release
+    ├── ci.yml                         # PR/push 编译检查
+    ├── fastlane.yml                   # fastlane 元数据验证（PR/push 触发）
     └── mkdocs.yml                     # 文档部署到 GitHub Pages
 ```
 
@@ -203,6 +209,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-11）
 
 ### ✅ 已完成
+- **fastlane 自动化**：创建 `fastlane/Fastfile`（lane: build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release）、`Appfile`（package_name）、`Gemfile`（fastlane 依赖）；新增 `.github/workflows/fastlane.yml`（PR/push 触发元数据验证）；添加 versionCode 6 changelog（en-US + zh-CN）。CI 全绿（Fastlane ✓ / CI ✓）。
 - **v1.0.5 发版成功**：修复 `DebugLog.i()` 编译错误（DebugLog 只有 d/e/w，无 i 方法）+ `showSnackbar()` 未包在协程中的编译错误。bump versionCode 5→6 / versionName 1.0.4→1.0.5。删除有问题的 v1.0.4 tag（指向含编译错误的 commit）和误标的 v1.0.3 tag。CI 全绿（Build & Release ✓ / CI ✓），Release `Agora-v1.0.5-android-arm64-v8a.apk` 已发布。
 - **v1.0.4 发版成功**：修复崩溃日志上传/评分提交/更新检查指向原仓库 `newo-ether/Agora` 的问题，全部改为指向本仓库 `ojbkxc/Agora`。CI 全绿，Release 已发布。
 - **v1.0.1 发版成功**：CI 全绿（get-version ✓ / build-android ✓ / release ✓），产物 `Agora-v1.0.1-android-arm64-v8a.apk` (27.56 MB) 已发布到 GitHub Release。
@@ -330,6 +337,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-11 fastlane 自动化：创建 `fastlane/Fastfile`（lane: build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release）、`Appfile`（package_name = com.newoether.agora）、`Gemfile`（fastlane ~2.225）；新增 `.github/workflows/fastlane.yml`（PR/push 触发，Ruby 3.3 + bundler-cache，运行 `validate_metadata` 验证 en-US + zh-CN 元数据完整性）；添加 versionCode 6 changelog（en-US + zh-CN，对应 v1.0.5 变更内容）。CI 全绿验证通过（Fastlane #31409966996 ✓ / CI #31409967059 ✓）。
 - 2026-08-11 v1.0.5 发版成功：修复 `DebugLog.i()` 编译错误（`AppContainer.kt:89` 调用了不存在的 `DebugLog.i()`，DebugLog 类只有 `d`/`e`/`w` 方法，改为 `DebugLog.d()`）+ `showSnackbar()` 未包在协程中的编译错误（`MainActivity.kt:584` 在 `TextButton.onClick` lambda 中直接调用 suspend 函数 `showSnackbar()`，改为包在 `ratingScope.launch {}` 中）。bump versionCode 5→6 / versionName 1.0.4→1.0.5。删除有问题的 v1.0.4 tag（指向 commit `82d50451` 含编译错误）和误标的 v1.0.3 tag（指向修复 commit `4627e4c4` 但版本号倒退）。打 tag `v1.0.5` push 触发 CI，首次因 tag 创建在协程修复 commit 之前而失败，移动 tag 到 HEAD 后 force-push 重触发。CI 全绿验证通过（Build & Release #31408098890 ✓ / CI #31407729636 ✓），Release `Agora-v1.0.5-android-arm64-v8a.apk` 已发布。
 - 2026-08-10 v1.0.3 发版：修复崩溃日志上传 / 评分提交 / 更新检查指向原仓库 `newo-ether/Agora` 而非本仓库 `ojbkxc/Agora` 的问题。① 更新检查 `UpdateChecker.kt` GitHub API URL 改为 `ojbkxc/Agora`；② 崩溃日志 `CrashReporter.kt` 不再 POST 到 `newoether.space/crash`，改为构建预填 GitHub Issue URL（`ojbkxc/Agora/issues/new`），`MainActivity.kt` 用 `Intent(ACTION_VIEW)` 打开浏览器让用户审阅提交；③ 评分提交 `RatingForm.kt` 同理改为打开浏览器预填 GitHub Issue，移除 email 输入框与 HTTP/okhttp 依赖；④ 关于页 4 链接 / 文档站点 / OpenRouter Referer / mkdocs.yml / docs/ / README / PRIVACY.md 全部 `newo-ether/Agora`→`ojbkxc/Agora`；⑤ strings.xml 隐私文案更新（en+zh）；⑥ 测试 `HttpClientLocalHostTest.kt` 中 `newoether.space`→`example.com`。bump versionCode 3→4 / versionName 1.0.2→1.0.3，打 tag `v1.0.4` push 触发 CI。CI 全绿验证通过（CI #12 ✓ / Build & Release #10 ✓ / Deploy MkDocs #2 ✓），Release `Agora-v1.0.4-android-arm64-v8a.apk` 已发布。
 - 2026-08-10 内嵌 Conch shell 服务器集成：将 `github.com/ojbkxc/conch` Go 源码融入 `server/conch/`，通过 gomobile bind 编译为 .aar 内嵌到 Android 进程。新增文件：`server/conch/`（conch 全部源码 + `mobile/mobile.go` gomobile 绑定包 + `build-android.sh` 构建脚本）、`app/src/main/java/com/newoether/agora/shell/ConchServiceManager.kt`（反射调用 mobile.Mobile，无 .aar 时安全降级）。修改：`shell/executor_unix.go` 添加 `SetShellPath()` 支持 Android `/system/bin/sh`；`app/build.gradle.kts` 添加 `fileTree("libs/*.aar")` 依赖；`di/AppContainer.kt` 在 `startProcessServices()` 中启动内嵌 conch；`.gitignore` 添加 `/app/libs/`；`.github/workflows/build.yml` 添加 Go setup + gomobile bind 步骤。API key 自动生成并持久化到 SharedPreferences。待 push CI 验证。
