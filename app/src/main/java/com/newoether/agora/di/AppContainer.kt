@@ -74,8 +74,22 @@ class AppContainer(private val appContext: Context) {
      */
     fun startProcessServices() {
         appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            startEmbeddedConch()
             conversationRepository.ensureRunRecovery()
             automationScheduler.start()
+        }
+    }
+
+    private fun startEmbeddedConch() {
+        try {
+            val manager = com.newoether.agora.shell.ConchServiceManager
+            if (!manager.isAvailable) return
+            val apiKey = manager.getOrGenerateApiKey(appContext)
+            if (manager.start(appContext, apiKey)) {
+                com.newoether.agora.util.DebugLog.i("AppContainer", "Embedded Conch started")
+            }
+        } catch (e: Exception) {
+            com.newoether.agora.util.DebugLog.w("AppContainer", "Failed to start embedded Conch", e)
         }
     }
     val taskRepository: TaskRepository by lazy {

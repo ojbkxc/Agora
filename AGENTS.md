@@ -158,6 +158,7 @@ Agora/
 │       │   │   │   ├── onboarding/    # 欢迎引导
 │       │   │   │   └── components/    # 通用组件
 │       │   │   ├── tool/              # 工具提供者（13 文件）
+│       │   │   ├── shell/             # 内嵌 Conch 管理（ConchServiceManager）
 │       │   │   ├── service/           # 前台服务 + WorkManager（8 文件）
 │       │   │   ├── mcp/               # MCP 协议客户端（4 文件）
 │       │   │   ├── sandbox/           # 沙盒接口
@@ -174,9 +175,15 @@ Agora/
 │       ├── fdroid/                    # F-Droid flavor（PRoot 沙盒）
 │       ├── play/                      # Google Play flavor（无 PRoot）
 │       └── test/                      # 单元测试
-├── server/                            # 独立 Python 服务（非 APK 运行时）
-│   ├── rating/                        # 评分提交 API（SQLite, port 8091）
-│   └── crash/                         # 崩溃报告接收（JSONL, port 8092）
+├── server/                            # 服务端代码
+│   ├── rating/                        # 评分提交 API（Python/SQLite, port 8091）
+│   ├── crash/                         # 崩溃报告接收（Python/JSONL, port 8092）
+│   └── conch/                         # 内嵌 Conch shell 服务器（Go 源码 + gomobile 绑定）
+│       ├── mobile/mobile.go           # gomobile 绑定包（导出 Start/Stop/PublicKey/IsRunning）
+│       ├── build-android.sh           # gomobile bind → app/libs/conch.aar
+│       ├── main.go                    # 独立 conch 服务器入口（非 Android 用）
+│       ├── config/ crypto/ handler/ shell/ buildinfo/  # conch 核心包
+│       └── go.mod                     # Go module: github.com/newo-ether/conch
 ├── thirdparty/                        # 第三方原生依赖
 │   ├── llama.cpp/                     # git submodule
 │   ├── proot/                         # git submodule
@@ -324,6 +331,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-10 内嵌 Conch shell 服务器集成：将 `github.com/ojbkxc/conch` Go 源码融入 `server/conch/`，通过 gomobile bind 编译为 .aar 内嵌到 Android 进程。新增文件：`server/conch/`（conch 全部源码 + `mobile/mobile.go` gomobile 绑定包 + `build-android.sh` 构建脚本）、`app/src/main/java/com/newoether/agora/shell/ConchServiceManager.kt`（反射调用 mobile.Mobile，无 .aar 时安全降级）。修改：`shell/executor_unix.go` 添加 `SetShellPath()` 支持 Android `/system/bin/sh`；`app/build.gradle.kts` 添加 `fileTree("libs/*.aar")` 依赖；`di/AppContainer.kt` 在 `startProcessServices()` 中启动内嵌 conch；`.gitignore` 添加 `/app/libs/`；`.github/workflows/build.yml` 添加 Go setup + gomobile bind 步骤。API key 自动生成并持久化到 SharedPreferences。待 push CI 验证。
 - 2026-08-10 v1.0.2 发版：bump versionCode 2→3 / versionName 1.0.1→1.0.2，打 tag `v1.0.2` push 触发 CI。修复 `IllegalStateException: No local MarkdownDimens` 崩溃（修复已在 master commit `01f862ea`，但 v1.0.1 tag 在其之前，故 v1.0.1 APK 含此 bug）。待 CI 全绿确认发版成功。
 - 2026-08-10 修复 `IllegalStateException: No local MarkdownDimens` 崩溃：`ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397）被 `MainActivity.kt:447` 的 `AlertDialog` 直接调用，而 Dialog 拥有独立 CompositionLocal 上下文，父级 `Markdown` 组件提供的 `LocalMarkdownDimens`/`LocalMarkdownColors`/`LocalMarkdownPadding` 不透传进 Dialog，导致 `compositionLocalOf` 抛错。修复：在 `ChatMarkdownCodeBlock` 内部用 `CompositionLocalProvider` 自给自足提供 `LocalMarkdownDimens`（默认 `markdownDimens()`）+ `LocalMarkdownColors`/`LocalMarkdownTypography`/`LocalMarkdownPadding`（取自 `assets.renderContext`，样式与 chat 代码块一致）。新增 3 个 import。文件 849→860 行（≤999 ✓）。修复已在 commit `01f862ea`。
 - 2026-08-10 v1.0.1 发版成功：CI 全绿（get-version ✓ / build-android ✓ / release ✓），产物 `Agora-v1.0.1-android-arm64-v8a.apk` (27.56 MB) 已发布到 GitHub Release。回写 §4/§6/§9。

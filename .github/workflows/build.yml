@@ -79,6 +79,15 @@ jobs:
           chmod +x build-proot.sh
           ./build-proot.sh force
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.4'
+
+      - name: Build embedded Conch .aar
+        run: |
+          chmod +x server/conch/build-android.sh
+          ./server/conch/build-android.sh
+
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Test and verify Kotlin source budget

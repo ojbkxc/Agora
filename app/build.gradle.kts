@@ -152,6 +152,9 @@ afterEvaluate {
 }
 
 dependencies {
+    // Embedded Conch shell server (built via server/conch/build-android.sh → app/libs/conch.aar)
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
