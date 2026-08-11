@@ -48,7 +48,7 @@ internal fun ChatAppBottomBarSection(
     currentLoop: LoopEntity? = null,
     runningLoopIds: Set<String> = emptySet(),
     enabledModels: Set<String> = emptySet(),
-    selectedModel: String? = null,
+    selectedModel: String = "",
     modelAliases: Map<String, String> = emptyMap(),
     codeExecutionEnabled: Boolean = false,
     googleSearchEnabled: Boolean = false,
