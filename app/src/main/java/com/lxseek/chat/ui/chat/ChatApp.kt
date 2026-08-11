@@ -677,6 +677,11 @@ fun ChatApp(
                             haptics.selection()
                             conversationInteraction.toggleAllShareMessages()
                         },
+                        onCopy = {
+                            if (selectedShareMessageIds.isNotEmpty()) {
+                                viewModel.copyMessagesAsPlainText(selectedShareMessageIds)
+                            }
+                        },
                         onConfirm = {
                             val selection = conversationInteraction.takeShareSelection()
                             if (selection.isNotEmpty()) {

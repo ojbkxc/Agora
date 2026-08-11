@@ -88,6 +88,7 @@ internal fun ChatAppShareSelectionOverlay(
     hasSelection: Boolean,
     onDismiss: () -> Unit,
     onToggleAll: () -> Unit,
+    onCopy: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     AnimatedVisibility(
@@ -116,6 +117,7 @@ internal fun ChatAppShareSelectionOverlay(
             hasSelection = hasSelection,
             onDismiss = onDismiss,
             onToggleAll = onToggleAll,
+            onCopy = onCopy,
             onConfirm = onConfirm,
         )
     }

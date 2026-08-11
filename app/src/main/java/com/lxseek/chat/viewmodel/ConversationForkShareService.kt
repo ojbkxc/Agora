@@ -251,6 +251,18 @@ class ConversationForkShareService(
         shareMessagesOffMain(conversationId, messageIds)
     }
 
+    suspend fun buildPlainText(
+        conversationId: String,
+        messageIds: Set<String>,
+        userLabel: String,
+        aiLabel: String,
+    ): ShareResult = withContext(Dispatchers.Default) {
+        if (messageIds.isEmpty()) return@withContext ShareResult.Failure("Select at least one message")
+        val snapshot = shareSnapshot(conversationId)
+            ?: return@withContext ShareResult.Failure("Conversation not found")
+        renderShare(snapshot, messageIds, asMarkdown = false, userLabel = userLabel, aiLabel = aiLabel)
+    }
+
     private suspend fun shareMessagesOffMain(
         conversationId: String,
         messageIds: Set<String>,
@@ -280,6 +292,9 @@ class ConversationForkShareService(
     private fun renderShare(
         snapshot: ShareSnapshot,
         selectedMessageIds: Set<String>,
+        asMarkdown: Boolean = true,
+        userLabel: String = "User",
+        aiLabel: String = "AI",
     ): ShareResult {
         val visibleById = snapshot.branch.visibleMessages.associateBy { it.id }
         if (selectedMessageIds.any { it !in visibleById }) {
@@ -306,7 +321,7 @@ class ConversationForkShareService(
                     .thenBy { it.timestamp }
                     .thenBy { it.id }
             )
-        val text = formatShareText(snapshot.title, selected)
+        val text = if (asMarkdown) formatShareText(snapshot.title, selected) else formatPlainText(selected, userLabel, aiLabel)
         return if (text.isBlank()) ShareResult.Failure("Selection has no shareable content")
         else ShareResult.Success(text)
     }
@@ -415,6 +430,38 @@ private fun attachmentSummary(message: MessageEntity): String? {
             append("Images: $imageCount")
         }
     }
+}
+
+private fun formatPlainText(
+    messages: List<MessageEntity>,
+    userLabel: String,
+    aiLabel: String,
+): String {
+    val blocks = mutableListOf<String>()
+    messages.forEach { message ->
+        if (message.isSynthetic()) return@forEach
+        when (message.participant) {
+            Participant.USER -> {
+                val body = message.text.trim()
+                if (body.isNotBlank()) blocks += "[$userLabel] $body"
+            }
+            Participant.MODEL -> {
+                val segments = message.toolCallJson
+                    ?.let { raw -> runCatching { Json.decodeFromString<List<MessageSegment>>(raw) }.getOrNull() }
+                    .orEmpty()
+                val body = if (segments.isNotEmpty()) {
+                    segments.filter { it.type == "answer" }
+                        .joinToString("\n") { it.content.trim() }
+                        .trim()
+                } else {
+                    message.text.trim()
+                }
+                if (body.isNotBlank()) blocks += "[$aiLabel] $body"
+            }
+            else -> {}
+        }
+    }
+    return blocks.joinToString("\n\n")
 }
 
 /**

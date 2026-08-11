@@ -153,6 +153,9 @@
     <string name="model_with_label">Model: %1$s</string>
     <string name="cancel">Cancel</string>
     <string name="copy">Copy</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="share_label_user">User</string>
+    <string name="share_label_ai">AI</string>
     <string name="edit">Edit</string>
     <string name="info">Info</string>
     <string name="more">More</string>

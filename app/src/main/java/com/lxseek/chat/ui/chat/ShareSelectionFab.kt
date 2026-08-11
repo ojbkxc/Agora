@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +28,7 @@ internal fun ShareSelectionFab(
     hasSelection: Boolean,
     onDismiss: () -> Unit,
     onToggleAll: () -> Unit,
+    onCopy: () -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -49,6 +51,12 @@ internal fun ShareSelectionFab(
                         if (allSelected) R.string.deselect_all else R.string.select_all
                     )
                 )
+            }
+            IconButton(
+                enabled = hasSelection,
+                onClick = onCopy,
+            ) {
+                Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy))
             }
             IconButton(
                 enabled = hasSelection,

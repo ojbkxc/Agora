@@ -859,6 +859,12 @@ class ChatViewModel(
     fun shareMessages(messageIds: Set<String>) =
         conversationForkShareController.shareMessages(messageIds)
 
+    private val messageExportController by lazy {
+        MessageExportController(conversationForkShare, appContext, viewModelScope) { _snackbarMessage.emit(it) }
+    }
+    fun copyMessagesAsPlainText(messageIds: Set<String>) =
+        messageExportController.copyMessagesAsPlainText(currentConversationId.value, messageIds)
+
     fun renameConversation(id: String, newTitle: String) {
         conversationLifecycleController.rename(id, newTitle)
     }
