@@ -104,7 +104,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.5` / versionCode `6` | `defaultConfig` |
+| 版本 | versionName `1.0.7` / versionCode `8` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -209,6 +209,9 @@ Agora/
 ## 4. 当前进度（截至 2026-08-11）
 
 ### ✅ 已完成
+- **TTS 语音播报功能 CI 全绿**：commit `e7b8cb67` 的 CI 运行 #31489167800 成功（6m16s）。TtsManager + Settings + ViewModel + UI 喇叭按钮 + 设置页全部编译通过。
+- **v1.0.7 发版成功**：versionCode 7→8 / versionName 1.0.6→1.0.7，修复 Build & Release CI 版本一致性校验。CI 全绿（Build & Release #31476458515 ✓ / CI #31476408803 ✓ / Fastlane #31476408813 ✓），Release `Agora-v1.0.7-android-arm64-v8a.apk` 已发布。
+- **MarkdownDimens 崩溃修复 CI 验证通过**：commit `4ac51844` 重新应用的修复已通过后续所有 CI 编译验证（v1.0.6/v1.0.7 发版 CI 全绿）。`ChatMarkdownCodeBlock`（MessageBubbleAssets.kt）用 `CompositionLocalProvider` 自给自足提供 `LocalMarkdownDimens`，Dialog 上下文崩溃已消除。
 - **ChatApp.kt 拆分完成（938→757 行）**：三步提取 ① 底部栏区 → `ChatAppBottomBarSection.kt`（241行）；② 欢迎页 → `ChatAppWelcomeContent` in `ChatAppOverlays.kt`（192行）；③ showButton 计算 → `rememberChatAppScrollToBottomButtonVisible` in `ChatAppInteractionEffects.kt`（457行）。清理 13 个未使用 import。CI 全绿（commit `bcb73f5d` ✓）。
 - **包名重命名 com.newoether.agora → com.lxseek.chat**：627 文件变更（578+ Kotlin 文件 package/import、198 测试文件、JNI 函数名 `Java_com_lxseek_chat_*`、proguard 规则、build.gradle.kts namespace/applicationId、Appfile、build-logic、Go 模块路径 `github.com/ojbkxc/conch`、README/docs URL）。目录重命名 `com/newoether/agora/` → `com/lxseek/chat/`（main + test + testFdroid）。开发者名字 "Newo Ether" → "ojbkxc"（strings.xml en/zh、docs、LICENSE）。build.yml 添加版本一致性校验（git tag 版本必须与 build.gradle.kts versionName 一致）+ 去除 workflow_dispatch 硬编码默认值。CI 全绿（CI ✓ / Fastlane ✓）。
 - **fastlane 自动化**：创建 `fastlane/Fastfile`（lane: build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release）、`Appfile`（package_name）、`Gemfile`（fastlane 依赖）；新增 `.github/workflows/fastlane.yml`（PR/push 触发元数据验证）；添加 versionCode 6 changelog（en-US + zh-CN）。CI 全绿（Fastlane ✓ / CI ✓）。
@@ -225,10 +228,9 @@ Agora/
 ### 🟡 已知问题
 - **PRoot 二进制需 CI 构建**：`build-proot.sh` 产物（`libproot_*.so`, `libtalloc.so`）被 `.gitignore` 忽略，CI 中由 `./build-proot.sh force` 现场构建。
 - **签名密钥**：Release 签名需在 GitHub Secrets 配置 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`；未配置时回退 debug 签名。
-- **v1.0.4/v1.0.5 含 MarkdownDimens 崩溃**：原修复 `5d15e79d` 被提交 `5ed80cec` 误回退，导致这两个版本 APK 在远程 shell 命令确认 Dialog 弹出时崩溃 `IllegalStateException: No local MarkdownDimens`。已在本地重新应用修复（MessageBubbleAssets.kt `ChatMarkdownCodeBlock` 用 `CompositionLocalProvider` 自给自足），**已确认修复到位**（第 397-430 行含完整 CompositionLocalProvider，第 526/803 行裸读在 Markdown 组件上下文内安全），待 push CI 验证后发新版。
 
 ### ❌ 未完成
-1. 暂无待办。v1.0.5 已发版成功，CI 全绿。后续按用户指派推进。
+1. 暂无待办。v1.0.7 已发版成功，CI 全绿。TTS 语音播报功能已上线。后续按用户指派推进。
 
 ## 5. 关键接口契约（不要破坏既有签名）
 
@@ -281,7 +283,9 @@ Agora/
 
 ### P1+ — 后续迭代（按需推进）
 - [x] ChatApp.kt 拆分：底部栏 → ChatAppBottomBarSection.kt、欢迎页 → ChatAppOverlays.kt、showButton → ChatAppInteractionEffects.kt（938→757 行）。
-- [x] TTS 语音播报功能：TtsManager + Settings + ViewModel + UI 喇叭按钮 + 设置页。待 push CI 验证。
+- [x] TTS 语音播报功能：TtsManager + Settings + ViewModel + UI 喇叭按钮 + 设置页。CI 全绿验证通过（#31489167800 ✓）。
+- [x] MarkdownDimens 崩溃修复：CompositionLocalProvider 自给自足，CI 全绿验证通过。
+- [x] v1.0.6 / v1.0.7 发版：CI 全绿，Release 已发布。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
 ## 7. 编码约定（强制）
@@ -342,7 +346,8 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
-- 2026-08-11 TTS 语音播报功能实现 + MarkdownDimens 崩溃修复确认：① 确认 `ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397-430）已含 `CompositionLocalProvider` 自给自足修复，`MainActivity.kt:447` 的 Dialog 调用安全；第 526/803 行裸读 `LocalMarkdownDimens.current` 在 `Markdown` 组件上下文内安全。② TTS 实现：新建 `util/TtsManager.kt`（109 行，object 单例封装 Android TextToSpeech，含 init/speak/stop/shutdown/stripMarkdown，暴露 isAvailable/isPlaying StateFlow）；`data/SettingsPreferenceSchema.kt` 加 3 key（TTS_ENABLED/TTS_LANGUAGE/TTS_SPEECH_RATE）；`data/SettingsManager.kt` 加 3 Flow + 3 setter + reset（ttsEnabled/ttsLanguage/ttsSpeechRate）；`data/repository/SettingsRepository.kt` 加 3 StateFlow + 3 setter；`viewmodel/ChatViewModel.kt` 加 ttsPlayingMessageId StateFlow + toggleTtsForMessage/stopTts 方法 + init 中 TtsManager.init + isPlaying 订阅 + onCleared 清理；`ui/chat/message/AssistantMessageContent.kt` 加喇叭按钮（VolumeUp/Pause 图标，在 ContentCopy 后）；`ui/chat/message/MessageItem.kt` + `ui/chat/MessageList.kt` + `ui/chat/ChatApp.kt` 参数传递链；`ui/settings/SettingsGenerationPage.kt` 加 TTS 设置组（启用开关 + 语言下拉 + 语速滑块）；`res/values/strings.xml` + `res/values-zh/strings.xml` 各加 12 个 TTS 字符串。所有文件 ≤ 999 行（最大 ChatViewModel.kt 942 行）。无 R.font 引用、语言仅 en/zh。待 push CI 编译验证。
+- 2026-08-11 AGENTS.md 漂移修复（本次会话）：进入项目后发现 AGENTS.md 与代码严重不一致——① §2 硬约束版本号写 `1.0.5/6`，实际 build.gradle.kts 为 `1.0.7/8`；② §4 当前进度只记录到 v1.0.5，未记录 v1.0.6/v1.0.7 发版；③ TTS 功能变更日志标注"待 push CI 验证"，实际 CI #31489167800 已全绿（6m16s）；④ MarkdownDimens 崩溃仍在"已知问题"区，实际 commit `4ac51844` 重新应用的修复已通过 v1.0.6/v1.0.7 CI 验证。本次回写：§2 版本号更新为 1.0.7/8；§4 已完成区前置 v1.0.7 发版、TTS CI 全绿、MarkdownDimens 修复验证通过三条；§4 已知问题区移除 MarkdownDimens 崩溃条目；§6 TTS 勾选状态更新为"CI 全绿验证通过"并新增 MarkdownDimens/v1.0.6/v1.0.7 勾选项。未改代码，仅回写 AGENTS.md 消除漂移（§R0.3 单一事实源要求）。
+- 2026-08-11 TTS 语音播报功能实现 + MarkdownDimens 崩溃修复确认：① 确认 `ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397-430）已含 `CompositionLocalProvider` 自给自足修复，`MainActivity.kt:447` 的 Dialog 调用安全；第 526/803 行裸读 `LocalMarkdownDimens.current` 在 `Markdown` 组件上下文内安全。② TTS 实现：新建 `util/TtsManager.kt`（109 行，object 单例封装 Android TextToSpeech，含 init/speak/stop/shutdown/stripMarkdown，暴露 isAvailable/isPlaying StateFlow）；`data/SettingsPreferenceSchema.kt` 加 3 key（TTS_ENABLED/TTS_LANGUAGE/TTS_SPEECH_RATE）；`data/SettingsManager.kt` 加 3 Flow + 3 setter + reset（ttsEnabled/ttsLanguage/ttsSpeechRate）；`data/repository/SettingsRepository.kt` 加 3 StateFlow + 3 setter；`viewmodel/ChatViewModel.kt` 加 ttsPlayingMessageId StateFlow + toggleTtsForMessage/stopTts 方法 + init 中 TtsManager.init + isPlaying 订阅 + onCleared 清理；`ui/chat/message/AssistantMessageContent.kt` 加喇叭按钮（VolumeUp/Pause 图标，在 ContentCopy 后）；`ui/chat/message/MessageItem.kt` + `ui/chat/MessageList.kt` + `ui/chat/ChatApp.kt` 参数传递链；`ui/settings/SettingsGenerationPage.kt` 加 TTS 设置组（启用开关 + 语言下拉 + 语速滑块）；`res/values/strings.xml` + `res/values-zh/strings.xml` 各加 12 个 TTS 字符串。所有文件 ≤ 999 行（最大 ChatViewModel.kt 942 行）。无 R.font 引用、语言仅 en/zh。CI 全绿验证通过（#31489167800 ✓）。
 - 2026-08-11 ChatApp.kt 拆分完成（938→757 行）：三步提取 ① 底部栏区（166行）→ `ChatAppBottomBarSection.kt`（241行），含 Surface 渐变背景 + ChatBottomBar 调用 + LoopStatusBackdrop；② 欢迎页（35行）→ `ChatAppWelcomeContent` in `ChatAppOverlays.kt`（141→192行），含 TypewriterText 打字机动画；③ showButton 计算（38行）→ `rememberChatAppScrollToBottomButtonVisible` in `ChatAppInteractionEffects.kt`（401→457行），含 derivedStateOf + shouldShowAbsoluteBottomButton。清理 ChatApp.kt 13 个未使用 import（rememberScrollState/verticalScroll/CircleShape/stringResource/FontWeight/R/TypewriterMode/TypewriterText/CHAT_BOTTOM_BAR_OUTER_SHAPE/ChatBottomBar/LoopStatusBackdrop/Brush/drawBehind）。CI 全绿验证通过（commit `bcb73f5d` ✓）。
 - 2026-08-11 ChatAppBottomBarSection.kt 提取 + 类型修复：从 ChatApp.kt 提取底部栏区（166行）→ 新文件 `ChatAppBottomBarSection.kt`（240行）。经历 4 次 CI 迭代修复类型错误：① `currentLoop: String?` → `LoopEntity?`；② `enabledModels: List<String>` → `Set<String>`；③ `selectedModel: String?` → `String`（非空，来自 `StateFlow<String>`）；④ `compactModel: String` → `String?`（可空，来自 `Flow<String?>`）+ 修复多余 `}`。CI 全绿验证通过（commit `cbb2df62` ✓）。
 - 2026-08-11 包名重命名 com.newoether.agora → com.lxseek.chat + 开发者名字 → ojbkxc + CI 版本一致性校验：① 包名全量替换（627 文件）：578+ Kotlin 文件 package/import、198 测试文件、C++ JNI 函数名 `Java_com_newoether_agora_*` → `Java_com_lxseek_chat_*`、proguard-rules.pro、build.gradle.kts namespace/applicationId、fastlane Appfile、build-logic KotlinSourceSizePolicy.kt；目录重命名 `com/newoether/agora/` → `com/lxseek/chat/`（main + test + testFdroid 三处）。② 开发者名字 "Newo Ether" → "ojbkxc"（strings.xml about_developer_name en/zh、docs about.md/memory.md en/zh、LICENSE、server/conch/LICENSE）。③ Go 模块路径 `github.com/newo-ether/conch` → `github.com/ojbkxc/conch`（go.mod + Makefile + 所有 .go 文件 import）。④ README/docs 中 `com.newoether.agora` → `com.lxseek.chat`、`newo-ether/conch` → `ojbkxc/conch`。⑤ build.yml 添加 "Verify version consistency" 步骤（从 build.gradle.kts 提取 versionName 与 git tag 版本比较，不匹配则 fail）+ 去除 workflow_dispatch 硬编码默认值 `v1.0.0`。⑥ build-proot.sh NDK 路径 `/home/newoether/` → `/home/runner/`；server/crash 脚本 `newoether.space` → `example.com`。CI 全绿验证通过（CI #31445772623 ✓ / Fastlane #31445772575 ✓）。
