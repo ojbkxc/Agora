@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
@@ -50,6 +52,9 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
         viewModel.settings.openAiServiceTierEnabled.collectAsState()
     val openAiServiceTier by viewModel.settings.openAiServiceTier.collectAsState()
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
+    val ttsEnabled by viewModel.settings.ttsEnabled.collectAsState()
+    val ttsLanguage by viewModel.settings.ttsLanguage.collectAsState()
+    val ttsSpeechRate by viewModel.settings.ttsSpeechRate.collectAsState()
 
     CollapsingSettingsScaffold(
         title = stringResource(R.string.generation_title),
@@ -211,6 +216,127 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             )
                         }
                     )
+                )
+
+                // ── Section 5: Voice Read-Aloud (TTS) ──
+                SettingsGroup(
+                    title = stringResource(R.string.tts_title),
+                    items = listOf(
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.tts_enabled)) },
+                                supportingContent = { Text(stringResource(R.string.tts_enabled_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.VolumeUp,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = ttsEnabled,
+                                        onCheckedChange = { viewModel.settings.setTtsEnabled(it) },
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setTtsEnabled(!ttsEnabled) },
+                            )
+                        },
+                        {
+                            var langExpanded by remember { mutableStateOf(false) }
+                            val langLabel = when (ttsLanguage) {
+                                "en" -> stringResource(R.string.tts_language_en)
+                                "zh" -> stringResource(R.string.tts_language_zh)
+                                else -> stringResource(R.string.tts_language_system)
+                            }
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.tts_language)) },
+                                supportingContent = { Text(langLabel) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.Language,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Box {
+                                        TextButton(onClick = { langExpanded = true }) {
+                                            Text(langLabel)
+                                        }
+                                        DropdownMenu(
+                                            expanded = langExpanded,
+                                            onDismissRequest = { langExpanded = false },
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.tts_language_system)) },
+                                                onClick = {
+                                                    langExpanded = false
+                                                    viewModel.settings.setTtsLanguage("system")
+                                                },
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.tts_language_en)) },
+                                                onClick = {
+                                                    langExpanded = false
+                                                    viewModel.settings.setTtsLanguage("en")
+                                                },
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.tts_language_zh)) },
+                                                onClick = {
+                                                    langExpanded = false
+                                                    viewModel.settings.setTtsLanguage("zh")
+                                                },
+                                            )
+                                        }
+                                    }
+                                },
+                            )
+                        },
+                        {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Speed,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.tts_speech_rate),
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.tts_speech_rate_desc),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 4.dp),
+                                        )
+                                        Text(
+                                            text = String.format(Locale.US, "%.1f×", ttsSpeechRate),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        Slider(
+                                            value = ttsSpeechRate,
+                                            onValueChange = { viewModel.settings.setTtsSpeechRate(it) },
+                                            valueRange = 0.5f..2.0f,
+                                            modifier = Modifier.padding(top = 8.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                    ),
                 )
             }
 

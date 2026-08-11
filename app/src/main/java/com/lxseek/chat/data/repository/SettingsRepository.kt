@@ -101,6 +101,9 @@ class SettingsRepository(
     val codeExecutionEnabled: StateFlow<Boolean> = hot(settingsManager.codeExecutionEnabled, false)
     val googleSearchEnabled: StateFlow<Boolean> = hot(settingsManager.googleSearchEnabled, false)
     val thinkingEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingEnabled, true)
+    val ttsEnabled: StateFlow<Boolean> = hot(settingsManager.ttsEnabled, false)
+    val ttsLanguage: StateFlow<String> = hot(settingsManager.ttsLanguage, "system")
+    val ttsSpeechRate: StateFlow<Float> = hot(settingsManager.ttsSpeechRate, 1.0f)
     val thinkingLevel: StateFlow<String> = hot(settingsManager.thinkingLevel, "medium")
     val thinkingBudgetEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingBudgetEnabled, false)
     val thinkingBudgetTokens: StateFlow<Int> = hot(settingsManager.thinkingBudgetTokens, 4096)
@@ -473,6 +476,9 @@ class SettingsRepository(
     fun setSandboxSharedStorageEnabled(enabled: Boolean) =
         scope.launch { settingsManager.saveSandboxSharedStorageEnabled(enabled) }
     fun setThinkingEnabled(enabled: Boolean) = scope.launch { settingsManager.saveThinkingEnabled(enabled) }
+    fun setTtsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveTtsEnabled(enabled) }
+    fun setTtsLanguage(language: String) = scope.launch { settingsManager.saveTtsLanguage(language) }
+    fun setTtsSpeechRate(rate: Float) = scope.launch { settingsManager.saveTtsSpeechRate(rate) }
     fun setThinkingLevel(level: String) = scope.launch { settingsManager.saveThinkingLevel(level) }
     fun setThinkingBudgetEnabled(enabled: Boolean) = scope.launch { settingsManager.saveThinkingBudgetEnabled(enabled) }
     fun setThinkingBudgetTokens(tokens: Int) = scope.launch { settingsManager.saveThinkingBudgetTokens(tokens) }

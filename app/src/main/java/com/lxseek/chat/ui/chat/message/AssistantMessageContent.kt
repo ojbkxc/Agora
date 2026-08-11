@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.*
 import com.lxseek.chat.ui.motion.MotionAwareCircularProgressIndicator as CircularProgressIndicator
 import androidx.compose.runtime.*
@@ -188,6 +190,8 @@ internal fun AssistantMessageContent(
     onLayoutMutationStarted: (String) -> Unit,
     onLayoutMutationSettled: (String) -> Unit,
     setThoughtBlockHeight: (Int) -> Unit,
+    isTtsPlaying: Boolean = false,
+    onToggleTts: () -> Unit = {},
 ) {
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
@@ -553,6 +557,22 @@ internal fun AssistantMessageContent(
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
                                     tint = enabledActionTint,
+                                )
+                            }
+                            IconButton(
+                                onClick = onToggleTts,
+                                enabled = actionAvailability.informationEnabled,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .graphicsLayer { alpha = informationActionsAlpha },
+                            ) {
+                                Icon(
+                                    if (isTtsPlaying) Icons.Default.Pause else Icons.Default.VolumeUp,
+                                    contentDescription = stringResource(
+                                        if (isTtsPlaying) R.string.tts_stop else R.string.tts_play
+                                    ),
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (isTtsPlaying) MaterialTheme.colorScheme.primary else enabledActionTint,
                                 )
                             }
                         }

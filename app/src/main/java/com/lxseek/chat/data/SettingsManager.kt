@@ -65,6 +65,11 @@ class SettingsManager(private val context: Context) {
     val codeExecutionEnabled: Flow<Boolean> = context.dataStore.data.map { it[CODE_EXECUTION_ENABLED] ?: false }
     val googleSearchEnabled: Flow<Boolean> = context.dataStore.data.map { it[GOOGLE_SEARCH_ENABLED] ?: false }
     val thinkingEnabled: Flow<Boolean> = context.dataStore.data.map { it[THINKING_ENABLED] ?: true }
+    val ttsEnabled: Flow<Boolean> = context.dataStore.data.map { it[TTS_ENABLED] ?: false }
+    val ttsLanguage: Flow<String> = context.dataStore.data.map { it[TTS_LANGUAGE] ?: "system" }
+    val ttsSpeechRate: Flow<Float> = context.dataStore.data.map {
+        it[TTS_SPEECH_RATE]?.toFloatOrNull() ?: 1.0f
+    }
     val thinkingLevel: Flow<String> = context.dataStore.data.map { ThinkingLevels.normalize(it[THINKING_LEVEL]) }
     val thinkingBudgetEnabled: Flow<Boolean> = context.dataStore.data.map { pref ->
         pref[THINKING_BUDGET_ENABLED] ?: (ThinkingLevels.legacyBudgetTokens(pref[THINKING_LEVEL]) != null)
@@ -373,6 +378,18 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveThinkingEnabled(enabled: Boolean) {
         context.dataStore.edit { it[THINKING_ENABLED] = enabled }
+    }
+
+    suspend fun saveTtsEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[TTS_ENABLED] = enabled }
+    }
+
+    suspend fun saveTtsLanguage(language: String) {
+        context.dataStore.edit { it[TTS_LANGUAGE] = language }
+    }
+
+    suspend fun saveTtsSpeechRate(rate: Float) {
+        context.dataStore.edit { it[TTS_SPEECH_RATE] = rate.toString() }
     }
 
     suspend fun saveThinkingLevel(level: String) {
@@ -784,6 +801,9 @@ class SettingsManager(private val context: Context) {
             prefs.remove(CODE_EXECUTION_ENABLED)
             prefs.remove(GOOGLE_SEARCH_ENABLED)
             prefs.remove(THINKING_ENABLED)
+            prefs.remove(TTS_ENABLED)
+            prefs.remove(TTS_LANGUAGE)
+            prefs.remove(TTS_SPEECH_RATE)
             prefs.remove(THINKING_LEVEL)
             prefs.remove(THINKING_BUDGET_ENABLED)
             prefs.remove(THINKING_BUDGET_TOKENS)

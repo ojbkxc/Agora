@@ -35,6 +35,7 @@ import com.lxseek.chat.sandbox.SandboxManager
 import com.lxseek.chat.sandbox.SandboxManagerFactory
 import com.lxseek.chat.service.AgoraForegroundService
 import com.lxseek.chat.util.DebugLog
+import com.lxseek.chat.util.TtsManager
 import com.lxseek.chat.util.PdfPageRenderer
 import com.lxseek.chat.util.SnackbarEvent
 import com.lxseek.chat.util.UpdateChecker
@@ -278,6 +279,7 @@ class ChatViewModel(
         sandboxManager?.close()
         generationRegistry.detachUiCallbacks(generationCallbackOwner)
         dataControl.destroy()
+        TtsManager.stop()
     }
 
     /** Nullable on purpose: the provider settings page recomposes one frame after a custom
@@ -489,6 +491,9 @@ class ChatViewModel(
     val updateDialogData: StateFlow<UpdateInfo?> = _updateDialogData.asStateFlow()
     fun dismissUpdateDialog() { _updateDialogData.value = null }
     fun showUpdateDialog(info: UpdateInfo) { _updateDialogData.value = info }
+
+    private val _ttsPlayingMessageId = MutableStateFlow<String?>(null)
+    val ttsPlayingMessageId: StateFlow<String?> = _ttsPlayingMessageId.asStateFlow()
 
     /** PDF / text-file preview state (see [MediaPreviewState]). */
     private val mediaPreview = MediaPreviewState()
@@ -730,6 +735,15 @@ class ChatViewModel(
         // Loop cycles for the open conversation use the regular Send path; the bridge waits for
         // that exact durable turn and returns a typed result to the automation lease owner.
         foregroundAutomationBridge.start()
+
+        TtsManager.init(appContext)
+        viewModelScope.launch {
+            TtsManager.isPlaying.collect { playing ->
+                if (!playing && _ttsPlayingMessageId.value != null) {
+                    _ttsPlayingMessageId.value = null
+                }
+            }
+        }
     }
 
     // ── Custom providers ──────────────────────────────────────
@@ -860,6 +874,29 @@ class ChatViewModel(
     fun removeQueuedSend(id: String) = currentRuntimeFacade.removeQueuedSend(id)
 
     fun stopGeneration() = generationStopAdapter.stopVisibleConversation()
+
+    fun toggleTtsForMessage(message: ChatMessage) {
+        val current = _ttsPlayingMessageId.value
+        if (current == message.id) {
+            TtsManager.stop()
+            _ttsPlayingMessageId.value = null
+            return
+        }
+        if (!settings.ttsEnabled.value) return
+        val plainText = TtsManager.stripMarkdown(message.text)
+        if (plainText.isBlank()) return
+        _ttsPlayingMessageId.value = message.id
+        TtsManager.speak(
+            text = plainText,
+            language = settings.ttsLanguage.value,
+            rate = settings.ttsSpeechRate.value,
+        )
+    }
+
+    fun stopTts() {
+        TtsManager.stop()
+        _ttsPlayingMessageId.value = null
+    }
 
     fun regenerate(messageId: String): Boolean = generationController.regenerate(messageId)
 

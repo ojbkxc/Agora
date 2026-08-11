@@ -396,6 +396,20 @@
     <string name="advanced_settings">Advanced</string>
     <string name="advanced_generation_title">Advanced Settings</string>
     <string name="advanced_per_conversation">Per-conversation overrides</string>
+
+    <!-- Settings - TTS -->
+    <string name="tts_title">Voice Read-Aloud</string>
+    <string name="tts_enabled">Read Aloud</string>
+    <string name="tts_enabled_desc">Enable text-to-speech for assistant messages</string>
+    <string name="tts_language">Speech Language</string>
+    <string name="tts_language_system">System Default</string>
+    <string name="tts_language_en">English</string>
+    <string name="tts_language_zh">Chinese</string>
+    <string name="tts_speech_rate">Speech Rate</string>
+    <string name="tts_speech_rate_desc">Playback speed (0.5×–2.0×)</string>
+    <string name="tts_not_available">Text-to-speech engine not available on this device</string>
+    <string name="tts_play">Play</string>
+    <string name="tts_stop">Stop</string>
     <string name="message_display">Message Display</string>
     <string name="tool_call_display_mode">Thinking &amp; Tool Blocks</string>
     <string name="tool_call_display_mode_timeline">Timeline</string>

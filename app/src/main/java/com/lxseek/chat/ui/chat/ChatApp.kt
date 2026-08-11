@@ -104,6 +104,7 @@ fun ChatApp(
     val allMessagesState = viewModel.allMessages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isCompacting by viewModel.isCompacting.collectAsState()
+    val ttsPlayingMessageId by viewModel.ttsPlayingMessageId.collectAsState()
     val compactPreview by viewModel.compactPreview.collectAsState()
     val compactModel by viewModel.settings.contextCompactModel.collectAsState()
     val compactPrompt by viewModel.settings.contextCompactPrompt.collectAsState()
@@ -587,6 +588,11 @@ fun ChatApp(
                                     viewModel.shareGeneration(id)
                                 },
                                 onDelete = { id -> viewModel.deleteMessage(id) },
+                                ttsPlayingMessageId = ttsPlayingMessageId,
+                                onToggleTts = { id ->
+                                    val msg = allMessagesState.value.firstOrNull { it.id == id }
+                                    if (msg != null) viewModel.toggleTtsForMessage(msg)
+                                },
                                 searchQuery = if (conversationSearchActive) {
                                     conversationSearchQuery
                                 } else {

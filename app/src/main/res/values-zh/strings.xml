@@ -373,6 +373,20 @@
     <string name="advanced_generation_title">高级设置</string>
     <string name="advanced_per_conversation">逐对话覆盖</string>
 
+    <!-- Settings - TTS -->
+    <string name="tts_title">语音播报</string>
+    <string name="tts_enabled">朗读</string>
+    <string name="tts_enabled_desc">启用助手消息的文本转语音功能</string>
+    <string name="tts_language">语音语言</string>
+    <string name="tts_language_system">系统默认</string>
+    <string name="tts_language_en">英语</string>
+    <string name="tts_language_zh">中文</string>
+    <string name="tts_speech_rate">语速</string>
+    <string name="tts_speech_rate_desc">播放速度（0.5×–2.0×）</string>
+    <string name="tts_not_available">此设备不支持文本转语音引擎</string>
+    <string name="tts_play">播放</string>
+    <string name="tts_stop">停止</string>
+
     <!-- Settings - Web Search Page -->
     <string name="web_search_title">网页搜索</string>
     <string name="web_search_enable">启用网页搜索</string>

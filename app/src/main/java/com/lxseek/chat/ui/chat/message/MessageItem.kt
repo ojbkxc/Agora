@@ -92,7 +92,9 @@ internal fun MessageItem(
     onToggleSelection: () -> Unit = {},
     onLayoutMutationStarted: (String) -> Unit = {},
     onLayoutMutationSettled: (String) -> Unit = {},
-    thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() }
+    thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
+    isTtsPlaying: Boolean = false,
+    onToggleTts: () -> Unit = {},
 ) {
     var showSegmentDetail by remember { mutableStateOf(false) }
     var detailUsesExplicitBackHandler by remember { mutableStateOf(false) }
@@ -291,6 +293,8 @@ internal fun MessageItem(
                         onLayoutMutationStarted = onLayoutMutationStarted,
                         onLayoutMutationSettled = onLayoutMutationSettled,
                         setThoughtBlockHeight = {},
+                        isTtsPlaying = isTtsPlaying,
+                        onToggleTts = onToggleTts,
                     )
                 }
             }
