@@ -14,6 +14,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.lxseek.chat.api.util.ContextWindowUsage
+import com.lxseek.chat.data.local.LoopEntity
 import com.lxseek.chat.data.ShellDeviceConfig
 import com.lxseek.chat.model.OpenAiServiceTiers
 import com.lxseek.chat.ui.chat.bottombar.CHAT_BOTTOM_BAR_OUTER_SHAPE
@@ -44,9 +45,9 @@ internal fun ChatAppBottomBarSection(
     isSwitching: Boolean = false,
     isStopping: Boolean = false,
     currentConversationId: String? = null,
-    currentLoop: String? = null,
+    currentLoop: LoopEntity? = null,
     runningLoopIds: Set<String> = emptySet(),
-    enabledModels: List<String> = emptyList(),
+    enabledModels: Set<String> = emptySet(),
     selectedModel: String? = null,
     modelAliases: Map<String, String> = emptyMap(),
     codeExecutionEnabled: Boolean = false,

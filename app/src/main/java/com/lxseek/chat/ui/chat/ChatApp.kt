@@ -803,7 +803,6 @@ fun ChatApp(
                 fullScreenViewerUrls = fullScreenViewerUrls,
             )
             }
-            }
         }
         }
 
