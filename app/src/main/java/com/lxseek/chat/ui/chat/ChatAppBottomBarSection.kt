@@ -65,7 +65,7 @@ internal fun ChatAppBottomBarSection(
     globalShell: Boolean = false,
     shellDevices: List<ShellDeviceConfig> = emptyList(),
     contextUsage: ContextWindowUsage = ContextWindowUsage(0, 0, 0, false),
-    compactModel: String = "",
+    compactModel: String? = null,
     compactPrompt: String = "",
     compactRetainCount: Int = 0,
     queuedSends: List<QueuedSend> = emptyList(),
