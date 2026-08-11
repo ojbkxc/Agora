@@ -46,8 +46,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.UUID
+
+private const val TTS_START_GRACE_MS = 5_000L
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModel(
@@ -744,6 +747,16 @@ class ChatViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            TtsManager.isAvailable.collect { available ->
+                if (!available && _ttsPlayingMessageId.value != null) {
+                    // Engine went away (uninstalled or init failed after a successful start) —
+                    // cancel any playing indicator so the UI doesn't stick on a mute Pause icon.
+                    TtsManager.stop()
+                    _ttsPlayingMessageId.value = null
+                }
+            }
+        }
     }
 
     // ── Custom providers ──────────────────────────────────────
@@ -885,12 +898,32 @@ class ChatViewModel(
         if (!settings.ttsEnabled.value) return
         val plainText = TtsManager.stripMarkdown(message.text)
         if (plainText.isBlank()) return
+        // (Re)initialize if the engine isn't ready — cheap when already initialized, and
+        // recovers from a prior transient ERROR (TtsManager.init is retryable).
+        if (!TtsManager.isAvailable.value) {
+            TtsManager.init(appContext)
+        }
         _ttsPlayingMessageId.value = message.id
-        TtsManager.speak(
+        val accepted = TtsManager.speak(
             text = plainText,
             language = settings.ttsLanguage.value,
             rate = settings.ttsSpeechRate.value,
         )
+        if (!accepted) {
+            _ttsPlayingMessageId.value = null
+            return
+        }
+        // If the engine was still initializing, speak() buffered the utterance and returned
+        // true. Should init ultimately fail, isPlaying will never transition and the
+        // indicator would stick on a mute Pause icon — guard with a grace window.
+        viewModelScope.launch {
+            withTimeoutOrNull(TTS_START_GRACE_MS) {
+                TtsManager.isPlaying.first { it }
+            }
+            if (!TtsManager.isPlaying.value && _ttsPlayingMessageId.value == message.id) {
+                _ttsPlayingMessageId.value = null
+            }
+        }
     }
 
     fun stopTts() {
