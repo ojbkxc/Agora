@@ -136,7 +136,7 @@ Agora/
 │       │   │   ├── llama_jni.cpp     # llama.cpp JNI 绑定
 │       │   │   ├── llama_chat_jni.cpp
 │       │   │   └── proot_jni.cpp     # PRoot JNI stub
-│       │   ├── java/com/newoether/agora/
+│       │   ├── java/com/lxseek/chat/
 │       │   │   ├── AgoraApplication.kt   # Application（持有 AppContainer）
 │       │   │   ├── MainActivity.kt       # 唯一 Activity（Compose 入口）
 │       │   │   ├── api/               # LLM Provider 适配器（38 文件）
@@ -209,6 +209,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-11）
 
 ### ✅ 已完成
+- **ChatApp.kt 拆分完成（938→757 行）**：三步提取 ① 底部栏区 → `ChatAppBottomBarSection.kt`（241行）；② 欢迎页 → `ChatAppWelcomeContent` in `ChatAppOverlays.kt`（192行）；③ showButton 计算 → `rememberChatAppScrollToBottomButtonVisible` in `ChatAppInteractionEffects.kt`（457行）。清理 13 个未使用 import。CI 全绿（commit `bcb73f5d` ✓）。
 - **包名重命名 com.newoether.agora → com.lxseek.chat**：627 文件变更（578+ Kotlin 文件 package/import、198 测试文件、JNI 函数名 `Java_com_lxseek_chat_*`、proguard 规则、build.gradle.kts namespace/applicationId、Appfile、build-logic、Go 模块路径 `github.com/ojbkxc/conch`、README/docs URL）。目录重命名 `com/newoether/agora/` → `com/lxseek/chat/`（main + test + testFdroid）。开发者名字 "Newo Ether" → "ojbkxc"（strings.xml en/zh、docs、LICENSE）。build.yml 添加版本一致性校验（git tag 版本必须与 build.gradle.kts versionName 一致）+ 去除 workflow_dispatch 硬编码默认值。CI 全绿（CI ✓ / Fastlane ✓）。
 - **fastlane 自动化**：创建 `fastlane/Fastfile`（lane: build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release）、`Appfile`（package_name）、`Gemfile`（fastlane 依赖）；新增 `.github/workflows/fastlane.yml`（PR/push 触发元数据验证）；添加 versionCode 6 changelog（en-US + zh-CN）。CI 全绿（Fastlane ✓ / CI ✓）。
 - **v1.0.5 发版成功**：修复 `DebugLog.i()` 编译错误（DebugLog 只有 d/e/w，无 i 方法）+ `showSnackbar()` 未包在协程中的编译错误。bump versionCode 5→6 / versionName 1.0.4→1.0.5。删除有问题的 v1.0.4 tag（指向含编译错误的 commit）和误标的 v1.0.3 tag。CI 全绿（Build & Release ✓ / CI ✓），Release `Agora-v1.0.5-android-arm64-v8a.apk` 已发布。
@@ -279,6 +280,7 @@ Agora/
 - [x] 确认 GitHub Release 产物 `Agora-v1.0.1-android-arm64-v8a.apk` (27.56 MB) 正确。
 
 ### P1+ — 后续迭代（按需推进）
+- [x] ChatApp.kt 拆分：底部栏 → ChatAppBottomBarSection.kt、欢迎页 → ChatAppOverlays.kt、showButton → ChatAppInteractionEffects.kt（938→757 行）。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
 ## 7. 编码约定（强制）
@@ -339,6 +341,8 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-11 ChatApp.kt 拆分完成（938→757 行）：三步提取 ① 底部栏区（166行）→ `ChatAppBottomBarSection.kt`（241行），含 Surface 渐变背景 + ChatBottomBar 调用 + LoopStatusBackdrop；② 欢迎页（35行）→ `ChatAppWelcomeContent` in `ChatAppOverlays.kt`（141→192行），含 TypewriterText 打字机动画；③ showButton 计算（38行）→ `rememberChatAppScrollToBottomButtonVisible` in `ChatAppInteractionEffects.kt`（401→457行），含 derivedStateOf + shouldShowAbsoluteBottomButton。清理 ChatApp.kt 13 个未使用 import（rememberScrollState/verticalScroll/CircleShape/stringResource/FontWeight/R/TypewriterMode/TypewriterText/CHAT_BOTTOM_BAR_OUTER_SHAPE/ChatBottomBar/LoopStatusBackdrop/Brush/drawBehind）。CI 全绿验证通过（commit `bcb73f5d` ✓）。
+- 2026-08-11 ChatAppBottomBarSection.kt 提取 + 类型修复：从 ChatApp.kt 提取底部栏区（166行）→ 新文件 `ChatAppBottomBarSection.kt`（240行）。经历 4 次 CI 迭代修复类型错误：① `currentLoop: String?` → `LoopEntity?`；② `enabledModels: List<String>` → `Set<String>`；③ `selectedModel: String?` → `String`（非空，来自 `StateFlow<String>`）；④ `compactModel: String` → `String?`（可空，来自 `Flow<String?>`）+ 修复多余 `}`。CI 全绿验证通过（commit `cbb2df62` ✓）。
 - 2026-08-11 包名重命名 com.newoether.agora → com.lxseek.chat + 开发者名字 → ojbkxc + CI 版本一致性校验：① 包名全量替换（627 文件）：578+ Kotlin 文件 package/import、198 测试文件、C++ JNI 函数名 `Java_com_newoether_agora_*` → `Java_com_lxseek_chat_*`、proguard-rules.pro、build.gradle.kts namespace/applicationId、fastlane Appfile、build-logic KotlinSourceSizePolicy.kt；目录重命名 `com/newoether/agora/` → `com/lxseek/chat/`（main + test + testFdroid 三处）。② 开发者名字 "Newo Ether" → "ojbkxc"（strings.xml about_developer_name en/zh、docs about.md/memory.md en/zh、LICENSE、server/conch/LICENSE）。③ Go 模块路径 `github.com/newo-ether/conch` → `github.com/ojbkxc/conch`（go.mod + Makefile + 所有 .go 文件 import）。④ README/docs 中 `com.newoether.agora` → `com.lxseek.chat`、`newo-ether/conch` → `ojbkxc/conch`。⑤ build.yml 添加 "Verify version consistency" 步骤（从 build.gradle.kts 提取 versionName 与 git tag 版本比较，不匹配则 fail）+ 去除 workflow_dispatch 硬编码默认值 `v1.0.0`。⑥ build-proot.sh NDK 路径 `/home/newoether/` → `/home/runner/`；server/crash 脚本 `newoether.space` → `example.com`。CI 全绿验证通过（CI #31445772623 ✓ / Fastlane #31445772575 ✓）。
 - 2026-08-11 关于页面死代码清理：分析 `SettingsAboutPage.kt`（239 行），确认 4 个 URL 均指向 `ojbkxc/Agora`（✓）、版本号动态读取（✓）、字符串 en+zh 完整（✓）。删除 7 个未使用 import（`MutableInteractionSource`/`rememberScrollState`/`verticalScroll`/`ArrowBack`/`LocalFocusManager`/`FontWeight`/`UpdateInfo`）+ 1 个未使用变量（`focusManager`）+ 2 个未使用字符串资源（`about_source_code`/`about_rating`，en+zh 各删 2 行）。文件 239→230 行。同时修复 `MessageBubbleAssets.kt:402` 的 `markdownDimens()` @Composable 调用错误（从 `remember { markdownDimens() }` 改为直接调用，因 `markdownDimens()` 是 @Composable 函数不能在 `remember {}` lambda 中调用）。待 CI 全绿确认。
 - 2026-08-11 修复 `IllegalStateException: No local MarkdownDimens` 崩溃（重新应用被回退的修复）：排查发现提交 `5ed80cec`("fix: revert unintended change to MessageBubbleAssets.kt") 错误回退了原修复 `5d15e79d`，使 v1.0.4/v1.0.5 仍含此崩溃。根因：`ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397）被 `MainActivity.kt:447` 的 `AlertDialog` 直接调用，Dialog 拥有独立 CompositionLocal 上下文，父级 `Markdown` 提供的 `LocalMarkdownDimens` 等不透传进 Dialog，裸读 `LocalMarkdownDimens.current` 抛 `IllegalStateException: No local MarkdownDimens`。CI 仅 `assembleFdroidRelease` 编译验证不捕获运行时崩溃，故回退后 CI 仍全绿但 APK 含 bug。修复：`ChatMarkdownCodeBlock` 内用 `CompositionLocalProvider` 自给自足提供 `LocalMarkdownDimens`（`markdownDimens()`）/`LocalMarkdownColors`/`LocalMarkdownTypography`/`LocalMarkdownPadding`（后三者取自 `assets.renderContext`），`shape` 改用局部 `dimens.codeBackgroundCornerSize`。新增 3 import（`CompositionLocalProvider`/`LocalMarkdownTypography`/`markdownDimens`）。文件 849→860 行（≤999 ✓），静态自检通过（无 R.font、语言仅 en/zh、无残留裸读）。待 push CI 编译验证。**更正历史漂移**：旧 §9 称修复在 commit `01f862ea` 有误——`01f862ea` 实为 "pass modifier param to overlay composables" 提交；真正修复提交为 `5d15e79d`，但随后被 `5ed80cec` 回退，本次重新应用。
@@ -360,14 +364,16 @@ gh run view --log-failed    # 失败时查看报错日志
 - 版本目录：`gradle/libs.versions.toml`（AGP/Kotlin/Compose/Room 等版本统一管理）。
 - 上游借鉴：`/opt/github/RustSync`（编译流水线参照：tag 触发 → 产物命名 → GitHub Release 模式）。
 - 关键文件速查：
-  - 应用入口：`app/src/main/java/com/newoether/agora/MainActivity.kt`
-  - Application：`app/src/main/java/com/newoether/agora/AgoraApplication.kt`
-  - DI 容器：`app/src/main/java/com/newoether/agora/di/AppContainer.kt`
-  - Provider 接口：`app/src/main/java/com/newoether/agora/api/LlmProvider.kt`
-  - HTTP 客户端：`app/src/main/java/com/newoether/agora/api/HttpClient.kt`
-  - 主题：`app/src/main/java/com/newoether/agora/ui/theme/{Type,Theme,Color}.kt`
-  - 语言选项：`app/src/main/java/com/newoether/agora/ui/settings/SettingsLanguagePage.kt`
-  - 系统提示：`app/src/main/java/com/newoether/agora/data/DefaultSystemPrompt.kt`
+  - 应用入口：`app/src/main/java/com/lxseek/chat/MainActivity.kt`
+  - Application：`app/src/main/java/com/lxseek/chat/AgoraApplication.kt`
+  - DI 容器：`app/src/main/java/com/lxseek/chat/di/AppContainer.kt`
+  - Provider 接口：`app/src/main/java/com/lxseek/chat/api/LlmProvider.kt`
+  - HTTP 客户端：`app/src/main/java/com/lxseek/chat/api/HttpClient.kt`
+  - 主题：`app/src/main/java/com/lxseek/chat/ui/theme/{Type,Theme,Color}.kt`
+  - 语言选项：`app/src/main/java/com/lxseek/chat/ui/settings/SettingsLanguagePage.kt`
+  - 系统提示：`app/src/main/java/com/lxseek/chat/data/DefaultSystemPrompt.kt`
+  - 聊天主 Composable：`app/src/main/java/com/lxseek/chat/ui/chat/ChatApp.kt`（757 行）
+  - 聊天拆分文件：`ChatAppBottomBarSection.kt`（241）/ `ChatAppOverlays.kt`（192）/ `ChatAppInteractionEffects.kt`（457）/ `ChatAppDialogHost.kt`（146）
   - 构建配置：`app/build.gradle.kts`
   - CI 流水线：`.github/workflows/build.yml`
   - PRoot 构建：`build-proot.sh`
