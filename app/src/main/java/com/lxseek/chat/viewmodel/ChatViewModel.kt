@@ -539,6 +539,22 @@ class ChatViewModel(
             }
             state.onStreamCommit = { conversationId, message ->
                 conversationUi.commitTerminalStreamingMessage(conversationId, message)
+                if (settings.ttsEnabled.value && settings.ttsAutoPlay.value &&
+                    conversationId == currentConversationId.value
+                ) {
+                    val plainText = TtsManager.stripMarkdown(message.text)
+                    if (plainText.isNotBlank()) {
+                        _ttsPlayingMessageId.value = message.id
+                        if (!TtsManager.speak(
+                                text = plainText,
+                                language = settings.ttsLanguage.value,
+                                rate = settings.ttsSpeechRate.value,
+                            )
+                        ) {
+                            _ttsPlayingMessageId.value = null
+                        }
+                    }
+                }
             }
             state.onQueueDrainRequested = { settledState ->
                 settledState.scope.launch {

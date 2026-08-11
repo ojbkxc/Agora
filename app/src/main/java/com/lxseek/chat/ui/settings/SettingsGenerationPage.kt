@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Tune
@@ -53,6 +54,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val openAiServiceTier by viewModel.settings.openAiServiceTier.collectAsState()
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
     val ttsEnabled by viewModel.settings.ttsEnabled.collectAsState()
+    val ttsAutoPlay by viewModel.settings.ttsAutoPlay.collectAsState()
     val ttsLanguage by viewModel.settings.ttsLanguage.collectAsState()
     val ttsSpeechRate by viewModel.settings.ttsSpeechRate.collectAsState()
 
@@ -240,6 +242,26 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     )
                                 },
                                 modifier = Modifier.clickable { viewModel.settings.setTtsEnabled(!ttsEnabled) },
+                            )
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.tts_autoplay)) },
+                                supportingContent = { Text(stringResource(R.string.tts_autoplay_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = ttsAutoPlay,
+                                        onCheckedChange = { viewModel.settings.setTtsAutoPlay(it) },
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setTtsAutoPlay(!ttsAutoPlay) },
                             )
                         },
                         {

@@ -126,3 +126,4 @@ internal val LAST_MODELS_FETCH_FINGERPRINT = stringPreferencesKey("last_models_f
 internal val TTS_ENABLED = booleanPreferencesKey("tts_enabled")
 internal val TTS_LANGUAGE = stringPreferencesKey("tts_language")
 internal val TTS_SPEECH_RATE = stringPreferencesKey("tts_speech_rate")
+internal val TTS_AUTOPLAY = booleanPreferencesKey("tts_autoplay")

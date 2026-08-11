@@ -377,6 +377,8 @@
     <string name="tts_title">语音播报</string>
     <string name="tts_enabled">朗读</string>
     <string name="tts_enabled_desc">启用助手消息的文本转语音功能</string>
+    <string name="tts_autoplay">自动播放回复</string>
+    <string name="tts_autoplay_desc">回复完成后自动朗读</string>
     <string name="tts_language">语音语言</string>
     <string name="tts_language_system">系统默认</string>
     <string name="tts_language_en">英语</string>

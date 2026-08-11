@@ -66,6 +66,7 @@ class SettingsManager(private val context: Context) {
     val googleSearchEnabled: Flow<Boolean> = context.dataStore.data.map { it[GOOGLE_SEARCH_ENABLED] ?: false }
     val thinkingEnabled: Flow<Boolean> = context.dataStore.data.map { it[THINKING_ENABLED] ?: true }
     val ttsEnabled: Flow<Boolean> = context.dataStore.data.map { it[TTS_ENABLED] ?: false }
+    val ttsAutoPlay: Flow<Boolean> = context.dataStore.data.map { it[TTS_AUTOPLAY] ?: false }
     val ttsLanguage: Flow<String> = context.dataStore.data.map { it[TTS_LANGUAGE] ?: "system" }
     val ttsSpeechRate: Flow<Float> = context.dataStore.data.map {
         it[TTS_SPEECH_RATE]?.toFloatOrNull() ?: 1.0f
@@ -382,6 +383,10 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveTtsEnabled(enabled: Boolean) {
         context.dataStore.edit { it[TTS_ENABLED] = enabled }
+    }
+
+    suspend fun saveTtsAutoPlay(enabled: Boolean) {
+        context.dataStore.edit { it[TTS_AUTOPLAY] = enabled }
     }
 
     suspend fun saveTtsLanguage(language: String) {
@@ -804,6 +809,7 @@ class SettingsManager(private val context: Context) {
             prefs.remove(TTS_ENABLED)
             prefs.remove(TTS_LANGUAGE)
             prefs.remove(TTS_SPEECH_RATE)
+            prefs.remove(TTS_AUTOPLAY)
             prefs.remove(THINKING_LEVEL)
             prefs.remove(THINKING_BUDGET_ENABLED)
             prefs.remove(THINKING_BUDGET_TOKENS)

@@ -401,6 +401,8 @@
     <string name="tts_title">Voice Read-Aloud</string>
     <string name="tts_enabled">Read Aloud</string>
     <string name="tts_enabled_desc">Enable text-to-speech for assistant messages</string>
+    <string name="tts_autoplay">Auto-Play Replies</string>
+    <string name="tts_autoplay_desc">Read aloud automatically when a reply finishes</string>
     <string name="tts_language">Speech Language</string>
     <string name="tts_language_system">System Default</string>
     <string name="tts_language_en">English</string>
