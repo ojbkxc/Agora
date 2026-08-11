@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/newo-ether/conch/crypto"
-	"github.com/newo-ether/conch/shell"
+	"github.com/ojbkxc/conch/crypto"
+	"github.com/ojbkxc/conch/shell"
 )
 
 type JobHandler struct {

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/newo-ether/conch/shell"
+	"github.com/ojbkxc/conch/shell"
 )
 
 func TestJobListResponseOmitsOutputButKeepsRetrievalMetadata(t *testing.T) {

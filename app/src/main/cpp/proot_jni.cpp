@@ -11,7 +11,7 @@
  * ProcessBuilder directly.
  */
 extern "C" JNIEXPORT jint JNICALL
-Java_com_newoether_agora_sandbox_ProotNative_execute(
+Java_com_lxseek_chat_sandbox_ProotNative_execute(
     JNIEnv *, jclass, jobjectArray) {
     return -1; // Stub: actual execution goes through ProcessBuilder
 }

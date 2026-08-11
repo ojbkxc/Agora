@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	conchcrypto "github.com/newo-ether/conch/crypto"
+	conchcrypto "github.com/ojbkxc/conch/crypto"
 )
 
 func TestListDevicesIncludesUnavailableWithoutDroppingHealthyDevices(t *testing.T) {

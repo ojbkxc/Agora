@@ -20,7 +20,7 @@ The frozen product requirements remain authoritative:
 - Required `build.ps1`: passed.
 - F-Droid release APK: 56,756,416 bytes, SHA-256
   `AD885301D808FB264776868E23188336129D7BA766F101CB6A50319CE58E7A6B`.
-- APK contract: package `com.newoether.agora`, version `2.0.0` (30), minSdk 24,
+- APK contract: package `com.lxseek.chat`, version `2.0.0` (30), minSdk 24,
   targetSdk 36, v2 signature verified.
 - No device, process-death, lifecycle, real-network, or background-execution validation is
   included in this evidence.

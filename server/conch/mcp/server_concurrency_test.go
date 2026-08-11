@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	conchcrypto "github.com/newo-ether/conch/crypto"
-	"github.com/newo-ether/conch/handler"
-	"github.com/newo-ether/conch/shell"
+	conchcrypto "github.com/ojbkxc/conch/crypto"
+	"github.com/ojbkxc/conch/handler"
+	"github.com/ojbkxc/conch/shell"
 )
 
 func TestServerProcessesConcurrentRequestsAndCancellation(t *testing.T) {

@@ -3,9 +3,9 @@
 -dontnote kotlinx.serialization.AnnotationsKt
 -keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
 -keepclasseswithmembers class kotlinx.serialization.json.** { kotlinx.serialization.KSerializer serializer(...); }
--keep,includedescriptorclasses class com.newoether.agora.**$$serializer { *; }
--keepclassmembers class com.newoether.agora.** { *** Companion; }
--keepclasseswithmembers class com.newoether.agora.** { kotlinx.serialization.KSerializer serializer(...); }
+-keep,includedescriptorclasses class com.lxseek.chat.**$$serializer { *; }
+-keepclassmembers class com.lxseek.chat.** { *** Companion; }
+-keepclasseswithmembers class com.lxseek.chat.** { kotlinx.serialization.KSerializer serializer(...); }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase
@@ -27,8 +27,8 @@
 
 # JNI native methods (llama.cpp / proot)
 -keepclasseswithmembernames class * { native <methods>; }
--keep class com.newoether.agora.api.LlamaEngine { *; }
--keep class com.newoether.agora.api.LlamaChatEngine { *; }
+-keep class com.lxseek.chat.api.LlamaEngine { *; }
+-keep class com.lxseek.chat.api.LlamaChatEngine { *; }
 
 # Lottie
 -keep class com.airbnb.lottie.** { *; }

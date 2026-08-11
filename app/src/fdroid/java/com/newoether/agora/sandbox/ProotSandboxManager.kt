@@ -1,11 +1,11 @@
-package com.newoether.agora.sandbox
+package com.lxseek.chat.sandbox
 
 import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.util.Log
-import com.newoether.agora.R
-import com.newoether.agora.data.repository.SettingsRepository
+import com.lxseek.chat.R
+import com.lxseek.chat.data.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -413,7 +413,7 @@ class ProotSandboxManager(
         val f = resolvePath(path); if (!f.exists()) throw IllegalStateException("File not found: $path")
         val fileSize = f.length().toInt()
         val s = offset.coerceIn(0, fileSize.toLong()).toInt()
-        val max = com.newoether.agora.util.Constants.MAX_TOOL_RESULT_LENGTH
+        val max = com.lxseek.chat.util.Constants.MAX_TOOL_RESULT_LENGTH
         val e = if (limit > 0) minOf((s + limit).toInt(), fileSize)
                 else minOf(s + max, fileSize)
         val len = e - s
@@ -467,7 +467,7 @@ class ProotSandboxManager(
     override suspend fun fileEdit(path: String, oldString: String, newString: String, replaceAll: Boolean): SandboxManager.FileEditResult = withContext(Dispatchers.IO) {
         try {
             val f = resolvePath(path); if (!f.exists()) return@withContext SandboxManager.FileEditResult(0, "File not found: $path")
-            if (f.length() > com.newoether.agora.util.Constants.MAX_FILE_CONTENT_READ_LENGTH) return@withContext SandboxManager.FileEditResult(0, "File too large to edit (>${com.newoether.agora.util.Constants.MAX_FILE_CONTENT_READ_LENGTH / 1000}KB)")
+            if (f.length() > com.lxseek.chat.util.Constants.MAX_FILE_CONTENT_READ_LENGTH) return@withContext SandboxManager.FileEditResult(0, "File too large to edit (>${com.lxseek.chat.util.Constants.MAX_FILE_CONTENT_READ_LENGTH / 1000}KB)")
             val content = f.readText(Charsets.UTF_8); val count = content.split(oldString).size - 1
             if (count == 0) SandboxManager.FileEditResult(0, "old_string not found in file")
             else if (count > 1 && !replaceAll) SandboxManager.FileEditResult(0, "Found $count matches. Use replace_all=true.")

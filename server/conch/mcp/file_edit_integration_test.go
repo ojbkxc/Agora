@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	conchcrypto "github.com/newo-ether/conch/crypto"
-	"github.com/newo-ether/conch/handler"
+	conchcrypto "github.com/ojbkxc/conch/crypto"
+	"github.com/ojbkxc/conch/handler"
 )
 
 func TestTransportRecoversWhenServerComesOnlineAfterStartup(t *testing.T) {

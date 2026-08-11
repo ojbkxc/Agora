@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/newo-ether/conch/crypto"
+	"github.com/ojbkxc/conch/crypto"
 )
 
 const maxFileSize = 1 << 20          // 1 MB request/response content

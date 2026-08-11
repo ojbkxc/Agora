@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/newo-ether/conch/crypto"
+	"github.com/ojbkxc/conch/crypto"
 )
 
 func TestAuthMiddlewareRejectsOversizedBodyBeforeAllocation(t *testing.T) {

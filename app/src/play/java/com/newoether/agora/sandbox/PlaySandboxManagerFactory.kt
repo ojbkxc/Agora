@@ -1,4 +1,4 @@
-package com.newoether.agora.sandbox
+package com.lxseek.chat.sandbox
 
 class PlaySandboxManagerFactory : SandboxManagerFactory {
     override fun create(): SandboxManager = PlaySandboxManager()

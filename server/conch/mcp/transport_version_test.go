@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/newo-ether/conch/buildinfo"
-	conchcrypto "github.com/newo-ether/conch/crypto"
+	"github.com/ojbkxc/conch/buildinfo"
+	conchcrypto "github.com/ojbkxc/conch/crypto"
 )
 
 func TestTransportNegotiatesServerVersionAndCapabilities(t *testing.T) {

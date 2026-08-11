@@ -22,7 +22,7 @@ platform :android do
 
   desc "Upload APK to GitHub Release for a given tag"
   lane :github_release do |options|
-    tag = options[:tag] || UI.input("Enter git tag (e.g. v1.0.5): ")
+    tag = options[:tag] || UI.input("Enter git tag (e.g. v1.0.6): ")
     apk_path = options[:apk_path] || "../app/build/outputs/apk/fdroid/release/app-fdroid-release.apk"
     version = tag.gsub(/^v/, "")
     asset_name = "Agora-v#{version}-android-arm64-v8a.apk"

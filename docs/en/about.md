@@ -6,7 +6,7 @@ App version, updates, documentation settings, and links.
 
 | Field | Description |
 |-------|-------------|
-| **Developer** | Newo Ether |
+| **Developer** | ojbkxc |
 | **Version** | Shows the current version name and build code |
 
 ---

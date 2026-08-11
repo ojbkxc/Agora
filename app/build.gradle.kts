@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.newoether.agora"
+    namespace = "com.lxseek.chat"
     compileSdk {
         version = release(36)
     }
@@ -24,7 +24,7 @@ android {
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
-        applicationId = "com.newoether.agora"
+        applicationId = "com.lxseek.chat"
         minSdk = 24
         targetSdk = 36
         versionCode = 6

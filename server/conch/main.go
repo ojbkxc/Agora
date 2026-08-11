@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/newo-ether/conch/buildinfo"
-	"github.com/newo-ether/conch/config"
-	"github.com/newo-ether/conch/crypto"
-	"github.com/newo-ether/conch/handler"
-	"github.com/newo-ether/conch/shell"
+	"github.com/ojbkxc/conch/buildinfo"
+	"github.com/ojbkxc/conch/config"
+	"github.com/ojbkxc/conch/crypto"
+	"github.com/ojbkxc/conch/handler"
+	"github.com/ojbkxc/conch/shell"
 )
 
 func main() {

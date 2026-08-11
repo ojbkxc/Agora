@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/newo-ether/conch/buildinfo"
-	"github.com/newo-ether/conch/crypto"
-	"github.com/newo-ether/conch/shell"
+	"github.com/ojbkxc/conch/buildinfo"
+	"github.com/ojbkxc/conch/crypto"
+	"github.com/ojbkxc/conch/shell"
 )
 
 type ExecuteHandler struct {

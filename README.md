@@ -15,14 +15,14 @@
 
 ## Download
 
-[![F-Droid](https://img.shields.io/badge/F--Droid-Install-blue?logo=fdroid)](https://f-droid.org/packages/com.newoether.agora/)
+[![F-Droid](https://img.shields.io/badge/F--Droid-Install-blue?logo=fdroid)](https://f-droid.org/packages/com.lxseek.chat/)
 &nbsp;&nbsp;
-[![Google Play](https://img.shields.io/badge/Google_Play-Install-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.newoether.agora)
+[![Google Play](https://img.shields.io/badge/Google_Play-Install-blue?logo=google-play)](https://play.google.com/store/apps/details?id=com.lxseek.chat)
 &nbsp;&nbsp;
 [![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-blue?logo=github)](https://github.com/ojbkxc/Agora/releases)
 
 - **F-Droid (Recommended)** — Install via [F-Droid](https://f-droid.org/), search for **Agora**.
-- **Google Play** — Install from [Google Play Store](https://play.google.com/store/apps/details?id=com.newoether.agora).
+- **Google Play** — Install from [Google Play Store](https://play.google.com/store/apps/details?id=com.lxseek.chat).
 - **GitHub Releases** — Download the latest `.apk` from the [Releases page](https://github.com/ojbkxc/Agora/releases).
 - **Build from Source** — Clone and build with Android Studio (see [Getting Started](#getting-started)).
 
@@ -45,7 +45,7 @@
 - **No Middlemen:** Direct API connections. No telemetry, no tracking, no corporate servers logging your conversations. Everything lives locally in a Room database.
 - **Non-Linear Thought:** A tree-structured message database lets you edit any past message, regenerate responses, and explore alternative branches without losing context.
 - **Agentic by Default:** Multi-round tool calling with web search, code execution, remote file operations, memory management, and semantic conversation search.
-- **Remote Control:** Manage servers, edit files, and search code on remote machines via the [Conch](https://github.com/newo-ether/conch) protocol — end-to-end encrypted with ECDH + AES-256-GCM.
+- **Remote Control:** Manage servers, edit files, and search code on remote machines via the [Conch](https://github.com/ojbkxc/conch) protocol — end-to-end encrypted with ECDH + AES-256-GCM.
 
 ## Features
 
@@ -60,7 +60,7 @@
 - **Web Search** — DuckDuckGo Lite (anonymous, no key), Brave, Kagi, Serper, Tavily, and SearXNG integration
 - **Code Execution** — Gemini code execution for running and testing code inline; Alpine Linux sandbox via PRoot with SAF file access
 - **Image Generation** — BYOK text-to-image via OpenAI-compatible `/v1/images/generations`, rendered inline in chat
-- **Remote Shell & File I/O** — Execute commands, read/write/edit/glob/grep files on remote servers via [Conch](https://github.com/newo-ether/conch)
+- **Remote Shell & File I/O** — Execute commands, read/write/edit/glob/grep files on remote servers via [Conch](https://github.com/ojbkxc/conch)
 - **Memory** — Persistent active memory and saved memory files across conversations
 - **Conversation Search** — RAG-powered semantic search over chat history
 
@@ -155,7 +155,7 @@
 
 <table>
 <tr>
-<td width="33%"><b>① Deploy</b><br/>Deploy the <a href="https://github.com/newo-ether/conch">Conch server</a> on your target machine.</td>
+<td width="33%"><b>① Deploy</b><br/>Deploy the <a href="https://github.com/ojbkxc/conch">Conch server</a> on your target machine.</td>
 <td width="33%"><b>② Add Device</b><br/>Settings → Shell Devices → add URL and API key.</td>
 <td width="33%"><b>③ Use</b><br/>The model auto-discovers shell devices for commands, files, and search.</td>
 </tr>

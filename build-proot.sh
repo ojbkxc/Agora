@@ -11,8 +11,8 @@ FORCE="${1:-}"
 # Priority: ANDROID_NDK_HOME env var, then well-known paths
 if [ -n "${ANDROID_NDK_HOME:-}" ] && [ -d "$ANDROID_NDK_HOME" ]; then
     NDK="$ANDROID_NDK_HOME"
-elif [ -d "/home/newoether/android-sdk/ndk/28.2.13676358" ]; then
-    NDK="/home/newoether/android-sdk/ndk/28.2.13676358"
+elif [ -d "/home/runner/android-sdk/ndk/28.2.13676358" ]; then
+    NDK="/home/runner/android-sdk/ndk/28.2.13676358"
 elif [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME/ndk" ]; then
     # F-Droid buildserver: pick the latest installed NDK
     NDK=$(ls -d "$ANDROID_HOME/ndk/"*/ 2>/dev/null | sort -V | tail -1)

@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/newo-ether/conch/buildinfo"
-	"github.com/newo-ether/conch/crypto"
+	"github.com/ojbkxc/conch/buildinfo"
+	"github.com/ojbkxc/conch/crypto"
 )
 
 // LineEvent represents one line of shell output.

@@ -16,7 +16,7 @@ A single, always-on memory context that is included with **every API call** to t
 
 **Example Active Memory content:**
 ```text
-User: Newo Ether
+User: ojbkxc
 Preferences: Prefers Chinese for casual chat, English for technical topics.
 Project: Building Agora — a BYOK Android LLM client.
 Coding style: Kotlin, Jetpack Compose, MVVM architecture.

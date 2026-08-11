@@ -1,4 +1,4 @@
-module github.com/newo-ether/conch
+module github.com/ojbkxc/conch
 
 go 1.26.5
 

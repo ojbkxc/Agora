@@ -16,7 +16,7 @@ Agora 具有持久的记忆系统，让模型可以跨对话记住信息。结�
 
 **活跃记忆内容示例：**
 ```text
-用户：Newo Ether
+用户：ojbkxc
 偏好：日常交流用中文，技术话题用英文。
 项目：开发 Agora — 一款 BYOK Android LLM 客户端。
 编码风格：Kotlin、Jetpack Compose、MVVM 架构。

@@ -1,4 +1,4 @@
-package com.newoether.agora.sandbox
+package com.lxseek.chat.sandbox
 
 /**
  * JNI bridge to proot, compiled as libagora_proot.so via CMake.

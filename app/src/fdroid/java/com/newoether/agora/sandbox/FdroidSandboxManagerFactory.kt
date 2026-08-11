@@ -1,7 +1,7 @@
-package com.newoether.agora.sandbox
+package com.lxseek.chat.sandbox
 
 import android.content.Context
-import com.newoether.agora.data.repository.SettingsRepository
+import com.lxseek.chat.data.repository.SettingsRepository
 
 class FdroidSandboxManagerFactory(
     private val context: Context,

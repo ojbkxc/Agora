@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/newo-ether/conch/buildinfo"
+	"github.com/ojbkxc/conch/buildinfo"
 )
 
 func TestVersionHandlerExposesProtocolAndCapabilities(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/newo-ether/conch/buildinfo"
+	"github.com/ojbkxc/conch/buildinfo"
 )
 
 const protocolVersion = "2025-06-18"

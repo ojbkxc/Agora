@@ -1,6 +1,6 @@
-package com.newoether.agora.sandbox
+package com.lxseek.chat.sandbox
 
-import com.newoether.agora.util.PortableGlobMatcher
+import com.lxseek.chat.util.PortableGlobMatcher
 
 internal fun normalizeVirtualPath(path: String): String {
     val raw = path.trim().replace('\\', '/')

@@ -3,7 +3,7 @@
 VERSION ?= dev
 REVISION ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 BUILD_TIME ?= $(shell git show -s --format=%cI HEAD 2>/dev/null || echo unknown)
-LDFLAGS = -s -w -X github.com/newo-ether/conch/buildinfo.Version=$(VERSION) -X github.com/newo-ether/conch/buildinfo.Revision=$(REVISION) -X github.com/newo-ether/conch/buildinfo.BuildTime=$(BUILD_TIME)
+LDFLAGS = -s -w -X github.com/ojbkxc/conch/buildinfo.Version=$(VERSION) -X github.com/ojbkxc/conch/buildinfo.Revision=$(REVISION) -X github.com/ojbkxc/conch/buildinfo.BuildTime=$(BUILD_TIME)
 
 all: build-linux-arm64 build-linux-amd64 build-windows-amd64
 
