@@ -96,7 +96,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 
 | 维度 | 约束 | 验证方式 |
 |---|---|---|
-| 应用 ID | `com.newoether.agora` | `app/build.gradle.kts` |
+| 应用 ID | `com.lxseek.chat` | `app/build.gradle.kts` |
 | ABI | **仅 `arm64-v8a`** | `ndk { abiFilters }` |
 | SDK | minSdk 24 / targetSdk 36 / compileSdk 36 | `defaultConfig` |
 | NDK | `28.2.13676358` | `ndkVersion` |
@@ -209,6 +209,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-11）
 
 ### ✅ 已完成
+- **包名重命名 com.newoether.agora → com.lxseek.chat**：627 文件变更（578+ Kotlin 文件 package/import、198 测试文件、JNI 函数名 `Java_com_lxseek_chat_*`、proguard 规则、build.gradle.kts namespace/applicationId、Appfile、build-logic、Go 模块路径 `github.com/ojbkxc/conch`、README/docs URL）。目录重命名 `com/newoether/agora/` → `com/lxseek/chat/`（main + test + testFdroid）。开发者名字 "Newo Ether" → "ojbkxc"（strings.xml en/zh、docs、LICENSE）。build.yml 添加版本一致性校验（git tag 版本必须与 build.gradle.kts versionName 一致）+ 去除 workflow_dispatch 硬编码默认值。CI 全绿（CI ✓ / Fastlane ✓）。
 - **fastlane 自动化**：创建 `fastlane/Fastfile`（lane: build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release）、`Appfile`（package_name）、`Gemfile`（fastlane 依赖）；新增 `.github/workflows/fastlane.yml`（PR/push 触发元数据验证）；添加 versionCode 6 changelog（en-US + zh-CN）。CI 全绿（Fastlane ✓ / CI ✓）。
 - **v1.0.5 发版成功**：修复 `DebugLog.i()` 编译错误（DebugLog 只有 d/e/w，无 i 方法）+ `showSnackbar()` 未包在协程中的编译错误。bump versionCode 5→6 / versionName 1.0.4→1.0.5。删除有问题的 v1.0.4 tag（指向含编译错误的 commit）和误标的 v1.0.3 tag。CI 全绿（Build & Release ✓ / CI ✓），Release `Agora-v1.0.5-android-arm64-v8a.apk` 已发布。
 - **v1.0.4 发版成功**：修复崩溃日志上传/评分提交/更新检查指向原仓库 `newo-ether/Agora` 的问题，全部改为指向本仓库 `ojbkxc/Agora`。CI 全绿，Release 已发布。
@@ -338,6 +339,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-11 包名重命名 com.newoether.agora → com.lxseek.chat + 开发者名字 → ojbkxc + CI 版本一致性校验：① 包名全量替换（627 文件）：578+ Kotlin 文件 package/import、198 测试文件、C++ JNI 函数名 `Java_com_newoether_agora_*` → `Java_com_lxseek_chat_*`、proguard-rules.pro、build.gradle.kts namespace/applicationId、fastlane Appfile、build-logic KotlinSourceSizePolicy.kt；目录重命名 `com/newoether/agora/` → `com/lxseek/chat/`（main + test + testFdroid 三处）。② 开发者名字 "Newo Ether" → "ojbkxc"（strings.xml about_developer_name en/zh、docs about.md/memory.md en/zh、LICENSE、server/conch/LICENSE）。③ Go 模块路径 `github.com/newo-ether/conch` → `github.com/ojbkxc/conch`（go.mod + Makefile + 所有 .go 文件 import）。④ README/docs 中 `com.newoether.agora` → `com.lxseek.chat`、`newo-ether/conch` → `ojbkxc/conch`。⑤ build.yml 添加 "Verify version consistency" 步骤（从 build.gradle.kts 提取 versionName 与 git tag 版本比较，不匹配则 fail）+ 去除 workflow_dispatch 硬编码默认值 `v1.0.0`。⑥ build-proot.sh NDK 路径 `/home/newoether/` → `/home/runner/`；server/crash 脚本 `newoether.space` → `example.com`。CI 全绿验证通过（CI #31445772623 ✓ / Fastlane #31445772575 ✓）。
 - 2026-08-11 关于页面死代码清理：分析 `SettingsAboutPage.kt`（239 行），确认 4 个 URL 均指向 `ojbkxc/Agora`（✓）、版本号动态读取（✓）、字符串 en+zh 完整（✓）。删除 7 个未使用 import（`MutableInteractionSource`/`rememberScrollState`/`verticalScroll`/`ArrowBack`/`LocalFocusManager`/`FontWeight`/`UpdateInfo`）+ 1 个未使用变量（`focusManager`）+ 2 个未使用字符串资源（`about_source_code`/`about_rating`，en+zh 各删 2 行）。文件 239→230 行。同时修复 `MessageBubbleAssets.kt:402` 的 `markdownDimens()` @Composable 调用错误（从 `remember { markdownDimens() }` 改为直接调用，因 `markdownDimens()` 是 @Composable 函数不能在 `remember {}` lambda 中调用）。待 CI 全绿确认。
 - 2026-08-11 修复 `IllegalStateException: No local MarkdownDimens` 崩溃（重新应用被回退的修复）：排查发现提交 `5ed80cec`("fix: revert unintended change to MessageBubbleAssets.kt") 错误回退了原修复 `5d15e79d`，使 v1.0.4/v1.0.5 仍含此崩溃。根因：`ChatMarkdownCodeBlock`（MessageBubbleAssets.kt:397）被 `MainActivity.kt:447` 的 `AlertDialog` 直接调用，Dialog 拥有独立 CompositionLocal 上下文，父级 `Markdown` 提供的 `LocalMarkdownDimens` 等不透传进 Dialog，裸读 `LocalMarkdownDimens.current` 抛 `IllegalStateException: No local MarkdownDimens`。CI 仅 `assembleFdroidRelease` 编译验证不捕获运行时崩溃，故回退后 CI 仍全绿但 APK 含 bug。修复：`ChatMarkdownCodeBlock` 内用 `CompositionLocalProvider` 自给自足提供 `LocalMarkdownDimens`（`markdownDimens()`）/`LocalMarkdownColors`/`LocalMarkdownTypography`/`LocalMarkdownPadding`（后三者取自 `assets.renderContext`），`shape` 改用局部 `dimens.codeBackgroundCornerSize`。新增 3 import（`CompositionLocalProvider`/`LocalMarkdownTypography`/`markdownDimens`）。文件 849→860 行（≤999 ✓），静态自检通过（无 R.font、语言仅 en/zh、无残留裸读）。待 push CI 编译验证。**更正历史漂移**：旧 §9 称修复在 commit `01f862ea` 有误——`01f862ea` 实为 "pass modifier param to overlay composables" 提交；真正修复提交为 `5d15e79d`，但随后被 `5ed80cec` 回退，本次重新应用。
 - 2026-08-11 fastlane 自动化：创建 `fastlane/Fastfile`（lane: build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release）、`Appfile`（package_name = com.newoether.agora）、`Gemfile`（fastlane ~2.225）；新增 `.github/workflows/fastlane.yml`（PR/push 触发，Ruby 3.3 + bundler-cache，运行 `validate_metadata` 验证 en-US + zh-CN 元数据完整性）；添加 versionCode 6 changelog（en-US + zh-CN，对应 v1.0.5 变更内容）。CI 全绿验证通过（Fastlane #31409966996 ✓ / CI #31409967059 ✓）。
