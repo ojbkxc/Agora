@@ -751,172 +751,57 @@ fun ChatApp(
                 }
             }
 
-            val gradientTopPaddingPx = with(density) { 20.dp.toPx() }
-            val gradientWidthPx = with(density) { 40.dp.toPx() }
-            val bgColor = MaterialTheme.colorScheme.background
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .then(if (isExpanded) Modifier.fillMaxHeight().statusBarsPadding() else Modifier)
-                    .drawBehind {
-                        val totalH = size.height
-                        if (totalH > 0f) {
-                            val (transparentEnd, fadeEnd) = if (isExpanded) {
-                                // In expanded mode, keep the gradient compact at the top
-                                val h = gradientTopPaddingPx.coerceAtMost(totalH * 0.12f)
-                                val w = gradientWidthPx.coerceAtMost(totalH * 0.24f)
-                                (h / totalH) to ((h + w) / totalH)
-                            } else {
-                                val te = (gradientTopPaddingPx / totalH).coerceIn(0f, 1f)
-                                val fe = ((gradientTopPaddingPx + gradientWidthPx) / totalH).coerceIn(0f, 1f)
-                                te to fe
-                            }
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    colorStops = arrayOf(
-                                        0.0f to Color.Transparent,
-                                        transparentEnd to Color.Transparent,
-                                        fadeEnd to bgColor,
-                                    ),
-                                    startY = 0f,
-                                    endY = totalH
-                                )
-                            )
-                        }
-                    },
-                color = Color.Transparent
-            ) {
-                Column {
-                    if (outerSpacerHeightPx > 0f) {
-                        Spacer(modifier = Modifier.height(with(density) { outerSpacerHeightPx.toDp() }))
-                    }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(if (isExpanded) Modifier.fillMaxHeight() else Modifier)
-                            .onSizeChanged {
-                                if (!isExpanded) bottomBarHeightPx = it.height.toFloat()
-                            }
-                            .navigationBarsPadding()
-                            .imePadding()
-                            .padding(8.dp),
-                    ) {
-                        // This is a sibling behind the complete outer bar, not a child of the
-                        // composer. Its lower overflow is therefore occluded by the 28dp Surface
-                        // and shadow below.
-                        LoopStatusBackdrop(
-                            loop = currentLoop,
-                            isRunning = currentConversationId in runningLoopIds,
-                            onStop = { viewModel.stopCurrentLoop() },
-                        )
-
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(if (isExpanded) Modifier.weight(1f) else Modifier),
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 2.dp,
-                            shadowElevation = 8.dp,
-                            shape = CHAT_BOTTOM_BAR_OUTER_SHAPE,
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.BottomCenter,
-                            ) {
-                                ChatBottomBar(
-                        onSendMessage = { text, attachments, onAccepted ->
-                            viewModel.sendMessage(
-                                text = text,
-                                attachments = attachments,
-                                onAccepted = onAccepted,
-                            )
-                        },
-                        onStopGeneration = {
-                            haptics.interrupt()
-                            viewModel.stopGeneration()
-                        },
-                        isLoading = isLoading,
-                        isCompacting = isCompacting,
-                        isSwitching = isSwitching,
-                        enabledModels = enabledModels,
-                        selectedModel = selectedModel,
-                        modelAliases = modelAliases,
-                        codeExecutionEnabled = codeExecutionEnabled,
-                        googleSearchEnabled = googleSearchEnabled,
-                        thinkingEnabled = thinkingEnabled,
-                        thinkingLevel = thinkingLevel,
-                        thinkingBudgetEnabled = thinkingBudgetEnabled,
-                        thinkingBudgetTokens = thinkingBudgetTokens,
-                        openAiServiceTierAvailable = openAiServiceTierAvailable,
-                        openAiServiceTierEnabled = openAiServiceTierEnabled,
-                        openAiServiceTier = openAiServiceTier,
-                        onCodeExecutionToggle = { enabled -> haptics.toggle(enabled); viewModel.updateConversationSetting(currentConversationId) { it.copy(codeExecutionEnabled = enabled) } },
-                        onGoogleSearchToggle = { enabled -> haptics.toggle(enabled); viewModel.updateConversationSetting(currentConversationId) { it.copy(googleSearchEnabled = enabled) } },
-                        onThinkingToggle = { enabled -> haptics.toggle(enabled); viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingEnabled = enabled) } },
-                        onThinkingLevelChange = { level -> viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingLevel = level) } },
-                        onThinkingBudgetEnabledChange = { enabled -> haptics.toggle(enabled); viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingBudgetEnabled = enabled) } },
-                        onThinkingBudgetTokensChange = { tokens -> viewModel.updateConversationSetting(currentConversationId) { it.copy(thinkingBudgetTokens = tokens) } },
-                        onOpenAiServiceTierToggle = { enabled ->
-                            haptics.toggle(enabled)
-                            viewModel.updateConversationSetting(currentConversationId) {
-                                it.copy(openAiServiceTierEnabled = enabled)
-                            }
-                        },
-                        onOpenAiServiceTierChange = { tier ->
-                            haptics.selection()
-                            viewModel.updateConversationSetting(currentConversationId) {
-                                it.copy(openAiServiceTier = OpenAiServiceTiers.normalize(tier))
-                            }
-                        },
-                        webSearchEnabled = webSearchEnabled,
-                        onWebSearchToggle = { enabled -> haptics.toggle(enabled); viewModel.updateConversationSetting(currentConversationId) { it.copy(webSearchEnabled = enabled) } },
-                        shellEnabled = shellEnabled,
-                        onShellToggle = { enabled -> haptics.toggle(enabled); viewModel.updateConversationSetting(currentConversationId) { it.copy(shellEnabled = enabled) } },
-                        // The model row owns its selection tick. Repeating it here produced the
-                        // previous double buzz for one physical tap.
-                        onModelSelect = { viewModel.setActiveModel(it) },
-                        onImageClick = { url -> onMediaClick(listOf(url), 0) },
-                        onAllMediaClick = { urls, idx -> onMediaClick(urls, idx) },
-                        onFileContentClick = { name, content -> viewModel.showFilePreview(name, content) },
-                        modifier = Modifier,
-                        textFieldState = textFieldState,
-                        composerState = composer,
-                        focusRequester = inputFocusRequester,
-                        onInputFocusChanged = { focused ->
-                            scrollCoordinator.setComposerInputFocused(focused)
-                        },
-                        isExpanded = isExpanded,
-                        isExpandAnimating = isExpandAnimating,
-                        onCollapse = { isExpanded = false },
-                        onExpand = { isExpanded = true },
-                        showWebSearch = globalWebSearch,
-                        showShell = shellDevices.isNotEmpty() && globalShell,
-                        onPdfPagesClick = { pages, idx -> onPdfPagesClick?.invoke(pages, idx) },
-                        onPdfPreviewSelect = { pages, idx -> onPdfPreviewSelect?.invoke(pages, idx) },
-                        pdfViewerSelection = pdfViewerSelection,
-                        onTogglePdfSelection = onTogglePdfSelection,
-                        onInitPdfSelection = onInitPdfSelection,
-                        fullScreenViewerUrls = fullScreenViewerUrls,
-                        compactDefaultModel = compactModel,
-                        compactDefaultPrompt = compactPrompt,
-                        compactDefaultRetainCount = compactRetainCount,
-                        contextEstimatedTokens = contextUsage.estimatedTokenCount,
-                        contextLogicalMessageCount = contextUsage.logicalMessageCount,
-                        contextTokenBudget = contextUsage.tokenBudget,
-                        hasCompactBoundary = contextUsage.hasCompactBoundary,
-                        canCompact = currentConversationId != null && !isLoading && !isSwitching && !isStopping,
-                        onCompactClick = {
-                            dialogState.showManualCompact()
-                        },
-                        onAdvancedClick = dialogState::showAdvanced,
-                        queuedSends = queuedSends,
-                        onRemoveQueuedSend = viewModel::removeQueuedSend,
-                        isStopping = isStopping,
-                    )
-                            }
-                        }
-                    }
-                }
+            ChatAppBottomBarSection(
+                viewModel = viewModel,
+                haptics = haptics,
+                dialogState = dialogState,
+                scrollCoordinator = scrollCoordinator,
+                textFieldState = textFieldState,
+                composer = composer,
+                inputFocusRequester = inputFocusRequester,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                isExpanded = isExpanded,
+                onExpandedChange = { isExpanded = it },
+                isExpandAnimating = isExpandAnimating,
+                outerSpacerHeightPx = outerSpacerHeightPx,
+                onBottomBarHeightChanged = { bottomBarHeightPx = it },
+                isLoading = isLoading,
+                isCompacting = isCompacting,
+                isSwitching = isSwitching,
+                isStopping = isStopping,
+                currentConversationId = currentConversationId,
+                currentLoop = currentLoop,
+                runningLoopIds = runningLoopIds,
+                enabledModels = enabledModels,
+                selectedModel = selectedModel,
+                modelAliases = modelAliases,
+                codeExecutionEnabled = codeExecutionEnabled,
+                googleSearchEnabled = googleSearchEnabled,
+                thinkingEnabled = thinkingEnabled,
+                thinkingLevel = thinkingLevel,
+                thinkingBudgetEnabled = thinkingBudgetEnabled,
+                thinkingBudgetTokens = thinkingBudgetTokens,
+                openAiServiceTierAvailable = openAiServiceTierAvailable,
+                openAiServiceTierEnabled = openAiServiceTierEnabled,
+                openAiServiceTier = openAiServiceTier,
+                webSearchEnabled = webSearchEnabled,
+                shellEnabled = shellEnabled,
+                globalWebSearch = globalWebSearch,
+                globalShell = globalShell,
+                shellDevices = shellDevices,
+                contextUsage = contextUsage,
+                compactModel = compactModel,
+                compactPrompt = compactPrompt,
+                compactRetainCount = compactRetainCount,
+                queuedSends = queuedSends,
+                onMediaClick = onMediaClick,
+                onPdfPagesClick = onPdfPagesClick,
+                onPdfPreviewSelect = onPdfPreviewSelect,
+                pdfViewerSelection = pdfViewerSelection,
+                onTogglePdfSelection = onTogglePdfSelection,
+                onInitPdfSelection = onInitPdfSelection,
+                fullScreenViewerUrls = fullScreenViewerUrls,
+            )
             }
             }
         }
