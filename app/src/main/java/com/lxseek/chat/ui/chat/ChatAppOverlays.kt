@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.FloatingActionButton
@@ -27,8 +29,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.lxseek.chat.R
+import com.lxseek.chat.ui.components.TypewriterMode
+import com.lxseek.chat.ui.components.TypewriterText
 import com.lxseek.chat.ui.motion.AgoraMotionPolicy
 
 @Composable
@@ -135,6 +141,51 @@ internal fun ChatAppSwitchingOverlay(
                 modifier = Modifier.size(48.dp),
                 strokeWidth = 5.dp,
                 color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ChatAppWelcomeContent(
+    bottomBarHeight: Dp,
+    windowHeightDp: Float,
+    topBarHeight: Dp,
+    newChatEntryId: Long,
+    animateWelcomeText: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(bottom = bottomBarHeight),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            val welcomeText = stringResource(R.string.welcome_to_agora)
+            val availableWelcomeHeight =
+                windowHeightDp +
+                    topBarHeight.value / 2f -
+                    bottomBarHeight.value
+            val welcomeTopPadding =
+                (availableWelcomeHeight / 2f).coerceAtLeast(0f).dp
+            val welcomeModifier =
+                Modifier.padding(top = welcomeTopPadding)
+            TypewriterText(
+                text = welcomeText,
+                animationKey = newChatEntryId,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                typeSpeedMs = 100,
+                animate = animateWelcomeText,
+                mode = TypewriterMode.TEXT_GRADIENT,
+                modifier = welcomeModifier,
             )
         }
     }

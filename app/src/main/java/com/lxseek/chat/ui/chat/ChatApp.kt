@@ -18,9 +18,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -29,11 +26,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.TransformOrigin
@@ -41,22 +36,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.lxseek.chat.R
 import com.lxseek.chat.data.isOpenAiProtocolProvider
 import com.lxseek.chat.api.util.contextWindowUsage
 import com.lxseek.chat.api.util.expandSelectedToolProtocolRows
 import com.lxseek.chat.util.gradientBlur
 import com.lxseek.chat.model.ContextBudget
-import com.lxseek.chat.ui.chat.bottombar.CHAT_BOTTOM_BAR_OUTER_SHAPE
-import com.lxseek.chat.ui.chat.bottombar.ChatBottomBar
-import com.lxseek.chat.ui.chat.bottombar.LoopStatusBackdrop
 import com.lxseek.chat.ui.components.AnimatedBlobBackground
 import com.lxseek.chat.ui.components.clearFocusOnTap
-import com.lxseek.chat.ui.components.TypewriterMode
-import com.lxseek.chat.ui.components.TypewriterText
 import com.lxseek.chat.ui.common.LocalAgoraHaptics
 import com.lxseek.chat.ui.common.rememberAgoraHaptics
 import com.lxseek.chat.ui.motion.LocalAgoraMotionPolicy
@@ -637,83 +624,31 @@ fun ChatApp(
                             )
                             }
                         } else if (targetShowLaunch) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(bottom = bottomBarHeight),
-                                contentAlignment = Alignment.TopCenter
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .verticalScroll(rememberScrollState()),
-                                    contentAlignment = Alignment.TopCenter
-                                ) {
-                                    val welcomeText = stringResource(R.string.welcome_to_agora)
-                                    val availableWelcomeHeight =
-                                        windowHeightDp +
-                                            topBarH.value / 2f -
-                                            bottomBarHeight.value
-                                    val welcomeTopPadding =
-                                        (availableWelcomeHeight / 2f).coerceAtLeast(0f).dp
-                                    val welcomeModifier =
-                                        Modifier.padding(top = welcomeTopPadding)
-                                    TypewriterText(
-                                        text = welcomeText,
-                                        animationKey = newChatEntryId,
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        typeSpeedMs = 100,
-                                        animate = newChatMotion.animateWelcomeText,
-                                        mode = TypewriterMode.TEXT_GRADIENT,
-                                        modifier = welcomeModifier,
-                                    )
-                                }
-                            }
+                            ChatAppWelcomeContent(
+                                bottomBarHeight = bottomBarHeight,
+                                windowHeightDp = windowHeightDp,
+                                topBarHeight = topBarH,
+                                newChatEntryId = newChatEntryId,
+                                animateWelcomeText = newChatMotion.animateWelcomeText,
+                            )
                         } else {
                             Box(modifier = Modifier.fillMaxSize())
                         }
                     }
 
-                    // Recreate for every plain value captured by this derived state.
-                    val regenerationScrollActive =
-                        regenerationTransition?.conversationId == currentConversationId &&
-                            regenerationTransition?.scrollFinished == false
-                    val showButton by remember(
-                        currentConversationId,
-                        loadedMessagesConversationId,
-                        isNewChatMode,
-                        isSwitching,
-                        shareSelectionActive,
-                        isNearAbsoluteBottom,
-                        absoluteBottomScrollPhase,
-                        listState,
-                        streamingTailController,
-                        regenerationScrollActive,
-                        imeBottomAnchorState.active,
-                    ) {
-                        derivedStateOf {
-                            val totalItemsCount = listState.layoutInfo.totalItemsCount
-                            shouldShowAbsoluteBottomButton(
-                                isNewChatMode = isNewChatMode,
-                                isSwitching = isSwitching,
-                                conversationContentReady =
-                                    currentConversationId != null &&
-                                        loadedMessagesConversationId == currentConversationId,
-                                shareSelectionActive = shareSelectionActive,
-                                hasItems = totalItemsCount > 1,
-                                canScrollForward = listState.canScrollForward,
-                                isNearBottom = isNearAbsoluteBottom,
-                                isStreamingAutoFollowing =
-                                    streamingTailController.isAutoFollowing,
-                                scrollPhase = absoluteBottomScrollPhase,
-                                competingProgrammaticScrollActive =
-                                    regenerationScrollActive ||
-                                        imeBottomAnchorState.active,
-                            )
-                        }
-                    }
+                    val showButton = rememberChatAppScrollToBottomButtonVisible(
+                        currentConversationId = currentConversationId,
+                        loadedMessagesConversationId = loadedMessagesConversationId,
+                        isNewChatMode = isNewChatMode,
+                        isSwitching = isSwitching,
+                        shareSelectionActive = shareSelectionActive,
+                        isNearAbsoluteBottom = isNearAbsoluteBottom,
+                        absoluteBottomScrollPhase = absoluteBottomScrollPhase,
+                        listState = listState,
+                        streamingTailController = streamingTailController,
+                        regenerationTransition = regenerationTransition,
+                        imeBottomAnchorActive = imeBottomAnchorState.active,
+                    )
 
                     ChatAppScrollToBottomFab(
                         showButton = showButton,

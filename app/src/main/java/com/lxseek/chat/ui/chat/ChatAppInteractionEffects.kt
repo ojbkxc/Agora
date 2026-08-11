@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.unit.Dp
@@ -36,6 +37,7 @@ import com.lxseek.chat.ui.motion.AgoraMotionPolicy
 import com.lxseek.chat.ui.motion.closeWithMotionPolicy
 import com.lxseek.chat.util.DebugLog
 import com.lxseek.chat.viewmodel.ChatViewModel
+import com.lxseek.chat.viewmodel.RegenerationTransitionRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -399,3 +401,57 @@ internal fun AnsweringHapticEffect(
 
 // isVisibleAnswerSegment() / hasActiveAnswerSegment() are shared (internal) from
 // MessageItemSegments.kt.
+
+@Composable
+internal fun rememberChatAppScrollToBottomButtonVisible(
+    currentConversationId: String?,
+    loadedMessagesConversationId: String?,
+    isNewChatMode: Boolean,
+    isSwitching: Boolean,
+    shareSelectionActive: Boolean,
+    isNearAbsoluteBottom: Boolean,
+    absoluteBottomScrollPhase: AbsoluteBottomScrollPhase,
+    listState: LazyListState,
+    streamingTailController: StreamingTailController,
+    regenerationTransition: RegenerationTransitionRequest?,
+    imeBottomAnchorActive: Boolean,
+): Boolean {
+    val regenerationScrollActive =
+        regenerationTransition?.conversationId == currentConversationId &&
+            regenerationTransition?.scrollFinished == false
+    val showButton by remember(
+        currentConversationId,
+        loadedMessagesConversationId,
+        isNewChatMode,
+        isSwitching,
+        shareSelectionActive,
+        isNearAbsoluteBottom,
+        absoluteBottomScrollPhase,
+        listState,
+        streamingTailController,
+        regenerationScrollActive,
+        imeBottomAnchorActive,
+    ) {
+        derivedStateOf {
+            val totalItemsCount = listState.layoutInfo.totalItemsCount
+            shouldShowAbsoluteBottomButton(
+                isNewChatMode = isNewChatMode,
+                isSwitching = isSwitching,
+                conversationContentReady =
+                    currentConversationId != null &&
+                        loadedMessagesConversationId == currentConversationId,
+                shareSelectionActive = shareSelectionActive,
+                hasItems = totalItemsCount > 1,
+                canScrollForward = listState.canScrollForward,
+                isNearBottom = isNearAbsoluteBottom,
+                isStreamingAutoFollowing =
+                    streamingTailController.isAutoFollowing,
+                scrollPhase = absoluteBottomScrollPhase,
+                competingProgrammaticScrollActive =
+                    regenerationScrollActive ||
+                        imeBottomAnchorActive,
+            )
+        }
+    }
+    return showButton
+}
