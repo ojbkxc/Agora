@@ -8,8 +8,10 @@ import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.filled.Compress
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.input.*
 
 import androidx.compose.material3.*
@@ -90,6 +92,7 @@ internal fun MessageItem(
     selectionMode: Boolean = false,
     selected: Boolean = false,
     onToggleSelection: () -> Unit = {},
+    onLongPress: () -> Unit = {},
     onLayoutMutationStarted: (String) -> Unit = {},
     onLayoutMutationSettled: (String) -> Unit = {},
     thoughtExpandedStates: SnapshotStateMap<String, Boolean> = remember { mutableStateMapOf() },
@@ -205,7 +208,13 @@ internal fun MessageItem(
                 modifier = Modifier.padding(top = 2.dp, end = 4.dp),
             )
         }
-        Box(modifier = Modifier.weight(1f)) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .pointerInput(selectionMode) {
+                    if (!selectionMode) detectTapGestures(onLongPress = { onLongPress() })
+                },
+        ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = alignment,

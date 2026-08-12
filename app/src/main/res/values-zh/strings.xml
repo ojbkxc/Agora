@@ -388,6 +388,7 @@
     <string name="tts_not_available">此设备不支持文本转语音引擎</string>
     <string name="tts_play">播放</string>
     <string name="tts_stop">停止</string>
+    <string name="tts_playing">正在朗读…</string>
 
     <!-- Settings - Web Search Page -->
     <string name="web_search_title">网页搜索</string>

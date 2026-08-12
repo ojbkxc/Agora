@@ -498,7 +498,7 @@ class ChatViewModel(
     private val _ttsPlayingMessageId = MutableStateFlow<String?>(null)
     val ttsPlayingMessageId: StateFlow<String?> = _ttsPlayingMessageId.asStateFlow()
 
-    private fun playTtsForMessage(messageId: String, text: String) {
+    private fun playTtsForMessage(messageId: String, text: String, showFailureSnackbar: Boolean = false) {
         val plainText = TtsManager.stripMarkdown(text)
         if (plainText.isBlank()) return
         if (!TtsManager.isAvailable.value) {
@@ -512,6 +512,11 @@ class ChatViewModel(
             )
         ) {
             _ttsPlayingMessageId.value = null
+            if (showFailureSnackbar) {
+                viewModelScope.launch {
+                    _snackbarMessage.emit(SnackbarEvent(appContext.getString(R.string.tts_not_available)))
+                }
+            }
             return
         }
         viewModelScope.launch {
@@ -933,7 +938,7 @@ class ChatViewModel(
             return
         }
         if (!settings.ttsEnabled.value) return
-        playTtsForMessage(message.id, message.text)
+        playTtsForMessage(message.id, message.text, showFailureSnackbar = true)
     }
 
     fun stopTts() {

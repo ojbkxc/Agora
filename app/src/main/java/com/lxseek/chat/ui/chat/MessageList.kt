@@ -134,6 +134,7 @@ internal fun MessageList(
     selectionMode: Boolean = false,
     selectedMessageIds: Set<String> = emptySet(),
     onToggleMessageSelection: (String) -> Unit = {},
+    onMessageLongPress: () -> Unit = {},
     onMediaClick: (List<String>, Int) -> Unit = { _, _ -> },
     onFileContentClick: ((fileName: String, content: String) -> Unit)? = null,
     onPdfPagesClick: ((pages: List<String>, startIndex: Int) -> Unit)? = null,
@@ -776,6 +777,7 @@ internal fun MessageList(
             onToggleSelection = {
                 if (!isRetainedRegenerationExit) onToggleMessageSelection(message.id)
             },
+            onLongPress = onMessageLongPress,
             onHeightChanged = { height ->
                 if (height > 0 && messageHeights[message.id] != height) {
                     val mode = messageListLayoutMode(

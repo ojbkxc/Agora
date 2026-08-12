@@ -609,6 +609,12 @@ fun ChatApp(
                                     haptics.selection()
                                     conversationInteraction.toggleShareMessage(messageId)
                                 },
+                                onMessageLongPress = {
+                                    if (!shareSelectionActive) {
+                                        haptics.longPress()
+                                        conversationInteraction.activateShareSelection()
+                                    }
+                                },
                                 onMediaClick = { urls, index ->
                                     onMediaClick(urls, index)
                                 },

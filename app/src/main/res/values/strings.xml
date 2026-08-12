@@ -420,6 +420,7 @@
     <string name="tts_not_available">Text-to-speech engine not available on this device</string>
     <string name="tts_play">Play</string>
     <string name="tts_stop">Stop</string>
+    <string name="tts_playing">Reading aloud…</string>
     <string name="message_display">Message Display</string>
     <string name="tool_call_display_mode">Thinking &amp; Tool Blocks</string>
     <string name="tool_call_display_mode_timeline">Timeline</string>

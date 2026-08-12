@@ -575,6 +575,14 @@ internal fun AssistantMessageContent(
                                     tint = if (isTtsPlaying) MaterialTheme.colorScheme.primary else enabledActionTint,
                                 )
                             }
+                            if (isTtsPlaying) {
+                                Text(
+                                    text = stringResource(R.string.tts_playing),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.graphicsLayer { alpha = informationActionsAlpha },
+                                )
+                            }
                         }
                         IconButton(
                             onClick = {
