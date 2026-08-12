@@ -498,6 +498,32 @@ class ChatViewModel(
     private val _ttsPlayingMessageId = MutableStateFlow<String?>(null)
     val ttsPlayingMessageId: StateFlow<String?> = _ttsPlayingMessageId.asStateFlow()
 
+    private fun playTtsForMessage(messageId: String, text: String) {
+        val plainText = TtsManager.stripMarkdown(text)
+        if (plainText.isBlank()) return
+        if (!TtsManager.isAvailable.value) {
+            TtsManager.init(appContext)
+        }
+        _ttsPlayingMessageId.value = messageId
+        if (!TtsManager.speak(
+                text = plainText,
+                language = settings.ttsLanguage.value,
+                rate = settings.ttsSpeechRate.value,
+            )
+        ) {
+            _ttsPlayingMessageId.value = null
+            return
+        }
+        viewModelScope.launch {
+            withTimeoutOrNull(TTS_START_GRACE_MS) {
+                TtsManager.isPlaying.first { it }
+            }
+            if (!TtsManager.isPlaying.value && _ttsPlayingMessageId.value == messageId) {
+                _ttsPlayingMessageId.value = null
+            }
+        }
+    }
+
     /** PDF / text-file preview state (see [MediaPreviewState]). */
     private val mediaPreview = MediaPreviewState()
     val previewPdfPages: StateFlow<List<String>> get() = mediaPreview.pdfPages
@@ -542,18 +568,7 @@ class ChatViewModel(
                 if (settings.ttsEnabled.value && settings.ttsAutoPlay.value &&
                     conversationId == currentConversationId.value
                 ) {
-                    val plainText = TtsManager.stripMarkdown(message.text)
-                    if (plainText.isNotBlank()) {
-                        _ttsPlayingMessageId.value = message.id
-                        if (!TtsManager.speak(
-                                text = plainText,
-                                language = settings.ttsLanguage.value,
-                                rate = settings.ttsSpeechRate.value,
-                            )
-                        ) {
-                            _ttsPlayingMessageId.value = null
-                        }
-                    }
+                    playTtsForMessage(message.id, message.text)
                 }
             }
             state.onQueueDrainRequested = { settledState ->
@@ -918,34 +933,7 @@ class ChatViewModel(
             return
         }
         if (!settings.ttsEnabled.value) return
-        val plainText = TtsManager.stripMarkdown(message.text)
-        if (plainText.isBlank()) return
-        // (Re)initialize if the engine isn't ready — cheap when already initialized, and
-        // recovers from a prior transient ERROR (TtsManager.init is retryable).
-        if (!TtsManager.isAvailable.value) {
-            TtsManager.init(appContext)
-        }
-        _ttsPlayingMessageId.value = message.id
-        val accepted = TtsManager.speak(
-            text = plainText,
-            language = settings.ttsLanguage.value,
-            rate = settings.ttsSpeechRate.value,
-        )
-        if (!accepted) {
-            _ttsPlayingMessageId.value = null
-            return
-        }
-        // If the engine was still initializing, speak() buffered the utterance and returned
-        // true. Should init ultimately fail, isPlaying will never transition and the
-        // indicator would stick on a mute Pause icon — guard with a grace window.
-        viewModelScope.launch {
-            withTimeoutOrNull(TTS_START_GRACE_MS) {
-                TtsManager.isPlaying.first { it }
-            }
-            if (!TtsManager.isPlaying.value && _ttsPlayingMessageId.value == message.id) {
-                _ttsPlayingMessageId.value = null
-            }
-        }
+        playTtsForMessage(message.id, message.text)
     }
 
     fun stopTts() {
