@@ -217,6 +217,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **连续语音对话（P2，3.2）**：commit `437f831d` + review fixes `4e77a5a0`。新建 `SttManager.kt`（SpeechRecognizer 封装，retryable init + `initializing` flag 防重复创建）、`VoiceConversationController.kt`（状态机 IDLE→LISTENING→PROCESSING→SPEAKING→LISTENING，TTS grace window，sendJob/ttsObserverJob 跟踪取消）、`TtsPlaybackHelper.kt`（从 ChatViewModel 提取 playTtsForMessage，978→977 行）、`VoiceMicButton.kt`（脉冲动画 mic FAB，always-call rememberInfiniteTransition 防 Compose slot table 崩溃）。`ChatBottomBar` 加 mic 按钮，`ChatApp` 加 RECORD_AUDIO 权限 launcher + `isSupported` 检查 + 权限拒绝 Snackbar。`SettingsGenerationPage` 加 Voice Conversation 设置组。`MessageLongImageRenderer` 加 20000px 高度上限 + try-catch。CI 全绿验证通过（#31568711157 ✓）。
+- **保存为长图（P1c）+ 多选模式隐藏底部栏（P1d）**：commit `5f603166`。新建 `MessageLongImageRenderer.kt`（text→Bitmap via StaticLayout→PNG→Intent.ACTION_SEND），`MessageExportController` 加 `shareMessagesAsLongImage`，`ShareSelectionFab` 加 Image 按钮，`ChatApp` 底部栏在多选模式隐藏。
 - **v1.0.9 版本 bump + Build & Release workflow 改进**：versionCode 9→10 / versionName 1.0.8→1.0.9。build.yml 改进：`workflow_dispatch` 不再要求手动输入版本号，`get-version` 始终从 `build.gradle.kts` 读取 versionName 作为唯一事实源，消除"手动输入版本 ≠ 代码版本"的整类失败。
 - **TTS/分享全量检查补缺**：commit `1aad5000`。TTS「正在朗读」文字指示 + TTS 引擎不可用 Snackbar 提示 + 长按消息进入多选模式。CI 全绿验证通过（#31554958375 ✓）。
 - **分享导出功能（复制纯文本 + 高级过滤选项）**：commit `0c8c13b1`（P1a 复制纯文本）+ `f6fd830e`（P1b 思考/工具过滤）+ `ed3d5cab`（编译修复）。新建 `MessageExportController.kt`（44 行），`ConversationForkShareService` 加 `buildPlainText`/`formatPlainText`/`renderShare` 参数化，`ShareSelectionFab` 加 ContentCopy 按钮，`SettingsGenerationPage` 加 Export 设置组（两个 Switch），设置层 Schema/Manager/Repository 三层。CI 全绿验证通过（#31550658202 ✓）。
@@ -243,10 +245,7 @@ Agora/
 - **签名密钥**：Release 签名需在 GitHub Secrets 配置 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`；未配置时回退 debug 签名。
 
 ### ❌ 未完成
-1. 分享导出 — 保存为长图（P1c）：View→Bitmap，未实现。
-2. 分享导出 — 底部操作面板 UI 改造（P1d）：ShareSelectionFab 改为面板。
-3. 连续语音对话（P2，3.2）：STT + 状态机，从零开发。
-4. 滑动连续多选：未实现（已支持长按进入多选）。
+1. 滑动连续多选：未实现（已支持长按进入多选）。
 
 ## 5. 关键接口契约（不要破坏既有签名）
 
@@ -305,9 +304,9 @@ Agora/
 - [x] 分享导出 — 复制纯文本（P1a）+ 高级过滤选项（P1b，思考/工具开关）：CI 全绿验证通过（#31550658202 ✓）。
 - [x] TTS「正在朗读」文字指示 + 引擎不可用 Snackbar 提示 + 长按消息进入多选模式：CI 全绿验证通过（#31554958375 ✓）。
 - [x] Build & Release workflow 改进：版本号从 build.gradle.kts 自动读取，消除手动输入版本不一致问题。
-- [ ] 分享导出 — 保存为长图（P1c）：View→Bitmap，未实现。
-- [ ] 分享导出 — 底部操作面板 UI 改造（P1d）：ShareSelectionFab 改为面板含复制/导出MD/长图/高级选项折叠。
-- [ ] 连续语音对话（P2，3.2）：STT + 状态机，从零开发，需新建 SttManager + VoiceInteractionManager + 录音 UI + RECORD_AUDIO 权限。
+- [x] 分享导出 — 保存为长图（P1c）：`MessageLongImageRenderer` text→Bitmap→PNG，CI 全绿（#31567125000 ✓）。
+- [x] 分享导出 — 底部操作面板 UI 改造（P1d）：多选模式隐藏底部栏，ShareSelectionFab 含复制/长图/全选/确认。
+- [x] 连续语音对话（P2，3.2）：SttManager + VoiceConversationController 状态机 + VoiceMicButton + RECORD_AUDIO 权限 + 设置。CI 全绿验证通过（#31568711157 ✓）。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
 ## 7. 编码约定（强制）
@@ -368,6 +367,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-12 连续语音对话（P2）实现 + 全量复查修复（本次会话）：用户要求"全部修复，修复后再检查"。① **P2 连续语音对话**（commit `437f831d`）：新建 `SttManager.kt`（SpeechRecognizer 封装，retryable init + `initializing` flag 防重复创建 + 可配置静音阈值 + partial results）、`VoiceConversationController.kt`（状态机 IDLE→LISTENING→PROCESSING→SPEAKING→LISTENING，TTS start grace window 5s，observeLlmAndTts 用 collectLatest，sendJob/ttsObserverJob 跟踪取消）、`TtsPlaybackHelper.kt`（从 ChatViewModel 提取 `playTtsForMessage` 30→3 行委托，ChatViewModel 993→977 行）、`VoiceMicButton.kt`（脉冲动画 mic FAB，state-colored container）。`ChatBottomBar`（985 行）加 mic 按钮，`ChatApp`（811 行）加 RECORD_AUDIO 权限 launcher + `isSupported` 检查 + 权限拒绝/不支持 Snackbar。设置四层（Schema/Manager/Repository/SettingsGenerationPage）+ strings en/zh（10 个 key）。AndroidManifest 加 RECORD_AUDIO 权限。② **全量复查**（10 个问题，3 严重/4 中等/3 轻微）：VoiceMicButton 条件调用 @Composable（slot table 崩溃）→ 改为始终调用 rememberInfiniteTransition + targetValue 控制；SttManager 重复创建 SpeechRecognizer → 加 `initializing` flag；ChatViewModel.onCleared 未清理 → 加 `voiceConversation.stop()`；sendMessage 协程未跟踪 → 加 sendJob cancel；init 块协程 → 改为 lazy 启动 ttsObserverJob；未检查 isRecognitionAvailable → 加检查 + Snackbar；权限拒绝无反馈 → 加 Snackbar；MessageLongImageRenderer 无尺寸上限 → 加 20000px cap + try-catch。③ **P1c brace 修复**：P1c commit `5f603166` 的 `if (!shareSelectionActive) {} else {}` 有额外 `}` 致 syntax error，修复 brace nesting。CI 全绿验证通过（#31568711157 ✓）。
 - 2026-08-12 全量功能检查 + i18n/dead-code/fastlane 修复（本次会话）：用户要求"全量检查所有功能"。全量检查 TTS/分享/连续语音/设置页/字符串/编译/CI 共 7 大类 30+ 子项。发现并修复：① hardcoded "Conch"/"SSH" → `shell_type_ssh`/`shell_type_conch` 字符串资源（en+zh）；② fastlane changelog 缺 versionCode 10 → 添加 `10.txt`（en-US+zh-CN）；③ `SettingsClaudeImportPage.kt` 死代码删除 → `ImportStrategy` enum 迁移到 `ImportExportManager.kt`（经历 2 次 CI 修复：enum 误插 import 中间致 syntax error → 移到 import 后）。CI 全绿验证通过（#31561179441 ✓）。
 - 2026-08-12 增加 CI 失败预防措施（本次会话）：用户反馈"github编译报错了…为什么这种问题容易出现，修复要看看以后怎么避免"。分析本次会话所有 CI 失败根因：① P1a 编译错误（`emitSnackbar` suspend 类型不匹配 + `String?` vs `String`）——本地无法编译、无 IDE 即时反馈、Kotlin 类型系统严格；② Build & Release 版本一致性失败——build.yml 已修改但**忘记 commit**，CI 用旧版本。修复：在 §R2.4 增加 push 前静态检查清单（`git status` 确认无残留 + suspend/nullable 类型检查 + 字符串/设置四层完整性检查）；在 §0 标准流程增加步骤 1b（会话开始前 `git status` 检查残留修改）。未改代码，仅回写 AGENTS.md。
 - 2026-08-12 v1.0.9 版本 bump + Build & Release workflow 改进 + TTS/分享全量检查补缺（本次会话）：用户反馈 Build & Release 报错 + 要求全量检查 TTS/分享。① Build & Release 版本一致性失败根因：用户手动 `workflow_dispatch` 触发 v1.0.9 发版，但 `build.gradle.kts` 仍为 1.0.8/9，"Verify version consistency" 步骤失败。修复：bump versionCode 9→10 / versionName 1.0.8→1.0.9。② **改进 build.yml 避免未来此类问题**：`workflow_dispatch` 不再要求手动输入版本号——`get-version` job 始终从 `build.gradle.kts` 读取 `versionName` 作为唯一事实源（`VERSION=$(grep 'versionName' ...)`），tag push 时验证 tag 与 build.gradle.kts 一致，`workflow_dispatch` 时自动派生 tag。移除 `build-android` 中冗余的 "Verify version consistency" 步骤（get-version 已覆盖）。这消除了"手动输入版本 ≠ 代码版本"的整类失败。③ 全量检查 TTS/分享发现 3 个缺失并修复（commit `1aad5000`）：TTS「正在朗读」文字指示（AssistantMessageContent 加 Text label）、TTS 引擎不可用 Snackbar 提示（`playTtsForMessage` 加 `showFailureSnackbar` 参数，`tts_not_available` 字符串启用）、长按消息进入多选模式（MessageItem `pointerInput` + `detectTapGestures(onLongPress)`，经 MessageList→ChatApp 接线 `activateShareSelection` + `haptics.longPress()`）。CI 全绿验证通过（#31554958375 ✓）。
