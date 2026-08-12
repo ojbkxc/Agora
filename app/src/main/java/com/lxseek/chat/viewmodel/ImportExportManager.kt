@@ -8,6 +8,8 @@ import com.lxseek.chat.data.ClaudeChatImporter
 import com.lxseek.chat.data.DataExporter
 import com.lxseek.chat.data.DataImporter
 import com.lxseek.chat.data.GptChatImporter
+
+enum class ImportStrategy { MERGE, REPLACE }
 import com.lxseek.chat.data.MemoryManager
 import com.lxseek.chat.data.SettingsManager
 import com.lxseek.chat.data.local.ChatDao
@@ -20,7 +22,6 @@ import com.lxseek.chat.data.local.migration.LegacyRunBackfillPlanner
 import com.lxseek.chat.data.repository.ConversationRepository
 import com.lxseek.chat.model.MessageStatus
 import com.lxseek.chat.model.Participant
-import com.lxseek.chat.ui.settings.ImportStrategy
 import com.lxseek.chat.util.SnackbarEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

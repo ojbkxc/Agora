@@ -36,7 +36,7 @@ import com.lxseek.chat.data.DataExporter
 import com.lxseek.chat.data.DataImporter
 import com.lxseek.chat.data.NativeBackupFormat
 import com.lxseek.chat.viewmodel.ChatViewModel
-import com.lxseek.chat.ui.settings.ImportStrategy
+import com.lxseek.chat.viewmodel.ImportStrategy
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
