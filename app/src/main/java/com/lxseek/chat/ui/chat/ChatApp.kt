@@ -54,6 +54,7 @@ import com.lxseek.chat.model.StableModelAliases
 import com.lxseek.chat.viewmodel.AnimatedScrollDestination
 import com.lxseek.chat.viewmodel.ChatViewModel
 import com.lxseek.chat.viewmodel.RegenerationTransitionStage
+import com.lxseek.chat.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 @OptIn(
@@ -775,16 +776,16 @@ fun ChatApp(
                 onVoiceConversationToggle = {
                     if (!com.lxseek.chat.util.SttManager.isSupported(context)) {
                         viewModel.emitSnackbar(context.getString(R.string.voice_conversation_not_available))
-                        return@onVoiceConversationToggle
-                    }
-                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
-                        context,
-                        android.Manifest.permission.RECORD_AUDIO,
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    if (hasPermission) {
-                        viewModel.toggleVoiceConversation()
                     } else {
-                        micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                        val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.RECORD_AUDIO,
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (hasPermission) {
+                            viewModel.toggleVoiceConversation()
+                        } else {
+                            micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                        }
                     }
                 },
             )

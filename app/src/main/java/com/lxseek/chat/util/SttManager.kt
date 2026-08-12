@@ -44,7 +44,7 @@ object SttManager {
         if (initialized || initializing) return
         if (recognizer != null && !initialized) {
             try {
-                recognizer?.stop()
+                recognizer?.stopListening()
                 recognizer?.destroy()
             } catch (_: Throwable) {}
             recognizer = null
