@@ -389,6 +389,17 @@ class SettingsManager(private val context: Context) {
         context.dataStore.edit { it[TTS_AUTOPLAY] = enabled }
     }
 
+    val shareIncludeThinking: Flow<Boolean> = context.dataStore.data.map { it[SHARE_INCLUDE_THINKING] ?: true }
+    val shareIncludeTools: Flow<Boolean> = context.dataStore.data.map { it[SHARE_INCLUDE_TOOLS] ?: true }
+
+    suspend fun saveShareIncludeThinking(enabled: Boolean) {
+        context.dataStore.edit { it[SHARE_INCLUDE_THINKING] = enabled }
+    }
+
+    suspend fun saveShareIncludeTools(enabled: Boolean) {
+        context.dataStore.edit { it[SHARE_INCLUDE_TOOLS] = enabled }
+    }
+
     suspend fun saveTtsLanguage(language: String) {
         context.dataStore.edit { it[TTS_LANGUAGE] = language }
     }
@@ -810,6 +821,8 @@ class SettingsManager(private val context: Context) {
             prefs.remove(TTS_LANGUAGE)
             prefs.remove(TTS_SPEECH_RATE)
             prefs.remove(TTS_AUTOPLAY)
+            prefs.remove(SHARE_INCLUDE_THINKING)
+            prefs.remove(SHARE_INCLUDE_TOOLS)
             prefs.remove(THINKING_LEVEL)
             prefs.remove(THINKING_BUDGET_ENABLED)
             prefs.remove(THINKING_BUDGET_TOKENS)

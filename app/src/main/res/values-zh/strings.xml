@@ -843,6 +843,11 @@
     <string name="copied_to_clipboard">已复制到剪贴板</string>
     <string name="share_label_user">用户</string>
     <string name="share_label_ai">AI</string>
+    <string name="share_export_title">导出</string>
+    <string name="share_include_thinking">包含思考过程</string>
+    <string name="share_include_thinking_desc">导出内容包含 AI 思考过程</string>
+    <string name="share_include_tools">包含工具调用</string>
+    <string name="share_include_tools_desc">导出内容包含工具调用结果</string>
     <string name="edit">编辑</string>
     <string name="info">信息</string>
     <string name="more">更多</string>

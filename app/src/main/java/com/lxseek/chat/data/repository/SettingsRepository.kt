@@ -103,6 +103,8 @@ class SettingsRepository(
     val thinkingEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingEnabled, true)
     val ttsEnabled: StateFlow<Boolean> = hot(settingsManager.ttsEnabled, false)
     val ttsAutoPlay: StateFlow<Boolean> = hot(settingsManager.ttsAutoPlay, false)
+    val shareIncludeThinking: StateFlow<Boolean> = hot(settingsManager.shareIncludeThinking, true)
+    val shareIncludeTools: StateFlow<Boolean> = hot(settingsManager.shareIncludeTools, true)
     val ttsLanguage: StateFlow<String> = hot(settingsManager.ttsLanguage, "system")
     val ttsSpeechRate: StateFlow<Float> = hot(settingsManager.ttsSpeechRate, 1.0f)
     val thinkingLevel: StateFlow<String> = hot(settingsManager.thinkingLevel, "medium")
@@ -479,6 +481,8 @@ class SettingsRepository(
     fun setThinkingEnabled(enabled: Boolean) = scope.launch { settingsManager.saveThinkingEnabled(enabled) }
     fun setTtsEnabled(enabled: Boolean) = scope.launch { settingsManager.saveTtsEnabled(enabled) }
     fun setTtsAutoPlay(enabled: Boolean) = scope.launch { settingsManager.saveTtsAutoPlay(enabled) }
+    fun setShareIncludeThinking(enabled: Boolean) = scope.launch { settingsManager.saveShareIncludeThinking(enabled) }
+    fun setShareIncludeTools(enabled: Boolean) = scope.launch { settingsManager.saveShareIncludeTools(enabled) }
     fun setTtsLanguage(language: String) = scope.launch { settingsManager.saveTtsLanguage(language) }
     fun setTtsSpeechRate(rate: Float) = scope.launch { settingsManager.saveTtsSpeechRate(rate) }
     fun setThinkingLevel(level: String) = scope.launch { settingsManager.saveThinkingLevel(level) }

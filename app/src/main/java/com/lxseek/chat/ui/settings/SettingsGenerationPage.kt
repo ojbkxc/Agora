@@ -57,6 +57,8 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val ttsAutoPlay by viewModel.settings.ttsAutoPlay.collectAsState()
     val ttsLanguage by viewModel.settings.ttsLanguage.collectAsState()
     val ttsSpeechRate by viewModel.settings.ttsSpeechRate.collectAsState()
+    val shareIncludeThinking by viewModel.settings.shareIncludeThinking.collectAsState()
+    val shareIncludeTools by viewModel.settings.shareIncludeTools.collectAsState()
 
     CollapsingSettingsScaffold(
         title = stringResource(R.string.generation_title),
@@ -358,6 +360,53 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 }
                             }
                         },
+                    ),
+                )
+
+                // ── Section 6: Export ──
+                SettingsGroup(
+                    title = stringResource(R.string.share_export_title),
+                    items = listOf(
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.share_include_thinking)) },
+                                supportingContent = { Text(stringResource(R.string.share_include_thinking_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.Visibility,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = shareIncludeThinking,
+                                        onCheckedChange = { viewModel.settings.setShareIncludeThinking(it) },
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setShareIncludeThinking(!shareIncludeThinking) },
+                            )
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.share_include_tools)) },
+                                supportingContent = { Text(stringResource(R.string.share_include_tools_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.Memory,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = shareIncludeTools,
+                                        onCheckedChange = { viewModel.settings.setShareIncludeTools(it) },
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setShareIncludeTools(!shareIncludeTools) },
+                            )
+                        }
                     ),
                 )
             }

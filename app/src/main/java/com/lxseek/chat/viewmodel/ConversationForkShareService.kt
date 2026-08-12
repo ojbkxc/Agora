@@ -321,7 +321,9 @@ class ConversationForkShareService(
                     .thenBy { it.timestamp }
                     .thenBy { it.id }
             )
-        val text = if (asMarkdown) formatShareText(snapshot.title, selected) else formatPlainText(selected, userLabel, aiLabel)
+        val includeThinking = settings.shareIncludeThinking.value
+        val includeTools = settings.shareIncludeTools.value
+        val text = if (asMarkdown) formatShareText(snapshot.title, selected, includeThinking, includeTools) else formatPlainText(selected, userLabel, aiLabel)
         return if (text.isBlank()) ShareResult.Failure("Selection has no shareable content")
         else ShareResult.Success(text)
     }
@@ -336,7 +338,12 @@ class ConversationForkShareService(
 private fun Map<String?, String>.encodeSelections(): String =
     Json.encodeToString(mapKeys { (key, _) -> key ?: "null" })
 
-internal fun formatShareText(title: String, messages: List<MessageEntity>): String {
+internal fun formatShareText(
+    title: String,
+    messages: List<MessageEntity>,
+    includeThinking: Boolean = true,
+    includeTools: Boolean = true,
+): String {
     val blocks = mutableListOf<String>()
     title.trim().takeIf { it.isNotBlank() }?.let { blocks += "# $it" }
 
@@ -363,10 +370,10 @@ internal fun formatShareText(title: String, messages: List<MessageEntity>): Stri
                     var includedAnswer = false
                     segments.forEach { segment ->
                         when (segment.type) {
-                            "thought" -> segment.content.trim().takeIf { it.isNotBlank() }?.let {
+                            "thought" -> if (includeThinking) segment.content.trim().takeIf { it.isNotBlank() }?.let {
                                 blocks += "## Thinking\n\n$it"
                             }
-                            "tool" -> {
+                            "tool" -> if (includeTools) {
                                 val name = segment.toolName?.takeIf { it.isNotBlank() } ?: "Tool"
                                 val toolBody = buildString {
                                     segment.toolArgs?.takeIf { it.isNotBlank() }?.let {
