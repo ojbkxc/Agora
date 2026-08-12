@@ -75,7 +75,7 @@ class AskUserToolProvider(
             if (answer.size == 1) {
                 put("answer", answer.first())
             } else {
-                putJsonArray("answers") { answer.forEach { add(it) } }
+                putJsonArray("answers") { answer.forEach { add(JsonPrimitive(it)) } }
             }
         }.toString()
     }
