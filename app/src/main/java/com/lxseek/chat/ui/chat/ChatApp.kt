@@ -688,6 +688,14 @@ fun ChatApp(
                                 viewModel.copyMessagesAsPlainText(selectedShareMessageIds)
                             }
                         },
+                        onShareImage = {
+                            if (selectedShareMessageIds.isNotEmpty()) {
+                                viewModel.shareMessagesAsLongImage(
+                                    selectedShareMessageIds,
+                                    currentConversation?.title ?: "",
+                                )
+                            }
+                        },
                         onConfirm = {
                             val selection = conversationInteraction.takeShareSelection()
                             if (selection.isNotEmpty()) {
@@ -703,6 +711,7 @@ fun ChatApp(
                 }
             }
 
+            if (!shareSelectionActive) {
             ChatAppBottomBarSection(
                 viewModel = viewModel,
                 haptics = haptics,
@@ -754,6 +763,9 @@ fun ChatApp(
                 onInitPdfSelection = onInitPdfSelection,
                 fullScreenViewerUrls = fullScreenViewerUrls,
             )
+            }
+            } else {
+                LaunchedEffect(Unit) { bottomBarHeightPx = 0f }
             }
         }
         }
