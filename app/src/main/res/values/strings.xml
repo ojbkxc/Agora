@@ -467,6 +467,8 @@
 
     <!-- Settings - Shell Page -->
     <string name="shell_title">Shell</string>
+    <string name="shell_type_ssh">SSH</string>
+    <string name="shell_type_conch">Conch</string>
     <string name="shell_desc">Remote shell command execution</string>
     <string name="shell_enable">Enable Shell Tool</string>
     <string name="shell_enable_desc">Allow the model to execute shell commands via remote servers</string>

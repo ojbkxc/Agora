@@ -274,7 +274,7 @@ private fun DeviceEditor(
                     Surface(shape = RoundedCornerShape(4.dp),
                         color = if (typeInput == "ssh") MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer
                     ) {
-                        Text(if (typeInput == "ssh") "SSH" else "Conch",
+                        Text(if (typeInput == "ssh") stringResource(R.string.shell_type_ssh) else stringResource(R.string.shell_type_conch),
                             Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (typeInput == "ssh") MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimaryContainer)
@@ -313,7 +313,7 @@ private fun DeviceEditor(
                 // Type selector
                 ExposedDropdownMenuBox(expanded = typeMenuExpanded, onExpandedChange = { typeMenuExpanded = it }) {
                     OutlinedTextField(
-                        value = if (typeInput == "ssh") "SSH" else "Conch",
+                        value = if (typeInput == "ssh") stringResource(R.string.shell_type_ssh) else stringResource(R.string.shell_type_conch),
                         onValueChange = {}, readOnly = true,
                         label = { Text(stringResource(R.string.shell_device_type)) },
                         leadingIcon = { Icon(Icons.Default.Cable, null) },
@@ -326,8 +326,8 @@ private fun DeviceEditor(
                         onDismissRequest = { typeMenuExpanded = false },
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        DropdownMenuItem(text = { Text("Conch") }, onClick = { typeInput = "conch"; typeMenuExpanded = false }, leadingIcon = { Icon(Icons.Default.Cable, null) })
-                        DropdownMenuItem(text = { Text("SSH") }, onClick = { typeInput = "ssh"; typeMenuExpanded = false }, leadingIcon = { Icon(Icons.Default.Cable, null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.shell_type_conch)) }, onClick = { typeInput = "conch"; typeMenuExpanded = false }, leadingIcon = { Icon(Icons.Default.Cable, null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.shell_type_ssh)) }, onClick = { typeInput = "ssh"; typeMenuExpanded = false }, leadingIcon = { Icon(Icons.Default.Cable, null) })
                     }
                 }
                 Spacer(Modifier.height(10.dp))

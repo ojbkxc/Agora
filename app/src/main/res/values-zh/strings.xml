@@ -425,6 +425,8 @@
 
     <!-- Settings - Shell Page -->
     <string name="shell_title">终端</string>
+    <string name="shell_type_ssh">SSH</string>
+    <string name="shell_type_conch">Conch</string>
     <string name="shell_desc">远程 Shell 命令执行</string>
     <string name="shell_enable">启用终端工具</string>
     <string name="shell_enable_desc">允许模型通过远程服务器执行 Shell 命令</string>
