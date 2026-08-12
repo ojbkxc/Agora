@@ -34,6 +34,7 @@ import com.lxseek.chat.model.SelectedAttachment
 import com.lxseek.chat.sandbox.SandboxManager
 import com.lxseek.chat.sandbox.SandboxManagerFactory
 import com.lxseek.chat.service.AgoraForegroundService
+import com.lxseek.chat.tool.ToolApprovalResult
 import com.lxseek.chat.util.DebugLog
 import com.lxseek.chat.util.TtsManager
 import com.lxseek.chat.util.PdfPageRenderer
@@ -250,6 +251,11 @@ class ChatViewModel(
             // Gate lives in RagManager.indexMessageForRag (autoCacheEnabled + active model).
             gm.onMessagePersisted = { messageId, text -> ragManager.indexMessageForRag(messageId, text) }
             gm.onConfirmShellCommand = { server, summary -> shellConfirmation.confirm(server, summary) }
+            gm.onToolApproval = { request ->
+                val allowed = shellConfirmation.confirm(request.toolName, request.summary)
+                if (allowed) ToolApprovalResult.Approved
+                else ToolApprovalResult.Denied("user declined")
+            }
         }
     }
     private val semanticSearchService by lazy {

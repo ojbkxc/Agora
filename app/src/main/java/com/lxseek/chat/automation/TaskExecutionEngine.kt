@@ -196,6 +196,11 @@ class TaskExecutionEngine(
         // Foreground Task/Loop executions share the exact same prompt and session trust state as
         // Chat. ShellConfirmationController itself fails fast when no Activity is visible.
         it.onConfirmShellCommand = shellConfirmation::confirm
+        it.onToolApproval = { request ->
+            val allowed = shellConfirmation.confirm(request.toolName, request.summary)
+            if (allowed) com.lxseek.chat.tool.ToolApprovalResult.Approved
+            else com.lxseek.chat.tool.ToolApprovalResult.Denied("user declined")
+        }
     }
 
     /**

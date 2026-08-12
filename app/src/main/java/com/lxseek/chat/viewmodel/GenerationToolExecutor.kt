@@ -14,12 +14,15 @@ import com.lxseek.chat.tool.MemoryToolProvider
 import com.lxseek.chat.tool.RagToolProvider
 import com.lxseek.chat.tool.RiskLevel
 import com.lxseek.chat.tool.ShellToolProvider
+import com.lxseek.chat.tool.ToolApprovalRequest
+import com.lxseek.chat.tool.ToolApprovalResult
 import com.lxseek.chat.tool.ToolExecutionEvent
 import com.lxseek.chat.tool.ToolExecutionResult
 import com.lxseek.chat.tool.ToolImageStore
 import com.lxseek.chat.tool.ToolPresentationMetadata
 import com.lxseek.chat.tool.ToolProvider
 import com.lxseek.chat.tool.WebSearchToolProvider
+import com.lxseek.chat.tool.needsOuterApproval
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -61,6 +64,7 @@ internal interface GenerationToolPresentationSource {
 internal class GenerationToolExecutor private constructor(
     private val providers: List<ToolProvider>,
     private val imageGenProvider: ImageGenToolProvider?,
+    private val onToolApproval: suspend (ToolApprovalRequest) -> ToolApprovalResult?,
 ) : GenerationToolDefinitionSource, GenerationToolPresentationSource {
     companion object {
         private val FILE_TOOL_NAMES = setOf(
@@ -79,6 +83,7 @@ internal class GenerationToolExecutor private constructor(
             sandboxFactory: SandboxManagerFactory?,
             additionalProviders: List<ToolProvider>,
             confirmShellCommand: suspend (server: String, summary: String) -> Boolean,
+            onToolApproval: suspend (ToolApprovalRequest) -> ToolApprovalResult? = { null },
         ): GenerationToolExecutor {
             val imageGenProvider = ImageGenToolProvider(app)
             val shellProvider = ShellToolProvider(
@@ -96,11 +101,12 @@ internal class GenerationToolExecutor private constructor(
                     shellProvider,
                 ) + additionalProviders,
                 imageGenProvider = imageGenProvider,
+                onToolApproval = onToolApproval,
             )
         }
 
         internal fun forTest(providers: List<ToolProvider>): GenerationToolExecutor =
-            GenerationToolExecutor(providers, imageGenProvider = null)
+            GenerationToolExecutor(providers, imageGenProvider = null, onToolApproval = { null })
     }
 
     override fun definitions(context: GenerationContext): List<ToolDefinition> =
@@ -184,6 +190,33 @@ internal class GenerationToolExecutor private constructor(
                 ?: return call.result(
                     ToolExecutionResult(text = "Unknown tool: ${call.name}", isError = true),
                 )
+
+            // ── Approval dispatch ───────────────────────────────────
+            // Sandbox static analysis: decide whether the outer dispatcher needs to prompt.
+            // Tools with an internal confirm gate (file_write/file_edit) are skipped here to
+            // avoid double-prompting; the provider handles their confirmation internally.
+            val riskLevel = provider.riskLevel(call.name)
+            val requiresApproval = provider.requiresApprovalByDefault(call.name)
+            if (needsOuterApproval(call.name, riskLevel, requiresApproval, call.context.agentMode)) {
+                val approvalRequest = ToolApprovalRequest(
+                    toolName = call.name,
+                    arguments = completeArguments,
+                    riskLevel = riskLevel,
+                    agentMode = call.context.agentMode,
+                    summary = buildApprovalSummary(call.name, completeArguments),
+                )
+                when (val approval = onToolApproval(approvalRequest)) {
+                    null -> { /* no external gate configured — allow */ }
+                    ToolApprovalResult.Approved -> { /* proceed */ }
+                    is ToolApprovalResult.Denied -> return call.result(
+                        ToolExecutionResult(
+                            text = "Tool '${call.name}' was denied by user: ${approval.reason}",
+                            isError = true,
+                        ),
+                    )
+                }
+            }
+
             // A blocking provider must not pin the stream consumer forever. The detached attempt
             // lets the deadline stop awaiting immediately; cancellation still reaches cooperative
             // provider work and the tool round receives a recoverable error.
@@ -228,6 +261,11 @@ internal class GenerationToolExecutor private constructor(
         callId = callId,
         result = result,
     )
+
+    private fun buildApprovalSummary(toolName: String, arguments: String): String {
+        val argPreview = arguments.take(300)
+        return "$toolName($argPreview)"
+    }
 }
 
 internal fun appendBoundedToolOutput(

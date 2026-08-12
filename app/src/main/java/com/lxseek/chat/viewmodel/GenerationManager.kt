@@ -20,6 +20,8 @@ import com.lxseek.chat.service.AgoraForegroundService
 import com.lxseek.chat.service.AppForegroundTracker
 import com.lxseek.chat.api.util.projectAssistantImagesToLatestUserMessage
 import com.lxseek.chat.api.util.projectToolResultImagesToUserMessage
+import com.lxseek.chat.tool.ToolApprovalRequest
+import com.lxseek.chat.tool.ToolApprovalResult
 import com.lxseek.chat.tool.ToolProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +50,11 @@ class GenerationManager(
      *  Returns true to proceed, false to deny. */
     var onConfirmShellCommand: (suspend (server: String, summary: String) -> Boolean)? = null
 
+    /** User-confirmation gate for tool calls flagged by the approval dispatcher. Set by the
+     *  ViewModel. Returns null when no gate is configured (tool proceeds), an [ToolApprovalResult]
+     *  otherwise. */
+    var onToolApproval: (suspend (ToolApprovalRequest) -> ToolApprovalResult?)? = null
+
     private val toolExecutor = GenerationToolExecutor.createDefault(
         app = app,
         conversations = conversations,
@@ -57,6 +64,7 @@ class GenerationManager(
         confirmShellCommand = { server, summary ->
             onConfirmShellCommand?.invoke(server, summary) ?: true
         },
+        onToolApproval = { request -> onToolApproval?.invoke(request) },
     )
     private val providerPassEffects = ProviderPassEffectExecutor()
     private val toolBatchEffects = GenerationToolBatchEffectExecutor(toolExecutor)
