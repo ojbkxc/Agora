@@ -76,4 +76,16 @@ interface ToolProvider {
      * built-in tools on their localized presentation path.
      */
     fun presentationMetadata(name: String): ToolPresentationMetadata? = null
+
+    /**
+     * The risk level for a given tool name. Defaults to [RiskLevel.ReadOnly] so providers that
+     * only expose read-only tools need not override this.
+     */
+    fun riskLevel(name: String): RiskLevel = RiskLevel.ReadOnly
+
+    /**
+     * Whether this tool forces an explicit user approval regardless of the current [AgentMode].
+     * Useful for untrusted external tools (e.g. MCP tools from untrusted servers).
+     */
+    fun requiresApprovalByDefault(name: String): Boolean = false
 }

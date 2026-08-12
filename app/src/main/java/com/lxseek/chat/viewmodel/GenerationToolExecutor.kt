@@ -8,9 +8,11 @@ import com.lxseek.chat.data.repository.ConversationRepository
 import com.lxseek.chat.model.RunEffectIdentity
 import com.lxseek.chat.model.ToolExecutionStates
 import com.lxseek.chat.sandbox.SandboxManagerFactory
+import com.lxseek.chat.tool.AgentMode
 import com.lxseek.chat.tool.ImageGenToolProvider
 import com.lxseek.chat.tool.MemoryToolProvider
 import com.lxseek.chat.tool.RagToolProvider
+import com.lxseek.chat.tool.RiskLevel
 import com.lxseek.chat.tool.ShellToolProvider
 import com.lxseek.chat.tool.ToolExecutionEvent
 import com.lxseek.chat.tool.ToolExecutionResult
@@ -102,29 +104,44 @@ internal class GenerationToolExecutor private constructor(
     }
 
     override fun definitions(context: GenerationContext): List<ToolDefinition> =
-        providers.flatMap { it.definitions(context) }
+        providers.flatMap { it.definitions(context) }.filterByAgentMode(context)
+
+    /** Filter out tools whose risk level is not allowed by the current [AgentMode]. */
+    private fun List<ToolDefinition>.filterByAgentMode(context: GenerationContext): List<ToolDefinition> {
+        if (context.agentMode == AgentMode.Agent || context.agentMode == AgentMode.Auto) return this
+        return filter { def ->
+            val risk = providers.firstOrNull { it.handles(def.function.name) }
+                ?.riskLevel(def.function.name) ?: RiskLevel.ReadOnly
+            context.agentMode.allowsRisk(risk)
+        }
+    }
 
     fun imageDefinitions(context: GenerationContext): List<ToolDefinition> =
         imageGenProvider?.definitions(context).orEmpty()
 
     fun memoryDefinitions(context: GenerationContext): List<ToolDefinition> =
         providers.filterIsInstance<MemoryToolProvider>().flatMap { it.definitions(context) }
+            .filterByAgentMode(context)
 
     fun webSearchDefinitions(context: GenerationContext): List<ToolDefinition> =
         providers.filterIsInstance<WebSearchToolProvider>().flatMap { it.definitions(context) }
+            .filterByAgentMode(context)
 
     fun ragDefinitions(context: GenerationContext): List<ToolDefinition> =
         providers.filterIsInstance<RagToolProvider>().flatMap { it.definitions(context) }
+            .filterByAgentMode(context)
 
     fun shellDefinitions(context: GenerationContext): List<ToolDefinition> =
         providers.filterIsInstance<ShellToolProvider>()
             .flatMap { it.definitions(context) }
             .filter { it.function.name !in FILE_TOOL_NAMES }
+            .filterByAgentMode(context)
 
     fun fileDefinitions(context: GenerationContext): List<ToolDefinition> =
         providers.filterIsInstance<ShellToolProvider>()
             .flatMap { it.definitions(context) }
             .filter { it.function.name in FILE_TOOL_NAMES }
+            .filterByAgentMode(context)
 
     override fun presentationMetadata(name: String): ToolPresentationMetadata? {
         if (name.isBlank()) return null

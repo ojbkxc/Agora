@@ -135,6 +135,19 @@ class ShellToolProvider(
         "file_read", "file_write", "file_edit", "file_glob", "file_grep", "view_image"
     )
 
+    override fun riskLevel(name: String): RiskLevel = when (name) {
+        "list_shells", "list_shell_jobs", "get_shell_job", "wait_for_job" -> RiskLevel.ReadOnly
+        "file_read", "file_glob", "file_grep", "view_image" -> RiskLevel.ReadOnly
+        "execute_shell_command" -> RiskLevel.Moderate
+        "stop_shell_job", "file_write", "file_edit" -> RiskLevel.HighRisk
+        else -> RiskLevel.ReadOnly
+    }
+
+    override fun requiresApprovalByDefault(name: String): Boolean = when (name) {
+        "file_write", "file_edit", "stop_shell_job" -> true
+        else -> false
+    }
+
     // ── list_shells ────────────────────────────────────────
 
     private suspend fun listShells(ctx: GenerationContext): String {

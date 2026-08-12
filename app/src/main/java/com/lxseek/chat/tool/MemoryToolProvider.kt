@@ -250,4 +250,11 @@ class MemoryToolProvider(
         "delete_memory_file",
         "update_active_memory"
     )
+
+    override fun riskLevel(name: String): RiskLevel = when (name) {
+        "list_memory_files", "read_memory_file" -> RiskLevel.ReadOnly
+        "create_memory_file", "edit_memory_file", "update_active_memory" -> RiskLevel.LowRisk
+        "delete_memory_file" -> RiskLevel.HighRisk
+        else -> RiskLevel.ReadOnly
+    }
 }

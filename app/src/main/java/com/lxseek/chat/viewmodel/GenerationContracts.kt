@@ -6,6 +6,7 @@ import com.lxseek.chat.model.RunEffect
 import com.lxseek.chat.model.RunEffectIdentity
 import com.lxseek.chat.model.RunEndReason
 import com.lxseek.chat.model.RunStatus
+import com.lxseek.chat.tool.AgentMode
 import com.lxseek.chat.util.Constants
 
 data class GenerationConfig(
@@ -69,7 +70,9 @@ data class GenerationContext(
     val transcriptionBaseUrl: String? = null,
     /** Wall-clock budget for a single tool execution; downgrades a blocking tool from a
      *  permanent generation hang to a recoverable tool error (#49). */
-    val toolTimeoutMs: Long = Constants.TOOL_EXECUTION_TIMEOUT_MS
+    val toolTimeoutMs: Long = Constants.TOOL_EXECUTION_TIMEOUT_MS,
+    /** The agent execution mode that controls tool registration and approval policy. */
+    val agentMode: AgentMode = AgentMode.Agent,
 )
 
 /**

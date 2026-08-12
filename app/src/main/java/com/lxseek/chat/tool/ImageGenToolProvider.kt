@@ -54,6 +54,8 @@ class ImageGenToolProvider(private val app: Application) : ToolProvider {
 
     override fun handles(name: String): Boolean = name == "generate_image"
 
+    override fun riskLevel(name: String): RiskLevel = RiskLevel.LowRisk
+
     override suspend fun execute(
         name: String,
         arguments: String,

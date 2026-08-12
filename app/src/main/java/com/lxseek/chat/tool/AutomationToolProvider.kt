@@ -99,6 +99,14 @@ class AutomationToolProvider(
 
     override fun handles(name: String): Boolean = name in TOOL_NAMES
 
+    override fun riskLevel(name: String): RiskLevel = when (name) {
+        LIST_TASKS -> RiskLevel.ReadOnly
+        STOP_LOOP -> RiskLevel.LowRisk
+        CREATE_TASK, START_LOOP -> RiskLevel.Moderate
+        DELETE_TASK -> RiskLevel.HighRisk
+        else -> RiskLevel.ReadOnly
+    }
+
     override suspend fun execute(name: String, arguments: String, ctx: GenerationContext): String {
         if (!ctx.automationToolsEnabled || !isCurrentlyEnabled()) {
             return error("Automation tools are disabled")

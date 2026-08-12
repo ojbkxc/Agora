@@ -14,6 +14,12 @@ class McpToolProvider(
 
     override fun handles(name: String): Boolean = registry.descriptor(name) != null
 
+    override fun riskLevel(name: String): RiskLevel =
+        if (registry.descriptor(name) != null) RiskLevel.Moderate else RiskLevel.ReadOnly
+
+    override fun requiresApprovalByDefault(name: String): Boolean =
+        registry.descriptor(name) != null
+
     override fun presentationMetadata(name: String): ToolPresentationMetadata? =
         registry.descriptor(name)?.let { descriptor ->
             ToolPresentationMetadata(
