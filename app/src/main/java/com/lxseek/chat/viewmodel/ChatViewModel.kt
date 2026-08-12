@@ -45,12 +45,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.UUID
-
-private const val TTS_START_GRACE_MS = 5_000L
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModel(
@@ -498,36 +494,12 @@ class ChatViewModel(
     private val _ttsPlayingMessageId = MutableStateFlow<String?>(null)
     val ttsPlayingMessageId: StateFlow<String?> = _ttsPlayingMessageId.asStateFlow()
 
-    private fun playTtsForMessage(messageId: String, text: String, showFailureSnackbar: Boolean = false) {
-        val plainText = TtsManager.stripMarkdown(text)
-        if (plainText.isBlank()) return
-        if (!TtsManager.isAvailable.value) {
-            TtsManager.init(appContext)
-        }
-        _ttsPlayingMessageId.value = messageId
-        if (!TtsManager.speak(
-                text = plainText,
-                language = settings.ttsLanguage.value,
-                rate = settings.ttsSpeechRate.value,
-            )
-        ) {
-            _ttsPlayingMessageId.value = null
-            if (showFailureSnackbar) {
-                viewModelScope.launch {
-                    _snackbarMessage.emit(SnackbarEvent(appContext.getString(R.string.tts_not_available)))
-                }
-            }
-            return
-        }
-        viewModelScope.launch {
-            withTimeoutOrNull(TTS_START_GRACE_MS) {
-                TtsManager.isPlaying.first { it }
-            }
-            if (!TtsManager.isPlaying.value && _ttsPlayingMessageId.value == messageId) {
-                _ttsPlayingMessageId.value = null
-            }
-        }
-    }
+    private fun playTtsForMessage(messageId: String, text: String, showFailureSnackbar: Boolean = false) =
+        playTtsForMessageInternal(
+            appContext, messageId, text,
+            settings.ttsLanguage.value, settings.ttsSpeechRate.value,
+            _ttsPlayingMessageId, _snackbarMessage, viewModelScope, showFailureSnackbar,
+        )
 
     /** PDF / text-file preview state (see [MediaPreviewState]). */
     private val mediaPreview = MediaPreviewState()
@@ -948,6 +920,18 @@ class ChatViewModel(
         TtsManager.stop()
         _ttsPlayingMessageId.value = null
     }
+
+    val voiceConversation = VoiceConversationController(
+        scope = viewModelScope,
+        appContext = appContext,
+        languageProvider = { settings.ttsLanguage.value },
+        ttsAutoPlayOn = { settings.ttsEnabled.value && settings.ttsAutoPlay.value },
+        isLoading = isLoading,
+        ttsPlayingMessageId = _ttsPlayingMessageId,
+        sendMessage = { text -> sendMessage(text) },
+    )
+    fun toggleVoiceConversation() = voiceConversation.toggle()
+    fun stopVoiceConversation() = voiceConversation.stop()
 
     fun regenerate(messageId: String): Boolean = generationController.regenerate(messageId)
 

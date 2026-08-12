@@ -163,6 +163,15 @@
     <string name="share_include_thinking_desc">Include AI thinking in exported content</string>
     <string name="share_include_tools">Include Tool Calls</string>
     <string name="share_include_tools_desc">Include tool call results in exported content</string>
+    <string name="voice_conversation">Voice Conversation</string>
+    <string name="voice_conversation_desc">Continuous voice dialogue — speak, hear replies, speak again</string>
+    <string name="voice_conversation_listening">Listening…</string>
+    <string name="voice_conversation_processing">Thinking…</string>
+    <string name="voice_conversation_speaking">Speaking…</string>
+    <string name="voice_conversation_tap_to_speak">Tap to speak</string>
+    <string name="voice_conversation_tap_to_stop">Tap to stop</string>
+    <string name="voice_conversation_not_available">Speech recognition not available on this device</string>
+    <string name="voice_conversation_mic_permission">Microphone permission is required for voice conversation</string>
     <string name="edit">Edit</string>
     <string name="info">Info</string>
     <string name="more">More</string>

@@ -76,6 +76,9 @@ internal fun ChatAppBottomBarSection(
     onTogglePdfSelection: ((Int) -> Unit)? = null,
     onInitPdfSelection: ((Set<Int>) -> Unit)? = null,
     fullScreenViewerUrls: List<String>? = null,
+    voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
+    voiceConversationEnabled: Boolean = false,
+    onVoiceConversationToggle: () -> Unit = {},
 ) {
     val density = LocalDensity.current
     val gradientTopPaddingPx = with(density) { 20.dp.toPx() }
@@ -232,6 +235,9 @@ internal fun ChatAppBottomBarSection(
                             queuedSends = queuedSends,
                             onRemoveQueuedSend = viewModel::removeQueuedSend,
                             isStopping = isStopping,
+                            voiceConversationState = voiceConversationState,
+                            voiceConversationEnabled = voiceConversationEnabled,
+                            onVoiceConversationToggle = onVoiceConversationToggle,
                         )
                     }
                 }

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
@@ -59,6 +60,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val ttsSpeechRate by viewModel.settings.ttsSpeechRate.collectAsState()
     val shareIncludeThinking by viewModel.settings.shareIncludeThinking.collectAsState()
     val shareIncludeTools by viewModel.settings.shareIncludeTools.collectAsState()
+    val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
 
     CollapsingSettingsScaffold(
         title = stringResource(R.string.generation_title),
@@ -407,6 +409,33 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 modifier = Modifier.clickable { viewModel.settings.setShareIncludeTools(!shareIncludeTools) },
                             )
                         }
+                    ),
+                )
+
+                // ── Section 7: Voice Conversation ──
+                SettingsGroup(
+                    title = stringResource(R.string.voice_conversation),
+                    items = listOf(
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.voice_conversation)) },
+                                supportingContent = { Text(stringResource(R.string.voice_conversation_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.Mic,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = voiceConversationEnabled,
+                                        onCheckedChange = { viewModel.settings.setVoiceConversationEnabled(it) },
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.settings.setVoiceConversationEnabled(!voiceConversationEnabled) },
+                            )
+                        },
                     ),
                 )
             }

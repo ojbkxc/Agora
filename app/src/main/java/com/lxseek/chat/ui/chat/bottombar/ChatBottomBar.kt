@@ -148,6 +148,9 @@ fun ChatBottomBar(
     queuedSends: List<QueuedSend> = emptyList(),
     onRemoveQueuedSend: (String) -> Unit = {},
     isStopping: Boolean = false,
+    voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
+    voiceConversationEnabled: Boolean = false,
+    onVoiceConversationToggle: () -> Unit = {},
 ) {
     val allowSpatialTransitions = LocalAgoraMotionPolicy.current.allowSpatialTransitions
     val scrollState = rememberScrollState()
@@ -814,6 +817,13 @@ fun ChatBottomBar(
                         )
                     }
                 }
+            }
+            if (voiceConversationEnabled) {
+                VoiceMicButton(
+                    state = voiceConversationState,
+                    onClick = onVoiceConversationToggle,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
             }
             ComposerSendButton(
                 textFieldState = textFieldState,

@@ -82,6 +82,11 @@ fun ChatApp(
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val motionPolicy = LocalAgoraMotionPolicy.current
+    val micPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) viewModel.toggleVoiceConversation()
+    }
     ConversationShareEffect(viewModel, context)
 
     val latestDrawerEnabled by rememberUpdatedState(drawerEnabled)
@@ -105,6 +110,8 @@ fun ChatApp(
     val isLoading by viewModel.isLoading.collectAsState()
     val isCompacting by viewModel.isCompacting.collectAsState()
     val ttsPlayingMessageId by viewModel.ttsPlayingMessageId.collectAsState()
+    val voiceConversationState by viewModel.voiceConversation.state.collectAsState()
+    val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
     val compactPreview by viewModel.compactPreview.collectAsState()
     val compactModel by viewModel.settings.contextCompactModel.collectAsState()
     val compactPrompt by viewModel.settings.contextCompactPrompt.collectAsState()
@@ -762,6 +769,19 @@ fun ChatApp(
                 onTogglePdfSelection = onTogglePdfSelection,
                 onInitPdfSelection = onInitPdfSelection,
                 fullScreenViewerUrls = fullScreenViewerUrls,
+                voiceConversationState = voiceConversationState,
+                voiceConversationEnabled = voiceConversationEnabled,
+                onVoiceConversationToggle = {
+                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.RECORD_AUDIO,
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (hasPermission) {
+                        viewModel.toggleVoiceConversation()
+                    } else {
+                        micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    }
+                },
             )
             }
             } else {
