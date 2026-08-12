@@ -788,6 +788,7 @@ fun ChatApp(
             }
         }
         }
+        }
 
     ChatAppDialogHost(
         state = dialogState,
