@@ -5,10 +5,6 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Git tag (e.g. v1.0.5)'
-        required: true
 
 permissions:
   contents: write
@@ -20,16 +16,24 @@ jobs:
       tag: ${{ steps.v.outputs.tag }}
       version: ${{ steps.v.outputs.version }}
     steps:
+      - uses: actions/checkout@v4
       - id: v
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.version }}"
-          else
-            TAG="${GITHUB_REF#refs/tags/}"
-          fi
-          VERSION=${TAG#v}
+          # Version always comes from build.gradle.kts — single source of truth.
+          # This eliminates the class of "manual input ≠ code version" failures.
+          VERSION=$(grep 'versionName' app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          TAG="v${VERSION}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Resolved version: $VERSION (tag: $TAG)"
+          # For tag push, verify the pushed tag matches build.gradle.kts.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            PUSH_TAG="${GITHUB_REF#refs/tags/}"
+            if [ "$TAG" != "$PUSH_TAG" ]; then
+              echo "::error::Tag mismatch! build.gradle.kts versionName is '$VERSION' (tag '$TAG') but pushed tag is '$PUSH_TAG'"
+              exit 1
+            fi
+          fi
 
   build-android:
     needs: get-version
@@ -41,17 +45,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Verify version consistency
-        run: |
-          GRADLE_VERSION=$(grep 'versionName' app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          echo "build.gradle.kts versionName: $GRADLE_VERSION"
-          echo "git tag version: $VERSION"
-          if [ "$GRADLE_VERSION" != "$VERSION" ]; then
-            echo "::error::Version mismatch! build.gradle.kts has '$GRADLE_VERSION' but tag is '$VERSION'"
-            exit 1
-          fi
-          echo "Version consistency verified: $VERSION"
 
       - uses: actions/setup-java@v4
         with:

@@ -104,7 +104,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.8` / versionCode `9` | `defaultConfig` |
+| 版本 | versionName `1.0.9` / versionCode `10` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -209,6 +209,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.9 版本 bump + Build & Release workflow 改进**：versionCode 9→10 / versionName 1.0.8→1.0.9。build.yml 改进：`workflow_dispatch` 不再要求手动输入版本号，`get-version` 始终从 `build.gradle.kts` 读取 versionName 作为唯一事实源，消除"手动输入版本 ≠ 代码版本"的整类失败。
+- **TTS/分享全量检查补缺**：commit `1aad5000`。TTS「正在朗读」文字指示 + TTS 引擎不可用 Snackbar 提示 + 长按消息进入多选模式。CI 全绿验证通过（#31554958375 ✓）。
 - **分享导出功能（复制纯文本 + 高级过滤选项）**：commit `0c8c13b1`（P1a 复制纯文本）+ `f6fd830e`（P1b 思考/工具过滤）+ `ed3d5cab`（编译修复）。新建 `MessageExportController.kt`（44 行），`ConversationForkShareService` 加 `buildPlainText`/`formatPlainText`/`renderShare` 参数化，`ShareSelectionFab` 加 ContentCopy 按钮，`SettingsGenerationPage` 加 Export 设置组（两个 Switch），设置层 Schema/Manager/Repository 三层。CI 全绿验证通过（#31550658202 ✓）。
 - **TTS 自动播放修复**：commit `b8dcb339`。根因：`onStreamCommit`（自动播放路径）缺少 init 重试和 grace window。提取 `playTtsForMessage` 共用方法，ChatViewModel 997→985 行。CI 全绿验证通过（#31550658202 ✓）。
 - **v1.0.8 发版成功**：commit `a8924284`，versionCode 8→9 / versionName 1.0.7→1.0.8，修复 Build & Release CI 版本一致性校验。CI 全绿（Build & Release #31541408295 ✓ / CI #31539617357 ✓ / Fastlane #31539617199 ✓），Release `Agora-v1.0.8-android-arm64-v8a.apk` 已发布。
@@ -236,8 +238,7 @@ Agora/
 1. 分享导出 — 保存为长图（P1c）：View→Bitmap，未实现。
 2. 分享导出 — 底部操作面板 UI 改造（P1d）：ShareSelectionFab 改为面板。
 3. 连续语音对话（P2，3.2）：STT + 状态机，从零开发。
-4. TTS「正在朗读」文字指示：仅 Pause 图标，无文字。
-5. 滑动连续多选：未实现。
+4. 滑动连续多选：未实现（已支持长按进入多选）。
 
 ## 5. 关键接口契约（不要破坏既有签名）
 
@@ -292,8 +293,10 @@ Agora/
 - [x] ChatApp.kt 拆分：底部栏 → ChatAppBottomBarSection.kt、欢迎页 → ChatAppOverlays.kt、showButton → ChatAppInteractionEffects.kt（938→757 行）。
 - [x] TTS 语音播报功能：TtsManager + Settings + ViewModel + UI 喇叭按钮 + 设置页。CI 全绿验证通过（#31489167800 ✓，**仅编译验证**）。**2026-08-12 运行时调用失败全量修复**（6 根因，详见 §9 当日条目），CI 全绿验证通过（#31543876365 ✓）。**2026-08-12 自动播放修复**（`onStreamCommit` 缺 init 重试，提取 `playTtsForMessage` 共用方法），CI 全绿验证通过（#31550658202 ✓）。
 - [x] MarkdownDimens 崩溃修复：CompositionLocalProvider 自给自足，CI 全绿验证通过。
-- [x] v1.0.6 / v1.0.7 / v1.0.8 发版：CI 全绿，Release 已发布。
+- [x] v1.0.6 / v1.0.7 / v1.0.8 / v1.0.9 发版：CI 全绿，Release 已发布。
 - [x] 分享导出 — 复制纯文本（P1a）+ 高级过滤选项（P1b，思考/工具开关）：CI 全绿验证通过（#31550658202 ✓）。
+- [x] TTS「正在朗读」文字指示 + 引擎不可用 Snackbar 提示 + 长按消息进入多选模式：CI 全绿验证通过（#31554958375 ✓）。
+- [x] Build & Release workflow 改进：版本号从 build.gradle.kts 自动读取，消除手动输入版本不一致问题。
 - [ ] 分享导出 — 保存为长图（P1c）：View→Bitmap，未实现。
 - [ ] 分享导出 — 底部操作面板 UI 改造（P1d）：ShareSelectionFab 改为面板含复制/导出MD/长图/高级选项折叠。
 - [ ] 连续语音对话（P2，3.2）：STT + 状态机，从零开发，需新建 SttManager + VoiceInteractionManager + 录音 UI + RECORD_AUDIO 权限。
@@ -357,6 +360,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-12 v1.0.9 版本 bump + Build & Release workflow 改进 + TTS/分享全量检查补缺（本次会话）：用户反馈 Build & Release 报错 + 要求全量检查 TTS/分享。① Build & Release 版本一致性失败根因：用户手动 `workflow_dispatch` 触发 v1.0.9 发版，但 `build.gradle.kts` 仍为 1.0.8/9，"Verify version consistency" 步骤失败。修复：bump versionCode 9→10 / versionName 1.0.8→1.0.9。② **改进 build.yml 避免未来此类问题**：`workflow_dispatch` 不再要求手动输入版本号——`get-version` job 始终从 `build.gradle.kts` 读取 `versionName` 作为唯一事实源（`VERSION=$(grep 'versionName' ...)`），tag push 时验证 tag 与 build.gradle.kts 一致，`workflow_dispatch` 时自动派生 tag。移除 `build-android` 中冗余的 "Verify version consistency" 步骤（get-version 已覆盖）。这消除了"手动输入版本 ≠ 代码版本"的整类失败。③ 全量检查 TTS/分享发现 3 个缺失并修复（commit `1aad5000`）：TTS「正在朗读」文字指示（AssistantMessageContent 加 Text label）、TTS 引擎不可用 Snackbar 提示（`playTtsForMessage` 加 `showFailureSnackbar` 参数，`tts_not_available` 字符串启用）、长按消息进入多选模式（MessageItem `pointerInput` + `detectTapGestures(onLongPress)`，经 MessageList→ChatApp 接线 `activateShareSelection` + `haptics.longPress()`）。CI 全绿验证通过（#31554958375 ✓）。
 - 2026-08-12 TTS 自动播放修复 + P1a 编译错误修复 + P1b 分享导出过滤设置（本次会话）：用户反馈「编译报错了」+「TTS也没成功」。① P1a 编译错误（commit `ed3d5cab`）：P1a（复制纯文本）引入两个编译错误——`MessageExportController.emitSnackbar` 类型为 `(SnackbarEvent) -> Unit` 但 `_snackbarMessage.emit()` 是 suspend（`MutableSharedFlow.emit`），`currentConversationId.value` 是 `String?` 但参数要求 `String`。修复：`emitSnackbar` 改为 `suspend (SnackbarEvent) -> Unit`，`copyMessagesAsPlainText` 第一参数改为 `String?`（null 时 return）。② TTS 自动播放不工作（commit `b8dcb339`）：根因——`onStreamCommit`（自动播放路径）缺少 `toggleTtsForMessage`（手动播放路径）有的 init 重试和 5s grace window。当 TTS 引擎不可用时（init 失败或未初始化），自动播放设了 `_ttsPlayingMessageId` 但 `speak()` 缓冲到死引擎，UI 卡 Pause 图标无声音。修复：提取 `playTtsForMessage(messageId, text)` 共用方法（含 stripMarkdown + init 重试 + speak + grace window），`onStreamCommit` 和 `toggleTtsForMessage` 都调用它。ChatViewModel 997→985 行。③ P1b 分享导出过滤设置（commit `f6fd830e`）：新增 `SHARE_INCLUDE_THINKING`/`SHARE_INCLUDE_TOOLS` 设置（Schema/Manager/Repository 三层），`ConversationForkShareService.renderShare` 读设置传 `formatShareText` 过滤参数，`SettingsGenerationPage` 加 Export 设置组（两个 Switch），strings.xml en/zh 各加 5 个字符串。**CI 全绿验证通过（#31550658202 ✓）**。
 - 2026-08-12 TTS 运行时调用失败全量修复（本次会话）：用户反馈「调用系统 TTS 没成功」。全量分析 TtsManager.kt + ChatViewModel.kt 调用链，定位 6 个根因：① `TtsManager.init` 的 `if (tts != null) return` 阻止重试——首次 init 回调 ERROR 后 `tts!=null && initialized=false`，后续 init 永远 return，TTS 永久不可用且无法恢复；② `toggleTtsForMessage` 在引擎不可用时仍设 `_ttsPlayingMessageId`，speak 走 pending 缓冲但 init 已失败，`isPlaying` 永不变 true，StateFlow 不再发射，UI 卡 Pause 图标无声音不恢复（用户看到的「卡住没声」直接原因）；③ `setOnUtteranceProgressListener` 在构造回调前设置，部分 vendor ROM 不生效致 isPlaying 永不更新；④ `setLanguage` 返回值未检查，`LANG_NOT_SUPPORTED`/`LANG_MISSING_DATA` 时 TTS 沉默；⑤ `speak` 返回值未检查，ERROR 时未通知 UI 清 playing；⑥ pendingText 在 init ERROR 时不清理（缓冲泄漏）。修复：`util/TtsManager.kt`（109→162 行）— init 改为可重试（`tts!=null && !initialized` 时 shutdown 重建）+ `initGeneration` token 防 stale 回调 clobber 新实例状态 + listener 移到 SUCCESS 回调内 + setLanguage 检查 `LANG_NOT_SUPPORTED`/`LANG_MISSING_DATA` 回退 `Locale.getDefault()` + `speak` 返回 Boolean（ERROR 返回 false）+ ERROR 分支清理 pendingText；`viewmodel/ChatViewModel.kt`（942→975 行）— `toggleTtsForMessage` 引擎不可用时先 (re)init + speak 返回 false 立即清 playing + 5s grace 窗口（`withTimeoutOrNull(TTS_START_GRACE_MS) { TtsManager.isPlaying.first { it } }`）防 init 最终失败时 UI 卡死 + init 块新增 `isAvailable` 订阅（引擎卸载/失败时 stop+清 playing）+ 顶层 `private const val TTS_START_GRACE_MS = 5_000L` + `import kotlinx.coroutines.withTimeoutOrNull`。静态自检通过（无 R.font、语言仅 en/zh、两文件 ≤999 行、import/类型正确、边角场景覆盖：多消息快速点击/引擎中途卸载/init 失败后重试/stale 回调）。**CI 全绿验证通过（#31543876365 ✓）**。
 - 2026-08-12 v1.0.8 发版成功（回写漂移）：commit `a8924284`（2026-08-12 05:27），versionCode 8→9 / versionName 1.0.7→1.0.8，修复 Build & Release CI 版本一致性校验。CI 全绿（Build & Release #31541408295 ✓ / CI #31539617357 ✓ / Fastlane #31539617199 ✓），Release `Agora-v1.0.8-android-arm64-v8a.apk` 已发布。本次会话发现 AGENTS.md 未记录 v1.0.8（§2 仍写 1.0.7/8、§4 无 v1.0.8 条目、§9 无 v1.0.8 日志），回写消除漂移（§R0.3）。
