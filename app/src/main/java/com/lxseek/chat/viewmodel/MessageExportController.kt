@@ -20,10 +20,10 @@ internal class MessageExportController(
     private val service: ConversationForkShareService,
     private val appContext: Context,
     private val scope: CoroutineScope,
-    private val emitSnackbar: (SnackbarEvent) -> Unit,
+    private val emitSnackbar: suspend (SnackbarEvent) -> Unit,
 ) {
-    fun copyMessagesAsPlainText(conversationId: String, messageIds: Set<String>) = scope.launch {
-        if (messageIds.isEmpty()) return@launch
+    fun copyMessagesAsPlainText(conversationId: String?, messageIds: Set<String>) = scope.launch {
+        if (messageIds.isEmpty() || conversationId == null) return@launch
         when (val result = service.buildPlainText(
             conversationId = conversationId,
             messageIds = messageIds,
