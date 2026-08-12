@@ -892,6 +892,7 @@ class SettingsManager(private val context: Context) {
             prefs.remove(AVAILABLE_MODELS_JSON)
             prefs.remove(CUSTOM_ENDPOINT_RESOLUTIONS_JSON)
             prefs.remove(LAST_MODELS_FETCH_FINGERPRINT)
+            prefs.remove(SANDBOX_ENABLED)
         }
     }
 
