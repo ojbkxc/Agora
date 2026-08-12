@@ -278,6 +278,7 @@ class ChatViewModel(
         sandboxManager?.close()
         generationRegistry.detachUiCallbacks(generationCallbackOwner)
         dataControl.destroy()
+        voiceConversation.stop()
         TtsManager.stop()
     }
 

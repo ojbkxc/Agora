@@ -7,7 +7,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -39,19 +38,16 @@ internal fun VoiceMicButton(
     val isActive = state != VoiceConversationController.State.IDLE
     val isListening = state == VoiceConversationController.State.LISTENING
 
-    val pulseScale by if (isListening) {
-        rememberInfiniteTransition(label = "micPulse").animateFloat(
-            initialValue = 1f,
-            targetValue = 1.2f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(600, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "micPulseScale",
-        )
-    } else {
-        androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(1f) }
-    }
+    val transition = rememberInfiniteTransition(label = "micPulse")
+    val pulseScale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isListening) 1.2f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "micPulseScale",
+    )
 
     val containerColor = when (state) {
         VoiceConversationController.State.IDLE -> MaterialTheme.colorScheme.surfaceVariant

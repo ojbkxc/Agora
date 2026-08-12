@@ -15,6 +15,7 @@ import java.io.FileOutputStream
 internal object MessageLongImageRenderer {
 
     private const val WIDTH_PX = 1080
+    private const val MAX_HEIGHT_PX = 20000
     private const val PADDING_PX = 48
     private const val TITLE_SIZE = 36f
     private const val BODY_SIZE = 30f
@@ -30,8 +31,13 @@ internal object MessageLongImageRenderer {
         val bitmap = render(title, body) ?: return null
         val cacheDir = File(context.cacheDir, "shared").apply { mkdirs() }
         val file = File(cacheDir, "agora_share_${System.currentTimeMillis()}.png")
-        FileOutputStream(file).use { fos ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+        try {
+            FileOutputStream(file).use { fos ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+            }
+        } catch (_: Throwable) {
+            bitmap.recycle()
+            return null
         }
         bitmap.recycle()
         return file
@@ -61,6 +67,7 @@ internal object MessageLongImageRenderer {
         var totalHeight = PADDING_PX * 2
         if (titleLayout != null) totalHeight += titleLayout.height + SECTION_GAP.toInt()
         totalHeight += bodyLayout.height
+        if (totalHeight > MAX_HEIGHT_PX) totalHeight = MAX_HEIGHT_PX
         val bitmap = createBitmap(WIDTH_PX, totalHeight)
         val canvas = Canvas(bitmap)
         canvas.drawColor(BG_COLOR)

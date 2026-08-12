@@ -44,6 +44,8 @@ class VoiceConversationController(
 
     @Volatile private var active = false
     private var observeJob: Job? = null
+    private var ttsObserverJob: Job? = null
+    private var sendJob: Job? = null
     @Volatile private var waitingForLlm = false
     @Volatile private var llmWasLoading = false
 
@@ -59,6 +61,9 @@ class VoiceConversationController(
         beginListening()
         observeJob?.cancel()
         observeJob = scope.launch { observeLlmAndTts() }
+        if (ttsObserverJob == null) {
+            ttsObserverJob = scope.launch { observeTtsPlaying() }
+        }
     }
 
     fun stop() {
@@ -67,6 +72,8 @@ class VoiceConversationController(
         llmWasLoading = false
         observeJob?.cancel()
         observeJob = null
+        sendJob?.cancel()
+        sendJob = null
         SttManager.stopListening()
         TtsManager.stop()
         _state.value = State.IDLE
@@ -85,7 +92,7 @@ class VoiceConversationController(
                 _state.value = State.PROCESSING
                 waitingForLlm = true
                 llmWasLoading = false
-                scope.launch { sendMessage(text) }
+                sendJob = scope.launch { sendMessage(text) }
             },
             onError = { _ ->
                 if (!active) return@startListening
@@ -122,15 +129,13 @@ class VoiceConversationController(
         }
     }
 
-    init {
-        scope.launch {
-            TtsManager.isPlaying.collect { playing ->
-                if (!active) return@collect
-                if (!playing && _state.value == State.SPEAKING) {
-                    delay(300)
-                    if (active && !TtsManager.isPlaying.value && _state.value == State.SPEAKING) {
-                        beginListening()
-                    }
+    private suspend fun observeTtsPlaying() {
+        TtsManager.isPlaying.collect { playing ->
+            if (!active) return@collect
+            if (!playing && _state.value == State.SPEAKING) {
+                delay(300)
+                if (active && !TtsManager.isPlaying.value && _state.value == State.SPEAKING) {
+                    beginListening()
                 }
             }
         }

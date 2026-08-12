@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 object SttManager {
     @Volatile private var recognizer: SpeechRecognizer? = null
     @Volatile private var initialized = false
+    @Volatile private var initializing = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val _isAvailable = MutableStateFlow(false)
@@ -40,16 +41,25 @@ object SttManager {
         SpeechRecognizer.isRecognitionAvailable(context.applicationContext)
 
     fun init(context: Context) {
-        if (initialized && recognizer != null) return
-        shutdown()
+        if (initialized || initializing) return
+        if (recognizer != null && !initialized) {
+            try {
+                recognizer?.stop()
+                recognizer?.destroy()
+            } catch (_: Throwable) {}
+            recognizer = null
+        }
+        initializing = true
         val appContext = context.applicationContext
         mainHandler.post {
             try {
                 recognizer = SpeechRecognizer.createSpeechRecognizer(appContext)
                 initialized = true
+                initializing = false
                 _isAvailable.value = true
             } catch (_: Throwable) {
                 initialized = false
+                initializing = false
                 _isAvailable.value = false
             }
         }
@@ -127,6 +137,7 @@ object SttManager {
         _isListening.value = false
         _isAvailable.value = false
         _partialText.value = ""
+        initializing = false
         try { recognizer?.stopListening() } catch (_: Throwable) {}
         try { recognizer?.destroy() } catch (_: Throwable) {}
         recognizer = null

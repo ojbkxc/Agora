@@ -86,6 +86,7 @@ fun ChatApp(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) viewModel.toggleVoiceConversation()
+        else viewModel.emitSnackbar(context.getString(R.string.voice_conversation_mic_permission))
     }
     ConversationShareEffect(viewModel, context)
 
@@ -772,6 +773,10 @@ fun ChatApp(
                 voiceConversationState = voiceConversationState,
                 voiceConversationEnabled = voiceConversationEnabled,
                 onVoiceConversationToggle = {
+                    if (!com.lxseek.chat.util.SttManager.isSupported(context)) {
+                        viewModel.emitSnackbar(context.getString(R.string.voice_conversation_not_available))
+                        return@onVoiceConversationToggle
+                    }
                     val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                         context,
                         android.Manifest.permission.RECORD_AUDIO,
