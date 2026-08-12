@@ -783,7 +783,6 @@ fun ChatApp(
                     }
                 },
             )
-            }
             } else {
                 LaunchedEffect(Unit) { bottomBarHeightPx = 0f }
             }
