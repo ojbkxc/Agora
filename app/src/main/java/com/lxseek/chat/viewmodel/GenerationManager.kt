@@ -20,6 +20,11 @@ import com.lxseek.chat.service.AgoraForegroundService
 import com.lxseek.chat.service.AppForegroundTracker
 import com.lxseek.chat.api.util.projectAssistantImagesToLatestUserMessage
 import com.lxseek.chat.api.util.projectToolResultImagesToUserMessage
+import com.lxseek.chat.tool.AskUserController
+import com.lxseek.chat.tool.AskUserToolProvider
+import com.lxseek.chat.tool.PlanHandler
+import com.lxseek.chat.tool.PlanStateHolder
+import com.lxseek.chat.tool.PlanToolProvider
 import com.lxseek.chat.tool.ToolApprovalRequest
 import com.lxseek.chat.tool.ToolApprovalResult
 import com.lxseek.chat.tool.ToolProvider
@@ -55,6 +60,15 @@ class GenerationManager(
      *  otherwise. */
     var onToolApproval: (suspend (ToolApprovalRequest) -> ToolApprovalResult?)? = null
 
+    /** Process-scoped plan state, shared between the tool provider and the context injector. */
+    val planStateHolder = PlanStateHolder()
+
+    /** Process-scoped ask-user controller for the ask_user tool. */
+    val askUserController = AskUserController()
+
+    private val planToolProvider = PlanToolProvider(planStateHolder)
+    private val askUserToolProvider = AskUserToolProvider(askUserController)
+
     private val toolExecutor = GenerationToolExecutor.createDefault(
         app = app,
         conversations = conversations,
@@ -65,6 +79,9 @@ class GenerationManager(
             onConfirmShellCommand?.invoke(server, summary) ?: true
         },
         onToolApproval = { request -> onToolApproval?.invoke(request) },
+        planToolProvider = planToolProvider,
+        askUserToolProvider = askUserToolProvider,
+        planStateHolder = planStateHolder,
     )
     private val providerPassEffects = ProviderPassEffectExecutor()
     private val toolBatchEffects = GenerationToolBatchEffectExecutor(toolExecutor)

@@ -9,8 +9,12 @@ import com.lxseek.chat.model.RunEffectIdentity
 import com.lxseek.chat.model.ToolExecutionStates
 import com.lxseek.chat.sandbox.SandboxManagerFactory
 import com.lxseek.chat.tool.AgentMode
+import com.lxseek.chat.tool.AskUserToolProvider
 import com.lxseek.chat.tool.ImageGenToolProvider
 import com.lxseek.chat.tool.MemoryToolProvider
+import com.lxseek.chat.tool.PlanHandler
+import com.lxseek.chat.tool.PlanStateHolder
+import com.lxseek.chat.tool.PlanToolProvider
 import com.lxseek.chat.tool.RagToolProvider
 import com.lxseek.chat.tool.RiskLevel
 import com.lxseek.chat.tool.ShellToolProvider
@@ -65,6 +69,7 @@ internal class GenerationToolExecutor private constructor(
     private val providers: List<ToolProvider>,
     private val imageGenProvider: ImageGenToolProvider?,
     private val onToolApproval: suspend (ToolApprovalRequest) -> ToolApprovalResult?,
+    private val planStateHolder: PlanStateHolder?,
 ) : GenerationToolDefinitionSource, GenerationToolPresentationSource {
     companion object {
         private val FILE_TOOL_NAMES = setOf(
@@ -84,6 +89,9 @@ internal class GenerationToolExecutor private constructor(
             additionalProviders: List<ToolProvider>,
             confirmShellCommand: suspend (server: String, summary: String) -> Boolean,
             onToolApproval: suspend (ToolApprovalRequest) -> ToolApprovalResult? = { null },
+            planToolProvider: PlanToolProvider? = null,
+            askUserToolProvider: AskUserToolProvider? = null,
+            planStateHolder: PlanStateHolder? = null,
         ): GenerationToolExecutor {
             val imageGenProvider = ImageGenToolProvider(app)
             val shellProvider = ShellToolProvider(
@@ -92,21 +100,27 @@ internal class GenerationToolExecutor private constructor(
             ).also { provider ->
                 provider.confirm = confirmShellCommand
             }
+            val baseProviders = listOf(
+                MemoryToolProvider(memoryManager),
+                WebSearchToolProvider(),
+                RagToolProvider(conversations),
+                imageGenProvider,
+                shellProvider,
+            )
+            val planProviders = buildList {
+                planToolProvider?.let { add(it) }
+                askUserToolProvider?.let { add(it) }
+            }
             return GenerationToolExecutor(
-                providers = listOf(
-                    MemoryToolProvider(memoryManager),
-                    WebSearchToolProvider(),
-                    RagToolProvider(conversations),
-                    imageGenProvider,
-                    shellProvider,
-                ) + additionalProviders,
+                providers = baseProviders + planProviders + additionalProviders,
                 imageGenProvider = imageGenProvider,
                 onToolApproval = onToolApproval,
+                planStateHolder = planStateHolder,
             )
         }
 
         internal fun forTest(providers: List<ToolProvider>): GenerationToolExecutor =
-            GenerationToolExecutor(providers, imageGenProvider = null, onToolApproval = { null })
+            GenerationToolExecutor(providers, imageGenProvider = null, onToolApproval = { null }, planStateHolder = null)
     }
 
     override fun definitions(context: GenerationContext): List<ToolDefinition> =
@@ -253,7 +267,22 @@ internal class GenerationToolExecutor private constructor(
                 isError = true,
             )
         }
-        return call.result(result)
+
+        val finalResult = applyPlanReflection(result, call)
+        return call.result(finalResult)
+    }
+
+    private fun applyPlanReflection(
+        result: ToolExecutionResult,
+        call: AuthorizedToolCall,
+    ): ToolExecutionResult {
+        if (result.isError) return result
+        val holder = planStateHolder ?: return result
+        val taskId = call.context.conversationId ?: return result
+        if (call.name !in PlanToolProvider.TOOL_NAMES) return result
+        val planResult = PlanHandler.handleToolOutput(call.name, result.text, holder, taskId)
+        val overrideText = planResult.overrideText ?: return result
+        return result.copy(text = overrideText)
     }
 
     private fun AuthorizedToolCall.result(result: ToolExecutionResult) = AuthorizedToolResult(
