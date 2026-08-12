@@ -65,7 +65,14 @@
 6. CI 全绿后才能在 §4/§6 勾选该子任务「完成」并在 §9 变更日志注明「CI 全绿验证通过」。
 
 ### R2.4 本地可做的静态检查（push 前自检，减少 CI 往返）
+- **`git status` 确认无残留未 commit 修改**：会话开始前和 commit 前各执行一次，确保所有修改的文件都被 staged。**这是最常见的 CI 失败根因之一**——修改了文件但忘记 commit，CI 用的是旧版本。
 - 人工 review：import 路径、Composable 签名、资源引用（`R.string.*`/`R.drawable.*`）、`@Composable` 注解。
+- **Kotlin 类型检查（本地无法编译，必须人工查）**：
+  - `suspend` 函数/lambda：确认 lambda 类型匹配（`suspend (T) -> Unit` vs `(T) -> Unit`）。`Flow.emit()` / `MutableSharedFlow.emit()` 是 suspend，不能在普通 lambda 中调用。
+  - `nullable` 类型：确认 `String?` vs `String` 传递正确。`StateFlow<T?>.value` 返回 `T?`，传给非空参数需加 `?: return` 或 `!!`。
+  - 新增参数：确认所有调用点都传了正确类型的参数。
+- **新增字符串资源**：确认 `values/strings.xml`（en）+ `values-zh/strings.xml`（zh）**都**添加了同名 key。
+- **新增设置项**：确认 `SettingsPreferenceSchema` + `SettingsManager` + `SettingsRepository` + UI 四层**都**添加了。
 - 确认无 `R.font.*` 引用（§R0.7 禁止自定义字体）。
 - 确认无非 en/zh 的语言资源目录或语言选项（§R0.6）。
 - 确认 Kotlin 文件不超过 999 行（`./gradlew verifyKotlinFileSize` 基线）。
@@ -79,9 +86,10 @@
 ## 0. 进入项目后的标准流程（必读）
 
 1. **通读本文件**（尤其是「§R0 强制规则」「当前进度」「下一步任务」「编码约定」五节）。
+1b. **`git status` 检查残留修改**：若工作目录有未 commit 的修改（来自前次会话遗漏），先理解其内容并 commit，再开始新工作。**不要**在新工作开始前 `git stash` 或 `git checkout -- .` 丢弃前次修改——先搞清楚是什么、是否需要保留。
 2. 按「下一步任务」的优先级顺序挑选一个**最小可独立交付**的子任务开工。
 3. 开工前用 `read`/`grep`/`glob` 阅读相关已有代码；**复用既有 Composable、ViewModel、Repository 与命名**，不要另起炉灶。
-4. 每完成一个子任务：确认无 `R.font.*` 引用、无多余语言资源、Kotlin 文件 ≤ 999 行，然后 `git push` 触发 CI 验证。
+4. 每完成一个子任务：执行 §R2.4 静态检查清单，然后 `git add -A && git status` 确认所有修改已 staged，`git commit && git push` 触发 CI 验证。
 5. **回写本文件**（强制，见 §R0）：更新「当前进度」「下一步任务」勾选状态，并在「变更日志」追加一行。
 6. **不要**主动 `git commit`，除非用户明确要求。**不要**写未经请求的 README/文档。**不要**加注释除非用户要求。
 7. **会话结束前再次确认 §R0 的回写已执行**；若未执行，补做后再结束。
@@ -360,6 +368,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-12 增加 CI 失败预防措施（本次会话）：用户反馈"github编译报错了…为什么这种问题容易出现，修复要看看以后怎么避免"。分析本次会话所有 CI 失败根因：① P1a 编译错误（`emitSnackbar` suspend 类型不匹配 + `String?` vs `String`）——本地无法编译、无 IDE 即时反馈、Kotlin 类型系统严格；② Build & Release 版本一致性失败——build.yml 已修改但**忘记 commit**，CI 用旧版本。修复：在 §R2.4 增加 push 前静态检查清单（`git status` 确认无残留 + suspend/nullable 类型检查 + 字符串/设置四层完整性检查）；在 §0 标准流程增加步骤 1b（会话开始前 `git status` 检查残留修改）。未改代码，仅回写 AGENTS.md。
 - 2026-08-12 v1.0.9 版本 bump + Build & Release workflow 改进 + TTS/分享全量检查补缺（本次会话）：用户反馈 Build & Release 报错 + 要求全量检查 TTS/分享。① Build & Release 版本一致性失败根因：用户手动 `workflow_dispatch` 触发 v1.0.9 发版，但 `build.gradle.kts` 仍为 1.0.8/9，"Verify version consistency" 步骤失败。修复：bump versionCode 9→10 / versionName 1.0.8→1.0.9。② **改进 build.yml 避免未来此类问题**：`workflow_dispatch` 不再要求手动输入版本号——`get-version` job 始终从 `build.gradle.kts` 读取 `versionName` 作为唯一事实源（`VERSION=$(grep 'versionName' ...)`），tag push 时验证 tag 与 build.gradle.kts 一致，`workflow_dispatch` 时自动派生 tag。移除 `build-android` 中冗余的 "Verify version consistency" 步骤（get-version 已覆盖）。这消除了"手动输入版本 ≠ 代码版本"的整类失败。③ 全量检查 TTS/分享发现 3 个缺失并修复（commit `1aad5000`）：TTS「正在朗读」文字指示（AssistantMessageContent 加 Text label）、TTS 引擎不可用 Snackbar 提示（`playTtsForMessage` 加 `showFailureSnackbar` 参数，`tts_not_available` 字符串启用）、长按消息进入多选模式（MessageItem `pointerInput` + `detectTapGestures(onLongPress)`，经 MessageList→ChatApp 接线 `activateShareSelection` + `haptics.longPress()`）。CI 全绿验证通过（#31554958375 ✓）。
 - 2026-08-12 TTS 自动播放修复 + P1a 编译错误修复 + P1b 分享导出过滤设置（本次会话）：用户反馈「编译报错了」+「TTS也没成功」。① P1a 编译错误（commit `ed3d5cab`）：P1a（复制纯文本）引入两个编译错误——`MessageExportController.emitSnackbar` 类型为 `(SnackbarEvent) -> Unit` 但 `_snackbarMessage.emit()` 是 suspend（`MutableSharedFlow.emit`），`currentConversationId.value` 是 `String?` 但参数要求 `String`。修复：`emitSnackbar` 改为 `suspend (SnackbarEvent) -> Unit`，`copyMessagesAsPlainText` 第一参数改为 `String?`（null 时 return）。② TTS 自动播放不工作（commit `b8dcb339`）：根因——`onStreamCommit`（自动播放路径）缺少 `toggleTtsForMessage`（手动播放路径）有的 init 重试和 5s grace window。当 TTS 引擎不可用时（init 失败或未初始化），自动播放设了 `_ttsPlayingMessageId` 但 `speak()` 缓冲到死引擎，UI 卡 Pause 图标无声音。修复：提取 `playTtsForMessage(messageId, text)` 共用方法（含 stripMarkdown + init 重试 + speak + grace window），`onStreamCommit` 和 `toggleTtsForMessage` 都调用它。ChatViewModel 997→985 行。③ P1b 分享导出过滤设置（commit `f6fd830e`）：新增 `SHARE_INCLUDE_THINKING`/`SHARE_INCLUDE_TOOLS` 设置（Schema/Manager/Repository 三层），`ConversationForkShareService.renderShare` 读设置传 `formatShareText` 过滤参数，`SettingsGenerationPage` 加 Export 设置组（两个 Switch），strings.xml en/zh 各加 5 个字符串。**CI 全绿验证通过（#31550658202 ✓）**。
 - 2026-08-12 TTS 运行时调用失败全量修复（本次会话）：用户反馈「调用系统 TTS 没成功」。全量分析 TtsManager.kt + ChatViewModel.kt 调用链，定位 6 个根因：① `TtsManager.init` 的 `if (tts != null) return` 阻止重试——首次 init 回调 ERROR 后 `tts!=null && initialized=false`，后续 init 永远 return，TTS 永久不可用且无法恢复；② `toggleTtsForMessage` 在引擎不可用时仍设 `_ttsPlayingMessageId`，speak 走 pending 缓冲但 init 已失败，`isPlaying` 永不变 true，StateFlow 不再发射，UI 卡 Pause 图标无声音不恢复（用户看到的「卡住没声」直接原因）；③ `setOnUtteranceProgressListener` 在构造回调前设置，部分 vendor ROM 不生效致 isPlaying 永不更新；④ `setLanguage` 返回值未检查，`LANG_NOT_SUPPORTED`/`LANG_MISSING_DATA` 时 TTS 沉默；⑤ `speak` 返回值未检查，ERROR 时未通知 UI 清 playing；⑥ pendingText 在 init ERROR 时不清理（缓冲泄漏）。修复：`util/TtsManager.kt`（109→162 行）— init 改为可重试（`tts!=null && !initialized` 时 shutdown 重建）+ `initGeneration` token 防 stale 回调 clobber 新实例状态 + listener 移到 SUCCESS 回调内 + setLanguage 检查 `LANG_NOT_SUPPORTED`/`LANG_MISSING_DATA` 回退 `Locale.getDefault()` + `speak` 返回 Boolean（ERROR 返回 false）+ ERROR 分支清理 pendingText；`viewmodel/ChatViewModel.kt`（942→975 行）— `toggleTtsForMessage` 引擎不可用时先 (re)init + speak 返回 false 立即清 playing + 5s grace 窗口（`withTimeoutOrNull(TTS_START_GRACE_MS) { TtsManager.isPlaying.first { it } }`）防 init 最终失败时 UI 卡死 + init 块新增 `isAvailable` 订阅（引擎卸载/失败时 stop+清 playing）+ 顶层 `private const val TTS_START_GRACE_MS = 5_000L` + `import kotlinx.coroutines.withTimeoutOrNull`。静态自检通过（无 R.font、语言仅 en/zh、两文件 ≤999 行、import/类型正确、边角场景覆盖：多消息快速点击/引擎中途卸载/init 失败后重试/stale 回调）。**CI 全绿验证通过（#31543876365 ✓）**。
