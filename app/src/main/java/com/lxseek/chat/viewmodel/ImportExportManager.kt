@@ -8,8 +8,6 @@ import com.lxseek.chat.data.ClaudeChatImporter
 import com.lxseek.chat.data.DataExporter
 import com.lxseek.chat.data.DataImporter
 import com.lxseek.chat.data.GptChatImporter
-
-enum class ImportStrategy { MERGE, REPLACE }
 import com.lxseek.chat.data.MemoryManager
 import com.lxseek.chat.data.SettingsManager
 import com.lxseek.chat.data.local.ChatDao
@@ -29,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+enum class ImportStrategy { MERGE, REPLACE }
 
 private data class PlannedImportGraph(
     val runs: List<RunEntity>,
