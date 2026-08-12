@@ -209,6 +209,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **分享导出功能（复制纯文本 + 高级过滤选项）**：commit `0c8c13b1`（P1a 复制纯文本）+ `f6fd830e`（P1b 思考/工具过滤）+ `ed3d5cab`（编译修复）。新建 `MessageExportController.kt`（44 行），`ConversationForkShareService` 加 `buildPlainText`/`formatPlainText`/`renderShare` 参数化，`ShareSelectionFab` 加 ContentCopy 按钮，`SettingsGenerationPage` 加 Export 设置组（两个 Switch），设置层 Schema/Manager/Repository 三层。CI 全绿验证通过（#31550658202 ✓）。
+- **TTS 自动播放修复**：commit `b8dcb339`。根因：`onStreamCommit`（自动播放路径）缺少 init 重试和 grace window。提取 `playTtsForMessage` 共用方法，ChatViewModel 997→985 行。CI 全绿验证通过（#31550658202 ✓）。
 - **v1.0.8 发版成功**：commit `a8924284`，versionCode 8→9 / versionName 1.0.7→1.0.8，修复 Build & Release CI 版本一致性校验。CI 全绿（Build & Release #31541408295 ✓ / CI #31539617357 ✓ / Fastlane #31539617199 ✓），Release `Agora-v1.0.8-android-arm64-v8a.apk` 已发布。
 - **TTS 语音播报功能 CI 全绿 + 运行时调用失败修复**：commit `e7b8cb67` 的 CI 运行 #31489167800 成功（6m16s）**仅验证编译通过**，未覆盖运行时。2026-08-12 全量修复运行时调用失败（6 根因：init 不可重试 / playing 状态卡死 / listener 时机 / setLanguage+speak 返回值未检查 / pendingText 泄漏，详见 §9 当日条目），`TtsManager.kt` 109→162 行、`ChatViewModel.kt` 942→975 行。**CI 全绿验证通过（#31543876365 ✓）**。
 - **v1.0.7 发版成功**：versionCode 7→8 / versionName 1.0.6→1.0.7，修复 Build & Release CI 版本一致性校验。CI 全绿（Build & Release #31476458515 ✓ / CI #31476408803 ✓ / Fastlane #31476408813 ✓），Release `Agora-v1.0.7-android-arm64-v8a.apk` 已发布。
@@ -231,7 +233,11 @@ Agora/
 - **签名密钥**：Release 签名需在 GitHub Secrets 配置 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`；未配置时回退 debug 签名。
 
 ### ❌ 未完成
-1. 暂无待办。v1.0.7 已发版成功，CI 全绿。TTS 语音播报功能已上线。后续按用户指派推进。
+1. 分享导出 — 保存为长图（P1c）：View→Bitmap，未实现。
+2. 分享导出 — 底部操作面板 UI 改造（P1d）：ShareSelectionFab 改为面板。
+3. 连续语音对话（P2，3.2）：STT + 状态机，从零开发。
+4. TTS「正在朗读」文字指示：仅 Pause 图标，无文字。
+5. 滑动连续多选：未实现。
 
 ## 5. 关键接口契约（不要破坏既有签名）
 
@@ -284,9 +290,13 @@ Agora/
 
 ### P1+ — 后续迭代（按需推进）
 - [x] ChatApp.kt 拆分：底部栏 → ChatAppBottomBarSection.kt、欢迎页 → ChatAppOverlays.kt、showButton → ChatAppInteractionEffects.kt（938→757 行）。
-- [x] TTS 语音播报功能：TtsManager + Settings + ViewModel + UI 喇叭按钮 + 设置页。CI 全绿验证通过（#31489167800 ✓，**仅编译验证**）。**2026-08-12 运行时调用失败全量修复**（6 根因，详见 §9 当日条目），CI 全绿验证通过（#31543876365 ✓）。
+- [x] TTS 语音播报功能：TtsManager + Settings + ViewModel + UI 喇叭按钮 + 设置页。CI 全绿验证通过（#31489167800 ✓，**仅编译验证**）。**2026-08-12 运行时调用失败全量修复**（6 根因，详见 §9 当日条目），CI 全绿验证通过（#31543876365 ✓）。**2026-08-12 自动播放修复**（`onStreamCommit` 缺 init 重试，提取 `playTtsForMessage` 共用方法），CI 全绿验证通过（#31550658202 ✓）。
 - [x] MarkdownDimens 崩溃修复：CompositionLocalProvider 自给自足，CI 全绿验证通过。
 - [x] v1.0.6 / v1.0.7 / v1.0.8 发版：CI 全绿，Release 已发布。
+- [x] 分享导出 — 复制纯文本（P1a）+ 高级过滤选项（P1b，思考/工具开关）：CI 全绿验证通过（#31550658202 ✓）。
+- [ ] 分享导出 — 保存为长图（P1c）：View→Bitmap，未实现。
+- [ ] 分享导出 — 底部操作面板 UI 改造（P1d）：ShareSelectionFab 改为面板含复制/导出MD/长图/高级选项折叠。
+- [ ] 连续语音对话（P2，3.2）：STT + 状态机，从零开发，需新建 SttManager + VoiceInteractionManager + 录音 UI + RECORD_AUDIO 权限。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
 ## 7. 编码约定（强制）
@@ -347,6 +357,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
+- 2026-08-12 TTS 自动播放修复 + P1a 编译错误修复 + P1b 分享导出过滤设置（本次会话）：用户反馈「编译报错了」+「TTS也没成功」。① P1a 编译错误（commit `ed3d5cab`）：P1a（复制纯文本）引入两个编译错误——`MessageExportController.emitSnackbar` 类型为 `(SnackbarEvent) -> Unit` 但 `_snackbarMessage.emit()` 是 suspend（`MutableSharedFlow.emit`），`currentConversationId.value` 是 `String?` 但参数要求 `String`。修复：`emitSnackbar` 改为 `suspend (SnackbarEvent) -> Unit`，`copyMessagesAsPlainText` 第一参数改为 `String?`（null 时 return）。② TTS 自动播放不工作（commit `b8dcb339`）：根因——`onStreamCommit`（自动播放路径）缺少 `toggleTtsForMessage`（手动播放路径）有的 init 重试和 5s grace window。当 TTS 引擎不可用时（init 失败或未初始化），自动播放设了 `_ttsPlayingMessageId` 但 `speak()` 缓冲到死引擎，UI 卡 Pause 图标无声音。修复：提取 `playTtsForMessage(messageId, text)` 共用方法（含 stripMarkdown + init 重试 + speak + grace window），`onStreamCommit` 和 `toggleTtsForMessage` 都调用它。ChatViewModel 997→985 行。③ P1b 分享导出过滤设置（commit `f6fd830e`）：新增 `SHARE_INCLUDE_THINKING`/`SHARE_INCLUDE_TOOLS` 设置（Schema/Manager/Repository 三层），`ConversationForkShareService.renderShare` 读设置传 `formatShareText` 过滤参数，`SettingsGenerationPage` 加 Export 设置组（两个 Switch），strings.xml en/zh 各加 5 个字符串。**CI 全绿验证通过（#31550658202 ✓）**。
 - 2026-08-12 TTS 运行时调用失败全量修复（本次会话）：用户反馈「调用系统 TTS 没成功」。全量分析 TtsManager.kt + ChatViewModel.kt 调用链，定位 6 个根因：① `TtsManager.init` 的 `if (tts != null) return` 阻止重试——首次 init 回调 ERROR 后 `tts!=null && initialized=false`，后续 init 永远 return，TTS 永久不可用且无法恢复；② `toggleTtsForMessage` 在引擎不可用时仍设 `_ttsPlayingMessageId`，speak 走 pending 缓冲但 init 已失败，`isPlaying` 永不变 true，StateFlow 不再发射，UI 卡 Pause 图标无声音不恢复（用户看到的「卡住没声」直接原因）；③ `setOnUtteranceProgressListener` 在构造回调前设置，部分 vendor ROM 不生效致 isPlaying 永不更新；④ `setLanguage` 返回值未检查，`LANG_NOT_SUPPORTED`/`LANG_MISSING_DATA` 时 TTS 沉默；⑤ `speak` 返回值未检查，ERROR 时未通知 UI 清 playing；⑥ pendingText 在 init ERROR 时不清理（缓冲泄漏）。修复：`util/TtsManager.kt`（109→162 行）— init 改为可重试（`tts!=null && !initialized` 时 shutdown 重建）+ `initGeneration` token 防 stale 回调 clobber 新实例状态 + listener 移到 SUCCESS 回调内 + setLanguage 检查 `LANG_NOT_SUPPORTED`/`LANG_MISSING_DATA` 回退 `Locale.getDefault()` + `speak` 返回 Boolean（ERROR 返回 false）+ ERROR 分支清理 pendingText；`viewmodel/ChatViewModel.kt`（942→975 行）— `toggleTtsForMessage` 引擎不可用时先 (re)init + speak 返回 false 立即清 playing + 5s grace 窗口（`withTimeoutOrNull(TTS_START_GRACE_MS) { TtsManager.isPlaying.first { it } }`）防 init 最终失败时 UI 卡死 + init 块新增 `isAvailable` 订阅（引擎卸载/失败时 stop+清 playing）+ 顶层 `private const val TTS_START_GRACE_MS = 5_000L` + `import kotlinx.coroutines.withTimeoutOrNull`。静态自检通过（无 R.font、语言仅 en/zh、两文件 ≤999 行、import/类型正确、边角场景覆盖：多消息快速点击/引擎中途卸载/init 失败后重试/stale 回调）。**CI 全绿验证通过（#31543876365 ✓）**。
 - 2026-08-12 v1.0.8 发版成功（回写漂移）：commit `a8924284`（2026-08-12 05:27），versionCode 8→9 / versionName 1.0.7→1.0.8，修复 Build & Release CI 版本一致性校验。CI 全绿（Build & Release #31541408295 ✓ / CI #31539617357 ✓ / Fastlane #31539617199 ✓），Release `Agora-v1.0.8-android-arm64-v8a.apk` 已发布。本次会话发现 AGENTS.md 未记录 v1.0.8（§2 仍写 1.0.7/8、§4 无 v1.0.8 条目、§9 无 v1.0.8 日志），回写消除漂移（§R0.3）。
 - 2026-08-11 AGENTS.md 漂移修复（本次会话）：进入项目后发现 AGENTS.md 与代码严重不一致——① §2 硬约束版本号写 `1.0.5/6`，实际 build.gradle.kts 为 `1.0.7/8`；② §4 当前进度只记录到 v1.0.5，未记录 v1.0.6/v1.0.7 发版；③ TTS 功能变更日志标注"待 push CI 验证"，实际 CI #31489167800 已全绿（6m16s）；④ MarkdownDimens 崩溃仍在"已知问题"区，实际 commit `4ac51844` 重新应用的修复已通过 v1.0.6/v1.0.7 CI 验证。本次回写：§2 版本号更新为 1.0.7/8；§4 已完成区前置 v1.0.7 发版、TTS CI 全绿、MarkdownDimens 修复验证通过三条；§4 已知问题区移除 MarkdownDimens 崩溃条目；§6 TTS 勾选状态更新为"CI 全绿验证通过"并新增 MarkdownDimens/v1.0.6/v1.0.7 勾选项。未改代码，仅回写 AGENTS.md 消除漂移（§R0.3 单一事实源要求）。
