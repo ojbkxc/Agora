@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.11` / versionCode `12` | `defaultConfig` |
+| 版本 | versionName `1.0.12` / versionCode `13` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -366,6 +366,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-13 v1.0.12 TTS 诊断日志 + USAGE_MEDIA 修复（本次会话）：用户反馈 v1.0.11「还是没声音」。拉取分析 3 个开源 TTS 项目（Maise/VoxSherpa-TTS/CloneTTS）——均为 TTS 引擎（实现 `TextToSpeechService`），非调用方。Maise 的 `TtsFragment.kt` 用 `USAGE_MEDIA`（非 `USAGE_ASSISTANT`）。修复 `util/TtsManager.kt`（213→218 行）：① `USAGE_ASSISTANT` → `USAGE_MEDIA`（setAudioAttributes + requestAudioFocus 两处，Maise 同样用 USAGE_MEDIA）；② `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK` → `AUDIOFOCUS_GAIN`（更强焦点请求）；③ 添加 DebugLog 诊断日志——init SUCCESS/FAILED、setLanguage 结果、speak 返回值+文本前50字、onStart/onDone/onError 回调、可用引擎列表（`tts?.engines`），用户可在 logcat 过滤 `TtsManager` tag 定位根因。bump versionCode 12→13 / versionName 1.0.11→1.0.12，打 tag `v1.0.12` 触发 CI 发版。待 CI 全绿验证。
 
 - 2026-08-13 v1.0.11 TTS 播放深度修复（本次会话）：用户反馈 v1.0.10「还是没声音」。对比开源阅读项目分析，定位 4 个根因：① **未设置 AudioAttributes**——某些设备/ROM 不设置时 TTS 不播放声音；② **未请求音频焦点**——国产 ROM（MIUI/EMUI/ColorOS）常需要音频焦点才输出；③ **setLanguage 回退不彻底**——回退到 `Locale.getDefault()` 仍不支持时放弃，TTS 沉默；④ **speak 的 params 为 null**——某些引擎需要显式 `KEY_PARAM_VOLUME`。修复 `util/TtsManager.kt`（162→213 行）：init 回调 SUCCESS 后设置 `AudioAttributes(USAGE_ASSISTANT + CONTENT_TYPE_SPEECH)`；新增 `requestAudioFocus()`/`abandonAudioFocus()`（API 26+ 用 `AudioFocusRequest`，API 24-25 用旧 `requestAudioFocus`），`speakInternal` 前请求、`stop`/`shutdown` 后释放；`setLanguage` 三级回退（指定→默认→英语）；`speak` 传 `Bundle(KEY_PARAM_VOLUME=1.0f)`。bump versionCode 11→12 / versionName 1.0.10→1.0.11，打 tag `v1.0.11` 触发 CI 发版。CI 全绿验证通过（#31662487231 ✓），Release `Agora-v1.0.11-android-arm64-v8a.apk` 已发布。
 

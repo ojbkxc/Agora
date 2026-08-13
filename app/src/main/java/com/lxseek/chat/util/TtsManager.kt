@@ -71,22 +71,24 @@ object TtsManager {
                 _isAvailable.value = true
                 tts?.setAudioAttributes(
                     AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                         .build()
                 )
+                DebugLog.d("TtsManager", "init SUCCESS, engines: ${tts?.engines?.map { it.name }}")
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) { _isPlaying.value = true }
-                    override fun onDone(utteranceId: String?) { _isPlaying.value = false }
+                    override fun onStart(utteranceId: String?) { DebugLog.d("TtsManager", "onStart $utteranceId"); _isPlaying.value = true }
+                    override fun onDone(utteranceId: String?) { DebugLog.d("TtsManager", "onDone $utteranceId"); _isPlaying.value = false }
                     @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) { _isPlaying.value = false }
-                    override fun onError(utteranceId: String?, errorCode: Int) { _isPlaying.value = false }
+                    override fun onError(utteranceId: String?) { DebugLog.d("TtsManager", "onError $utteranceId"); _isPlaying.value = false }
+                    override fun onError(utteranceId: String?, errorCode: Int) { DebugLog.d("TtsManager", "onError $utteranceId code=$errorCode"); _isPlaying.value = false }
                 })
                 pendingText?.let { text ->
                     pendingText = null
                     speakInternal(text, pendingLanguage, pendingRate)
                 }
             } else {
+                DebugLog.e("TtsManager", "init FAILED status=$status")
                 initialized = false
                 _isAvailable.value = false
                 _isPlaying.value = false
@@ -125,10 +127,12 @@ object TtsManager {
             else -> Locale.getDefault()
         }
         val langResult = engine.setLanguage(locale)
+        DebugLog.d("TtsManager", "setLanguage($locale)=$langResult lang=$language")
         if (langResult == TextToSpeech.LANG_NOT_SUPPORTED ||
             langResult == TextToSpeech.LANG_MISSING_DATA
         ) {
             val fallbackResult = engine.setLanguage(Locale.getDefault())
+            DebugLog.d("TtsManager", "fallback setLanguage(default)=$fallbackResult")
             if (fallbackResult == TextToSpeech.LANG_NOT_SUPPORTED ||
                 fallbackResult == TextToSpeech.LANG_MISSING_DATA
             ) {
@@ -138,6 +142,7 @@ object TtsManager {
         engine.setSpeechRate(rate.coerceIn(0.5f, 2.0f))
         val params = Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f) }
         val speakResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, UUID.randomUUID().toString())
+        DebugLog.d("TtsManager", "speak result=$speakResult textLen=${text.length} text='${text.take(50)}'")
         if (speakResult != TextToSpeech.SUCCESS) {
             _isPlaying.value = false
             return false
@@ -151,11 +156,11 @@ object TtsManager {
             ?: (ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)?.also { audioManager = it }
             ?: return
         val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ASSISTANT)
+            .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(attrs)
                 .build()
             audioFocusRequest = request
