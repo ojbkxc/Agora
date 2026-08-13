@@ -75,7 +75,7 @@ object TtsManager {
         val sb = StringBuilder()
         sb.append("=== TTS Diagnostic Log ===\n")
         sb.append("Date: ").append(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())).append('\n')
-        sb.append("App: Agora v1.0.18\n")
+        sb.append("App: Agora v1.0.19\n")
         val info = getDiagnosticInfo()
         sb.append("Initialized: ${info.initialized}\n")
         sb.append("Available: ${info.available}\n")
@@ -120,6 +120,37 @@ object TtsManager {
             val installed = try { pm.getPackageInfo(e, 0) != null } catch (_: Throwable) { false }
             log("D", "  $e installed=$installed")
         }
+        val knownEngines = setOfNotNull(defaultEngine, "com.google.android.tts", "com.xiaomi.mibrain.speech")
+        for (pkg in knownEngines) {
+            try {
+                val info = pm.getPackageInfo(pkg, 0)
+                val appInfo = info.applicationInfo
+                val enabled = appInfo?.enabled ?: false
+                val enabledStr = when {
+                    appInfo == null -> "null"
+                    !enabled -> "DISABLED"
+                    else -> "ENABLED"
+                }
+                log("D", "Package $pkg: $enabledStr (versionCode=${info.versionCode} versionName=${info.versionName})")
+            } catch (_: Throwable) {
+                log("D", "Package $pkg: NOT INSTALLED")
+            }
+        }
+        val bindResult = try {
+            appCtx.bindService(ttsIntent, object : android.content.ServiceConnection {
+                override fun onServiceConnected(name: android.content.ComponentName?, service: android.os.IBinder?) {
+                    log("D", "Manual bindService: onServiceConnected $name")
+                    try { appCtx.unbindService(this) } catch (_: Throwable) {}
+                }
+                override fun onServiceDisconnected(name: android.content.ComponentName?) {
+                    log("D", "Manual bindService: onServiceDisconnected $name")
+                }
+            }, android.content.Context.BIND_AUTO_CREATE)
+        } catch (e: Throwable) {
+            log("E", "Manual bindService exception: ${e.message}")
+            false
+        }
+        log("D", "Manual bindService(TTS_SERVICE) returned: $bindResult")
         enginesToTry = mutableListOf<String?>().apply {
             add(null)
             if (!defaultEngine.isNullOrEmpty()) add(defaultEngine)

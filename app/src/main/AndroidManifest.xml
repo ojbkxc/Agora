@@ -23,6 +23,10 @@
         <intent>
             <action android:name="android.speech.tts.TTS_SERVICE" />
         </intent>
+        <package android:name="com.xiaomi.mibrain.speech" />
+        <package android:name="com.google.android.tts" />
+        <package android:name="com.samsung.SMT" />
+        <package android:name="com.huawei.hivoice" />
     </queries>
 
     <application
