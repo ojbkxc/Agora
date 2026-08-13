@@ -442,7 +442,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     supportingContent = { Text(stringResource(R.string.tts_install_google_tts_desc)) },
                                     leadingContent = {
                                         Icon(
-                                            Icons.Default.GetApp,
+                                            Icons.Default.Build,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
                                         )
