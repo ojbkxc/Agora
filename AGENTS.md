@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.23` / versionCode `24` | `defaultConfig` |
+| 版本 | versionName `1.0.24` / versionCode `25` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,7 +217,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
-- **v1.0.23 诊断日志写 Download 目录**：`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`（崩溃时镜像 JSON 到 MediaStore.Downloads/Agora）+ `exportDiagnostics()`（主动导出面包屑+TTS 日志到 Downloads）。`SettingsGenerationPage.kt` 加「保存到下载」按钮。CI 待验证。
+- **v1.0.24 结构化进程/系统监控工具**：新建 `ShellMonitorTools.kt`（276 行）——list_processes/kill_process/system_stats/tail_follow 4 个结构化工具。CI 全绿验证通过（CI #31747117562 ✓ / Build & Release #31747119949 ✓）。
+- **v1.0.23 诊断日志写 Download 目录**：`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`（崩溃时镜像 JSON 到 MediaStore.Downloads/Agora）+ `exportDiagnostics()`（主动导出面包屑+TTS 日志到 Downloads）。`SettingsGenerationPage.kt` 加「保存到下载」按钮。CI 全绿验证通过（#31723724067 ✓）。
 - **v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer**：借鉴 ZorvAI 全量分析高优先级 4 项优化。① StrictMode（`MainActivity.kt`，debug 检测主线程 IO/泄漏）；② 网络安全配置（`res/xml/network_security_config.xml`，仅 localhost/.local 放明文）；③ 分层线程池（`util/AppExecutors.kt`，IO+CPU 双池）；④ 错误脱敏（`util/ErrorSanitizer.kt`，stripHostAndIp）。CI 全绿验证通过（CI #31721923896 ✓ / Build & Release #31721946682 ✓）。
 - **连续语音对话（P2，3.2）**：commit `437f831d` + review fixes `4e77a5a0`。新建 `SttManager.kt`（SpeechRecognizer 封装，retryable init + `initializing` flag 防重复创建）、`VoiceConversationController.kt`（状态机 IDLE→LISTENING→PROCESSING→SPEAKING→LISTENING，TTS grace window，sendJob/ttsObserverJob 跟踪取消）、`TtsPlaybackHelper.kt`（从 ChatViewModel 提取 playTtsForMessage，978→977 行）、`VoiceMicButton.kt`（脉冲动画 mic FAB，always-call rememberInfiniteTransition 防 Compose slot table 崩溃）。`ChatBottomBar` 加 mic 按钮，`ChatApp` 加 RECORD_AUDIO 权限 launcher + `isSupported` 检查 + 权限拒绝 Snackbar。`SettingsGenerationPage` 加 Voice Conversation 设置组。`MessageLongImageRenderer` 加 20000px 高度上限 + try-catch。CI 全绿验证通过（#31568711157 ✓）。
 - **保存为长图（P1c）+ 多选模式隐藏底部栏（P1d）**：commit `5f603166`。新建 `MessageLongImageRenderer.kt`（text→Bitmap via StaticLayout→PNG→Intent.ACTION_SEND），`MessageExportController` 加 `shareMessagesAsLongImage`，`ShareSelectionFab` 加 Image 按钮，`ChatApp` 底部栏在多选模式隐藏。
@@ -310,8 +311,9 @@ Agora/
 - [x] 分享导出 — 底部操作面板 UI 改造（P1d）：多选模式隐藏底部栏，ShareSelectionFab 含复制/长图/全选/确认。
 - [x] 连续语音对话（P2，3.2）：SttManager + VoiceConversationController 状态机 + VoiceMicButton + RECORD_AUDIO 权限 + 设置。CI 全绿验证通过（#31568711157 ✓）。
 - [x] v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer（借鉴 ZorvAI 优化 1/2/4/5）。CI 全绿验证通过（#31721923896 ✓ / #31721946682 ✓）。
-- [x] v1.0.23 诊断日志写 Download 目录（借鉴 ZorvAI 优化 3）。CI 待验证。
-- [ ] Agent 能力深化（P0）：结构化进程/系统监控工具（list_processes/kill_process/system_stats/tail_follow）+ 重复调用死循环检测 + 三态策略+审计 + shell quoting 网关。
+- [x] v1.0.23 诊断日志写 Download 目录（借鉴 ZorvAI 优化 3）。CI 全绿验证通过（#31723724067 ✓ / #31723718876 ✓）。
+- [x] v1.0.24 结构化进程/系统监控工具（Agent 深化 P0：list_processes/kill_process/system_stats/tail_follow）。CI 全绿验证通过（#31747117562 ✓ / #31747119949 ✓）。
+- [ ] Agent 能力深化（P1）：重复调用死循环检测 + 三态策略+审计 + shell quoting 网关。
 - [ ] ASR 集成（P1）：sherpa-onnx 端侧 ASR（OnlineRecognizer 流式 + OfflineRecognizer 批处理 + Silero VAD）+ 系统 SpeechRecognizer 在线回退 + 模型下载管理 + VoiceInputButton UI。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
@@ -373,7 +375,9 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
-- 2026-08-14 v1.0.23 诊断日志写 Download 目录（本次会话）：借鉴 ZorvAI 全量分析的优化 3。`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`——崩溃时镜像 JSON 到 `MediaStore.Downloads/Agora/`（API 29+ scoped storage 无需权限，API 24-28 用已有 `WRITE_EXTERNAL_STORAGE` maxSdk 28）；新增 `exportDiagnostics()`——主动导出面包屑 + TTS 日志到 Downloads，供非崩溃问题（如 TTS 不工作）诊断。`SettingsGenerationPage.kt`（804→813 行）TTS 诊断行新增「保存到下载」按钮，调用 `exportDiagnostics` + Toast 反馈。strings.xml en+zh 各加 `tts_save_to_downloads`。bump versionCode 23→24 / versionName 1.0.22→1.0.23。待 CI 验证。
+- 2026-08-14 v1.0.24 结构化进程/系统监控工具（本次会话）：Agent 能力深化 P0。新建 `tool/ShellMonitorTools.kt`（276 行）——封装 4 个结构化监控工具，通过 shell 命令 + JSON 解析返回可靠结构化数据：① `list_processes`（ReadOnly，ps aux → JSON 数组 pid/user/cpu/mem/command，可排序/限量）；② `kill_process`（HighRisk，kill -SIGNAL PID，内部确认门控）；③ `system_stats`（ReadOnly，loadavg + free + df + uptime → JSON）；④ `tail_follow`（ReadOnly，tail -n N → JSON，持续跟随用 background job）。`ShellToolDefinitions.kt`（225→271 行）加 4 个工具定义。`ShellToolProvider.kt`（661→729 行）接线 execute/handles/riskLevel/requiresApproval + 4 个执行方法。`ToolApproval.kt` 加 `kill_process` 到 `TOOLS_WITH_INTERNAL_CONFIRM` 避免双重确认。bump versionCode 24→25 / versionName 1.0.23→1.0.24。CI 全绿验证通过（CI #31747117562 ✓ / Build & Release #31747119949 ✓），Release `Agora-v1.0.24-android-arm64-v8a.apk` 已发布。
+
+- 2026-08-14 v1.0.23 诊断日志写 Download 目录（本次会话）：借鉴 ZorvAI 全量分析的优化 3。`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`——崩溃时镜像 JSON 到 `MediaStore.Downloads/Agora/`（API 29+ scoped storage 无需权限，API 24-28 用已有 `WRITE_EXTERNAL_STORAGE` maxSdk 28）；新增 `exportDiagnostics()`——主动导出面包屑 + TTS 日志到 Downloads，供非崩溃问题（如 TTS 不工作）诊断。`SettingsGenerationPage.kt`（804→813 行）TTS 诊断行新增「保存到下载」按钮，调用 `exportDiagnostics` + Toast 反馈。strings.xml en+zh 各加 `tts_save_to_downloads`。bump versionCode 23→24 / versionName 1.0.22→1.0.23。CI 全绿验证通过（CI #31723724067 ✓ / Build & Release #31723718876 ✓），Release `Agora-v1.0.23-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer（本次会话）：借鉴 ZorvAI 全量分析的高优先级 5 项优化中的 4 项。① **StrictMode**（`MainActivity.kt`）：`BuildConfig.DEBUG` 条件下启用 `ThreadPolicy`（detectAll + penaltyLog）+ `VmPolicy`（detectLeakedSqlLiteObjects + detectLeakedClosableObjects + penaltyLog），检测主线程 IO + 资源泄漏。② **网络安全配置 NSC**（新建 `res/xml/network_security_config.xml`）：仅 localhost/.local/intranet 域允许明文，其余强制 HTTPS。`AndroidManifest.xml` 加 `networkSecurityConfig` 引用。③ **分层线程池**（新建 `util/AppExecutors.kt`）：IO 池（`max(2, cores*2)` 线程）+ CPU 池（`cores` 线程），替代共用 IO 池导致的 CPU 密集任务阻塞 IO。④ **错误脱敏**（新建 `util/ErrorSanitizer.kt`）：`stripHostAndIp()` 正则移除 IP/hostname，防错误气泡泄露内网地址。bump versionCode 22→23 / versionName 1.0.21→1.0.22。CI 全绿验证通过（CI #31721923896 ✓ / Build & Release #31721946682 ✓），Release `Agora-v1.0.22-android-arm64-v8a.apk` 已发布。
 
