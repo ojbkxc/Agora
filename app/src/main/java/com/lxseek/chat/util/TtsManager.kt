@@ -10,6 +10,11 @@ import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,9 +38,12 @@ data class TtsDiagnosticInfo(
 object TtsManager {
     private const val TAG = "TtsManager"
     private const val MAX_LOG = 300
+    private const val WATCHDOG_TIMEOUT_MS = 30_000L
     private val mainHandler = Handler(Looper.getMainLooper())
     private val logBuffer = Collections.synchronizedList(mutableListOf<String>())
     private val logTimeFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
+    private val watchdogScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    @Volatile private var watchdogJob: Job? = null
 
     @Volatile private var tts: TextToSpeech? = null
     @Volatile private var initialized = false
@@ -75,7 +83,7 @@ object TtsManager {
         val sb = StringBuilder()
         sb.append("=== TTS Diagnostic Log ===\n")
         sb.append("Date: ").append(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())).append('\n')
-        sb.append("App: Agora v1.0.20\n")
+        sb.append("App: Agora v1.0.21\n")
         val info = getDiagnosticInfo()
         sb.append("Initialized: ${info.initialized}\n")
         sb.append("Available: ${info.available}\n")
@@ -197,10 +205,10 @@ object TtsManager {
             log("D", "init SUCCESS with engine=$engineLabel, engines=${tts?.engines?.map { it.name }}")
             tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) { log("D", "onStart $utteranceId"); _isPlaying.value = true }
-                override fun onDone(utteranceId: String?) { log("D", "onDone $utteranceId"); _isPlaying.value = false }
+                override fun onDone(utteranceId: String?) { log("D", "onDone $utteranceId"); watchdogJob?.cancel(); watchdogJob = null; _isPlaying.value = false }
                 @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) { log("D", "onError $utteranceId"); _isPlaying.value = false }
-                override fun onError(utteranceId: String?, errorCode: Int) { log("E", "onError $utteranceId code=$errorCode"); _isPlaying.value = false }
+                override fun onError(utteranceId: String?) { log("D", "onError $utteranceId"); watchdogJob?.cancel(); watchdogJob = null; _isPlaying.value = false }
+                override fun onError(utteranceId: String?, errorCode: Int) { log("E", "onError $utteranceId code=$errorCode"); watchdogJob?.cancel(); watchdogJob = null; _isPlaying.value = false }
             })
             pendingText?.let { text ->
                 pendingText = null
@@ -247,6 +255,14 @@ object TtsManager {
         log("D", "speak result=$speakStr textLen=${text.length} text='${text.take(80)}'")
         _lastSpeakResult.value = speakStr
         if (speakResult != TextToSpeech.SUCCESS) { _isPlaying.value = false; return false }
+        watchdogJob?.cancel()
+        watchdogJob = watchdogScope.launch {
+            delay(WATCHDOG_TIMEOUT_MS)
+            if (_isPlaying.value) {
+                log("E", "Watchdog timeout (${WATCHDOG_TIMEOUT_MS}ms) — forcing isPlaying=false")
+                _isPlaying.value = false
+            }
+        }
         return true
     }
 
@@ -259,9 +275,9 @@ object TtsManager {
         else -> "UNKNOWN:$result"
     }
 
-    fun stop() { tts?.stop(); _isPlaying.value = false }
+    fun stop() { watchdogJob?.cancel(); watchdogJob = null; tts?.stop(); _isPlaying.value = false }
     fun shutdown() {
-        initGeneration++; tts?.stop(); tts?.shutdown(); tts = null
+        initGeneration++; watchdogJob?.cancel(); watchdogJob = null; tts?.stop(); tts?.shutdown(); tts = null
         initialized = false; _isAvailable.value = false; _isPlaying.value = false; _langMissingData.value = false
         _lastInitStatus.value = "IDLE"; _lastSpeakResult.value = ""; _lastLanguageResult.value = ""
         pendingText = null
