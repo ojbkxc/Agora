@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.20` / versionCode `21` | `defaultConfig` |
+| 版本 | versionName `1.0.21` / versionCode `22` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -366,6 +366,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-13 v1.0.21 TTS 看门狗 — 30s 超时强制释放 isPlaying（本次会话）：借鉴 ZorvAI `QuroTtsHolder.kt` 的看门狗机制。`TtsManager.kt`（297→313 行）新增 `watchdogScope`（`CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)`）+ `watchdogJob: Job?` + `WATCHDOG_TIMEOUT_MS = 30_000L`。`speakInternal` 成功时启动看门狗协程 `launch { delay(30s); if (_isPlaying.value) { log; _isPlaying.value = false } }`，`onDone`/`onError`/`stop`/`shutdown` 时 `cancel()` 取消。**性能影响：零**——`delay()` 是协程挂起函数，不阻塞线程，挂起期间零 CPU 开销，取消即时。首次 CI 失败（缺 `import kotlinx.coroutines.launch`）→ 补 import，移动 tag 重触发。CI 全绿验证通过（CI #31718557855 ✓ / Build & Release #31718583166 ✓），Release `Agora-v1.0.21-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-13 v1.0.20 TTS 根因修复完成 + ZorvAI 方案对比分析（本次会话）：**; **根因**：Android 11+（targetSdk 36）包可见性限制下，MIUI 限制 `bindService` 到系统 TTS 引擎（`com.xiaomi.mibrain.speech`），导致 `TextToSpeech` 构造器在 3-7ms 内返回 ERROR（`bindService` 返回 false）。**核心修复**：`AndroidManifest.xml` 添加 `QUERY_ALL_PACKAGES` 权限（normal 权限，无需用户授予，完全绕过包可见性限制）。用户确认 v1.0.20 小米 TTS 已能正常工作。**与 ZorvAI（github.com/Quor-a/ZorvAI）方案对比**：两者核心修复一致（`QUERY_ALL_PACKAGES`），差异在可靠性 vs 诊断能力——ZorvAI（`QuroTtsHolder.kt` 608 行）有串行队列+文本分块(30-160 字)+看门狗(30s)+云 TTS 回退，可靠性更强；Agora（`TtsManager.kt` 297 行）有内存日志缓冲+6 个 StateFlow 实时状态+导出/复制+PM 查询+引擎状态检查+手动 bindService 测试，诊断能力更强且代码更简洁。**Agora TTS 完整方案记录**：① `QUERY_ALL_PACKAGES` 权限（v1.0.20，根因修复）+ `<queries>` intent+package 声明（v1.0.14/v1.0.19，双保险）；② 2 参数构造器优先→PM 查询→系统默认→硬编码回退（v1.0.18，多引擎逐个尝试+300ms 延迟防实例污染）；③ `initGeneration` 防 stale 回调（v1.0.12）+ 主线程 speak（v1.0.15）+ `Log` 替代 DebugLog（v1.0.14）+ ProGuard keep 规则（v1.0.14）；④ 诊断工具：内存日志导出/复制（v1.0.16）+ 测试按钮+系统设置入口+安装 Google TTS 按钮（v1.0.13/v1.0.18）+ 6 个 StateFlow 实时状态（v1.0.14）+ 引擎安装/启用状态检查+手动 bindService 测试（v1.0.19）。CI 全绿验证通过（CI #31711914378 ✓ / Build & Release #31712047351 ✓），Release `Agora-v1.0.20-android-arm64-v8a.apk` 已发布。
 
