@@ -1,6 +1,11 @@
 package com.lxseek.chat.util
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
+import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +43,9 @@ object TtsManager {
     @Volatile private var pendingText: String? = null
     @Volatile private var pendingLanguage: String = "system"
     @Volatile private var pendingRate: Float = 1.0f
+    @Volatile private var appContext: Context? = null
+    @Volatile private var audioManager: AudioManager? = null
+    @Volatile private var audioFocusRequest: AudioFocusRequest? = null
 
     fun init(context: Context) {
         // Already up — nothing to do.
@@ -55,14 +63,18 @@ object TtsManager {
         }
         val generation = ++initGeneration
         val appContext = context.applicationContext
+        this.appContext = appContext
         tts = TextToSpeech(appContext) { status ->
             if (generation != initGeneration) return@TextToSpeech
             if (status == TextToSpeech.SUCCESS) {
                 initialized = true
                 _isAvailable.value = true
-                // Bind the progress listener only after the engine is ready; setting it
-                // before the init callback is unreliable on some vendor ROMs and leaves
-                // isPlaying stuck.
+                tts?.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) { _isPlaying.value = true }
                     override fun onDone(utteranceId: String?) { _isPlaying.value = false }
@@ -106,21 +118,26 @@ object TtsManager {
 
     private fun speakInternal(text: String, language: String, rate: Float): Boolean {
         val engine = tts ?: return false
+        requestAudioFocus()
         val locale = when (language) {
             "en" -> Locale.US
             "zh" -> Locale.SIMPLIFIED_CHINESE
             else -> Locale.getDefault()
         }
-        // setLanguage may report LANG_MISSING_DATA / LANG_NOT_SUPPORTED on devices without
-        // the matching voice data; fall back to the platform default rather than stay silent.
         val langResult = engine.setLanguage(locale)
         if (langResult == TextToSpeech.LANG_NOT_SUPPORTED ||
             langResult == TextToSpeech.LANG_MISSING_DATA
         ) {
-            engine.setLanguage(Locale.getDefault())
+            val fallbackResult = engine.setLanguage(Locale.getDefault())
+            if (fallbackResult == TextToSpeech.LANG_NOT_SUPPORTED ||
+                fallbackResult == TextToSpeech.LANG_MISSING_DATA
+            ) {
+                engine.setLanguage(Locale.US)
+            }
         }
         engine.setSpeechRate(rate.coerceIn(0.5f, 2.0f))
-        val speakResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, UUID.randomUUID().toString())
+        val params = Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f) }
+        val speakResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, UUID.randomUUID().toString())
         if (speakResult != TextToSpeech.SUCCESS) {
             _isPlaying.value = false
             return false
@@ -128,9 +145,42 @@ object TtsManager {
         return true
     }
 
+    private fun requestAudioFocus() {
+        val ctx = appContext ?: return
+        val am = audioManager
+            ?: (ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager)?.also { audioManager = it }
+            ?: return
+        val attrs = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ASSISTANT)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .build()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(attrs)
+                .build()
+            audioFocusRequest = request
+            am.requestAudioFocus(request)
+        } else {
+            @Suppress("DEPRECATION")
+            am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        val am = audioManager ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
+            audioFocusRequest = null
+        } else {
+            @Suppress("DEPRECATION")
+            am.abandonAudioFocus(null)
+        }
+    }
+
     fun stop() {
         tts?.stop()
         _isPlaying.value = false
+        abandonAudioFocus()
     }
 
     fun shutdown() {
@@ -142,6 +192,7 @@ object TtsManager {
         _isAvailable.value = false
         _isPlaying.value = false
         pendingText = null
+        abandonAudioFocus()
     }
 
     /**
