@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.21` / versionCode `22` | `defaultConfig` |
+| 版本 | versionName `1.0.23` / versionCode `24` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -172,7 +172,7 @@ Agora/
 │       │   │   ├── sandbox/           # 沙盒接口
 │       │   │   ├── automation/        # 任务、循环、调度
 │       │   │   ├── di/AppContainer.kt # 手动 DI 容器
-│       │   │   └── util/              # 工具类（CrashReporter 等）
+│       │   │   └── util/              # 工具类（CrashReporter / AppExecutors / ErrorSanitizer / TtsManager / SshClient 等）
 │       │   └── res/                   # 资源
 │       │       ├── values/            # 英文（默认）— 7 个 xml
 │       │       ├── values-zh/         # 简体中文 — 6 个 xml
@@ -217,6 +217,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.23 诊断日志写 Download 目录**：`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`（崩溃时镜像 JSON 到 MediaStore.Downloads/Agora）+ `exportDiagnostics()`（主动导出面包屑+TTS 日志到 Downloads）。`SettingsGenerationPage.kt` 加「保存到下载」按钮。CI 待验证。
+- **v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer**：借鉴 ZorvAI 全量分析高优先级 4 项优化。① StrictMode（`MainActivity.kt`，debug 检测主线程 IO/泄漏）；② 网络安全配置（`res/xml/network_security_config.xml`，仅 localhost/.local 放明文）；③ 分层线程池（`util/AppExecutors.kt`，IO+CPU 双池）；④ 错误脱敏（`util/ErrorSanitizer.kt`，stripHostAndIp）。CI 全绿验证通过（CI #31721923896 ✓ / Build & Release #31721946682 ✓）。
 - **连续语音对话（P2，3.2）**：commit `437f831d` + review fixes `4e77a5a0`。新建 `SttManager.kt`（SpeechRecognizer 封装，retryable init + `initializing` flag 防重复创建）、`VoiceConversationController.kt`（状态机 IDLE→LISTENING→PROCESSING→SPEAKING→LISTENING，TTS grace window，sendJob/ttsObserverJob 跟踪取消）、`TtsPlaybackHelper.kt`（从 ChatViewModel 提取 playTtsForMessage，978→977 行）、`VoiceMicButton.kt`（脉冲动画 mic FAB，always-call rememberInfiniteTransition 防 Compose slot table 崩溃）。`ChatBottomBar` 加 mic 按钮，`ChatApp` 加 RECORD_AUDIO 权限 launcher + `isSupported` 检查 + 权限拒绝 Snackbar。`SettingsGenerationPage` 加 Voice Conversation 设置组。`MessageLongImageRenderer` 加 20000px 高度上限 + try-catch。CI 全绿验证通过（#31568711157 ✓）。
 - **保存为长图（P1c）+ 多选模式隐藏底部栏（P1d）**：commit `5f603166`。新建 `MessageLongImageRenderer.kt`（text→Bitmap via StaticLayout→PNG→Intent.ACTION_SEND），`MessageExportController` 加 `shareMessagesAsLongImage`，`ShareSelectionFab` 加 Image 按钮，`ChatApp` 底部栏在多选模式隐藏。
 - **v1.0.9 版本 bump + Build & Release workflow 改进**：versionCode 9→10 / versionName 1.0.8→1.0.9。build.yml 改进：`workflow_dispatch` 不再要求手动输入版本号，`get-version` 始终从 `build.gradle.kts` 读取 versionName 作为唯一事实源，消除"手动输入版本 ≠ 代码版本"的整类失败。
@@ -307,6 +309,10 @@ Agora/
 - [x] 分享导出 — 保存为长图（P1c）：`MessageLongImageRenderer` text→Bitmap→PNG，CI 全绿（#31567125000 ✓）。
 - [x] 分享导出 — 底部操作面板 UI 改造（P1d）：多选模式隐藏底部栏，ShareSelectionFab 含复制/长图/全选/确认。
 - [x] 连续语音对话（P2，3.2）：SttManager + VoiceConversationController 状态机 + VoiceMicButton + RECORD_AUDIO 权限 + 设置。CI 全绿验证通过（#31568711157 ✓）。
+- [x] v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer（借鉴 ZorvAI 优化 1/2/4/5）。CI 全绿验证通过（#31721923896 ✓ / #31721946682 ✓）。
+- [x] v1.0.23 诊断日志写 Download 目录（借鉴 ZorvAI 优化 3）。CI 待验证。
+- [ ] Agent 能力深化（P0）：结构化进程/系统监控工具（list_processes/kill_process/system_stats/tail_follow）+ 重复调用死循环检测 + 三态策略+审计 + shell quoting 网关。
+- [ ] ASR 集成（P1）：sherpa-onnx 端侧 ASR（OnlineRecognizer 流式 + OfflineRecognizer 批处理 + Silero VAD）+ 系统 SpeechRecognizer 在线回退 + 模型下载管理 + VoiceInputButton UI。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
 ## 7. 编码约定（强制）
@@ -366,6 +372,12 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.23 诊断日志写 Download 目录（本次会话）：借鉴 ZorvAI 全量分析的优化 3。`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`——崩溃时镜像 JSON 到 `MediaStore.Downloads/Agora/`（API 29+ scoped storage 无需权限，API 24-28 用已有 `WRITE_EXTERNAL_STORAGE` maxSdk 28）；新增 `exportDiagnostics()`——主动导出面包屑 + TTS 日志到 Downloads，供非崩溃问题（如 TTS 不工作）诊断。`SettingsGenerationPage.kt`（804→813 行）TTS 诊断行新增「保存到下载」按钮，调用 `exportDiagnostics` + Toast 反馈。strings.xml en+zh 各加 `tts_save_to_downloads`。bump versionCode 23→24 / versionName 1.0.22→1.0.23。待 CI 验证。
+
+- 2026-08-14 v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer（本次会话）：借鉴 ZorvAI 全量分析的高优先级 5 项优化中的 4 项。① **StrictMode**（`MainActivity.kt`）：`BuildConfig.DEBUG` 条件下启用 `ThreadPolicy`（detectAll + penaltyLog）+ `VmPolicy`（detectLeakedSqlLiteObjects + detectLeakedClosableObjects + penaltyLog），检测主线程 IO + 资源泄漏。② **网络安全配置 NSC**（新建 `res/xml/network_security_config.xml`）：仅 localhost/.local/intranet 域允许明文，其余强制 HTTPS。`AndroidManifest.xml` 加 `networkSecurityConfig` 引用。③ **分层线程池**（新建 `util/AppExecutors.kt`）：IO 池（`max(2, cores*2)` 线程）+ CPU 池（`cores` 线程），替代共用 IO 池导致的 CPU 密集任务阻塞 IO。④ **错误脱敏**（新建 `util/ErrorSanitizer.kt`）：`stripHostAndIp()` 正则移除 IP/hostname，防错误气泡泄露内网地址。bump versionCode 22→23 / versionName 1.0.21→1.0.22。CI 全绿验证通过（CI #31721923896 ✓ / Build & Release #31721946682 ✓），Release `Agora-v1.0.22-android-arm64-v8a.apk` 已发布。
+
+- 2026-08-14 ZorvAI 全量分析 + Agent 能力深化方案 + ASR 集成方案（本次会话）：① **ZorvAI 全量分析**发现 30 个可借鉴优化点，高优先级 5 项已全部实现（v1.0.22 + v1.0.23）。② **Agent 能力深化方案**（分析 ZorvAI 工具注册/ReAct/特权仲裁/进程管理/系统监控）：Agora SSH 基座已比 ZorvAI 专业，深化方向为 P0 结构化进程/监控工具（list_processes/kill_process/system_stats/tail_follow）+ P1 重复调用死循环检测 + 三态策略+审计 + shell quoting 网关 + P2 批量多服务器执行 + 工具分档下发 + 行动轨迹总线 + P3 持久 SSH 会话池 + 跨任务经验闭环 + 技能即工具。③ **ASR 集成方案**（分析 openclaw-assistant + sherpa-onnx）：推荐 sherpa-onnx 作为端侧 ASR 引擎（纯离线/流式 OnlineRecognizer + 批处理 OfflineRecognizer + VAD Silero/Ten），2Pass 模式兼顾实时性与精度，中英双语 Zipformer + Paraformer 模型从 GitHub Releases 下载，系统 SpeechRecognizer 作为在线回退。方案详见会话记录。
 
 - 2026-08-13 v1.0.21 TTS 看门狗 — 30s 超时强制释放 isPlaying（本次会话）：借鉴 ZorvAI `QuroTtsHolder.kt` 的看门狗机制。`TtsManager.kt`（297→313 行）新增 `watchdogScope`（`CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)`）+ `watchdogJob: Job?` + `WATCHDOG_TIMEOUT_MS = 30_000L`。`speakInternal` 成功时启动看门狗协程 `launch { delay(30s); if (_isPlaying.value) { log; _isPlaying.value = false } }`，`onDone`/`onError`/`stop`/`shutdown` 时 `cancel()` 取消。**性能影响：零**——`delay()` 是协程挂起函数，不阻塞线程，挂起期间零 CPU 开销，取消即时。首次 CI 失败（缺 `import kotlinx.coroutines.launch`）→ 补 import，移动 tag 重触发。CI 全绿验证通过（CI #31718557855 ✓ / Build & Release #31718583166 ✓），Release `Agora-v1.0.21-android-arm64-v8a.apk` 已发布。
 
