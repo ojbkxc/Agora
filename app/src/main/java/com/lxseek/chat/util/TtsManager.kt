@@ -40,7 +40,7 @@ object TtsManager {
     @Volatile private var tts: TextToSpeech? = null
     @Volatile private var initialized = false
     @Volatile private var initGeneration = 0
-    @Volatile private var enginesToTry: List<String> = emptyList()
+    @Volatile private var enginesToTry: List<String?> = emptyList()
     @Volatile private var currentEngineIndex = 0
 
     private val _isAvailable = MutableStateFlow(false)
@@ -75,7 +75,7 @@ object TtsManager {
         val sb = StringBuilder()
         sb.append("=== TTS Diagnostic Log ===\n")
         sb.append("Date: ").append(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())).append('\n')
-        sb.append("App: Agora v1.0.17\n")
+        sb.append("App: Agora v1.0.18\n")
         val info = getDiagnosticInfo()
         sb.append("Initialized: ${info.initialized}\n")
         sb.append("Available: ${info.available}\n")
@@ -114,13 +114,20 @@ object TtsManager {
         val defaultEngine = try {
             Settings.Secure.getString(appCtx.contentResolver, "tts_default_synth")
         } catch (_: Throwable) { null }
-        enginesToTry = mutableListOf<String>().apply {
+        log("D", "PM resolved engines: $resolvedEngines")
+        log("D", "System default engine: $defaultEngine")
+        for (e in resolvedEngines) {
+            val installed = try { pm.getPackageInfo(e, 0) != null } catch (_: Throwable) { false }
+            log("D", "  $e installed=$installed")
+        }
+        enginesToTry = mutableListOf<String?>().apply {
+            add(null)
             if (!defaultEngine.isNullOrEmpty()) add(defaultEngine)
             for (e in resolvedEngines) if (e !in this) add(e)
             if ("com.google.android.tts" !in this) add("com.google.android.tts")
         }
         currentEngineIndex = 0
-        log("D", "init: enginesToTry=$enginesToTry")
+        log("D", "enginesToTry (null=2-arg default): $enginesToTry")
         tryNextEngine(appCtx)
     }
 
@@ -133,25 +140,30 @@ object TtsManager {
         }
         val engine = enginesToTry[currentEngineIndex]
         val generation = ++initGeneration
-        log("D", "Trying engine ${currentEngineIndex + 1}/${enginesToTry.size}: $engine")
+        val label = engine ?: "null(2-arg)"
+        log("D", "Trying engine ${currentEngineIndex + 1}/${enginesToTry.size}: $label")
         tts = try {
-            TextToSpeech(ctx, { status -> onInitResult(generation, status, engine, ctx) }, engine)
+            if (engine == null) {
+                TextToSpeech(ctx) { status -> onInitResult(generation, status, label, ctx) }
+            } else {
+                TextToSpeech(ctx, { status -> onInitResult(generation, status, label, ctx) }, engine)
+            }
         } catch (e: Throwable) {
-            log("E", "Constructor exception for $engine: ${e.message}")
+            log("E", "Constructor exception for $label: ${e.message}")
             currentEngineIndex++
-            tryNextEngine(ctx)
+            mainHandler.postDelayed({ tryNextEngine(ctx) }, 300)
             null
         }
     }
 
     fun reinit(context: Context) { shutdown(); init(context) }
 
-    private fun onInitResult(generation: Int, status: Int, engine: String, ctx: Context) {
+    private fun onInitResult(generation: Int, status: Int, engineLabel: String, ctx: Context) {
         if (generation != initGeneration) return
         if (status == TextToSpeech.SUCCESS) {
             initialized = true; _isAvailable.value = true
-            _lastInitStatus.value = "SUCCESS:$engine"
-            log("D", "init SUCCESS with engine=$engine, engines=${tts?.engines?.map { it.name }}")
+            _lastInitStatus.value = "SUCCESS:$engineLabel"
+            log("D", "init SUCCESS with engine=$engineLabel, engines=${tts?.engines?.map { it.name }}")
             tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) { log("D", "onStart $utteranceId"); _isPlaying.value = true }
                 override fun onDone(utteranceId: String?) { log("D", "onDone $utteranceId"); _isPlaying.value = false }
@@ -166,11 +178,11 @@ object TtsManager {
                 mainHandler.post { speakInternal(text, lang, rate) }
             }
         } else {
-            log("E", "init FAILED for engine=$engine status=$status")
+            log("E", "init FAILED for engine=$engineLabel status=$status")
             try { tts?.shutdown() } catch (_: Throwable) {}
             tts = null
             currentEngineIndex++
-            tryNextEngine(ctx)
+            mainHandler.postDelayed({ tryNextEngine(ctx) }, 300)
         }
     }
 
@@ -238,6 +250,7 @@ object TtsManager {
     fun testSpeak(): Boolean = speak("Hello, this is a TTS test. 你好，这是语音测试。", "system", 1.0f)
     fun systemTtsSettingsIntent(): Intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
     fun installTtsDataIntent(): Intent = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)
+    fun installGoogleTtsIntent(): Intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=com.google.android.tts"))
 
     fun stripMarkdown(text: String): String =
         text

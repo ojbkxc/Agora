@@ -436,6 +436,36 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             }
                         },
                         {
+                            if (!ttsDiagnostic.available) {
+                                SettingsItem(
+                                    headlineContent = { Text(stringResource(R.string.tts_install_google_tts)) },
+                                    supportingContent = { Text(stringResource(R.string.tts_install_google_tts_desc)) },
+                                    leadingContent = {
+                                        Icon(
+                                            Icons.Default.GetApp,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    },
+                                    trailingContent = {
+                                        TextButton(onClick = {
+                                            try {
+                                                ttsContext.startActivity(TtsManager.installGoogleTtsIntent())
+                                            } catch (_: android.content.ActivityNotFoundException) {
+                                                val webIntent = android.content.Intent(
+                                                    android.content.Intent.ACTION_VIEW,
+                                                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.tts"),
+                                                )
+                                                try { ttsContext.startActivity(webIntent) } catch (_: Throwable) {}
+                                            }
+                                        }) {
+                                            Text(stringResource(R.string.tts_install_google))
+                                        }
+                                    },
+                                )
+                            }
+                        },
+                        {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()

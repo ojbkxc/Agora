@@ -445,6 +445,9 @@
     <string name="tts_no_engine">No TTS engine found</string>
     <string name="tts_export_log">Export Log</string>
     <string name="tts_copy_log">Copy Log</string>
+    <string name="tts_install_google_tts">Install Google TTS</string>
+    <string name="tts_install_google_tts_desc">No engine working? Install Google TTS from Play Store.</string>
+    <string name="tts_install_google">Install</string>
     <string name="message_display">Message Display</string>
     <string name="tool_call_display_mode">Thinking &amp; Tool Blocks</string>
     <string name="tool_call_display_mode_timeline">Timeline</string>
