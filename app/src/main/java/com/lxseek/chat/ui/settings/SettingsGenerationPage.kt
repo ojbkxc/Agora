@@ -36,6 +36,7 @@ import com.lxseek.chat.ui.common.OpenAiServiceTierControlPanel
 import com.lxseek.chat.ui.common.ThinkingControlPanel
 import com.lxseek.chat.ui.common.openAiServiceTierShortLabel
 import com.lxseek.chat.ui.common.thinkingControlShortLabel
+import com.lxseek.chat.util.CrashReporter
 import com.lxseek.chat.util.TtsManager
 import com.lxseek.chat.viewmodel.ChatViewModel
 import kotlin.math.roundToInt
@@ -507,6 +508,14 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         val clipboard = ttsContext.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("TTS Log", TtsManager.getLogText()))
                                     }) { Text(stringResource(R.string.tts_copy_log)) }
+                                    TextButton(onClick = {
+                                        val name = CrashReporter.exportDiagnostics(ttsContext, TtsManager.getLogText())
+                                        if (name != null) {
+                                            android.widget.Toast.makeText(ttsContext, "Saved to Downloads/Agora/$name", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            android.widget.Toast.makeText(ttsContext, "Failed to save", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }) { Text(stringResource(R.string.tts_save_to_downloads)) }
                                 }
                             }
                         },

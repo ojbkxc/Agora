@@ -1,7 +1,10 @@
 package com.lxseek.chat.util
 
+import android.content.ContentValues
 import android.content.Context
 import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -134,11 +137,102 @@ object CrashReporter {
             put("ts", System.currentTimeMillis())
             put("breadcrumbs", JSONArray(breadcrumbs.toList()))
         }
+        val jsonText = json.toString()
         val dir = File(context.filesDir, DIR).apply { mkdirs() }
-        File(dir, FILE).writeText(json.toString())
+        File(dir, FILE).writeText(jsonText)
+        runCatching { mirrorToDownloads(context, jsonText) }
+    }
+
+    /**
+     * Mirrors the crash report into the public Downloads/Agora directory via MediaStore so the
+     * user can retrieve it from any file manager without root. Best-effort: failures are swallowed
+     * by the caller (never crashes the crash handler itself). On API 29+ scoped storage writes to
+     * Downloads need no permission; on API 24-28 the WRITE_EXTERNAL_STORAGE permission (maxSdk 28)
+     * covers legacy writes.
+     */
+    private fun mirrorToDownloads(context: Context, jsonText: String) {
+        val ts = System.currentTimeMillis()
+        val name = "agora-crash-$ts.json"
+        val resolver = context.contentResolver
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, name)
+                put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Agora")
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return
+            try {
+                resolver.openOutputStream(uri)?.use { it.write(jsonText.toByteArray()) }
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+            } catch (_: Exception) {
+                runCatching { resolver.delete(uri, null, null) }
+            }
+        } else {
+            val downloads = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "Agora"
+            ).apply { mkdirs() }
+            File(downloads, name).writeText(jsonText)
+        }
     }
 
     private fun reportFile(context: Context): File = File(File(context.filesDir, DIR), FILE)
+
+    /**
+     * Proactively exports a diagnostic snapshot (breadcrumbs + TTS diagnostic text) to the public
+     * Downloads/Agora directory. Intended for non-crash issues (e.g. TTS not working) where the
+     * user wants to share logs with developers. Returns the display name on success, null on failure.
+     */
+    fun exportDiagnostics(context: Context, extra: String = ""): String? {
+        val ts = System.currentTimeMillis()
+        val sb = StringBuilder()
+        sb.append("=== Agora Diagnostics ===\n")
+        sb.append("Timestamp: $ts\n")
+        sb.append("App version: ${appInfo.versionName} (${appInfo.versionCode})\n")
+        sb.append("Android API: ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})\n")
+        sb.append("Device: ${Build.MANUFACTURER} ${Build.MODEL}\n\n")
+        sb.append("=== Breadcrumbs ===\n")
+        for (crumb in breadcrumbs) sb.append(crumb).append('\n')
+        if (extra.isNotEmpty()) {
+            sb.append("\n=== Extra ===\n")
+            sb.append(extra).append('\n')
+        }
+        val text = sb.toString()
+        val name = "agora-diagnostics-$ts.txt"
+        return runCatching {
+            val resolver = context.contentResolver
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, name)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                    put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Agora")
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: return@runCatching null
+                try {
+                    resolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                    values.clear()
+                    values.put(MediaStore.Downloads.IS_PENDING, 0)
+                    resolver.update(uri, values, null, null)
+                    name
+                } catch (_: Exception) {
+                    runCatching { resolver.delete(uri, null, null) }
+                    null
+                }
+            } else {
+                val downloads = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    "Agora"
+                ).apply { mkdirs() }
+                File(downloads, name).writeText(text)
+                name
+            }
+        }.getOrNull()
+    }
 
     @Suppress("DEPRECATION")
     private fun readAppInfo(context: Context): AppInfo = runCatching {

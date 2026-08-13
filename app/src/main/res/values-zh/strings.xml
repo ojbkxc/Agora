@@ -402,6 +402,7 @@
     <string name="tts_no_engine">未找到语音引擎</string>
     <string name="tts_export_log">导出日志</string>
     <string name="tts_copy_log">复制日志</string>
+    <string name="tts_save_to_downloads">保存到下载</string>
     <string name="tts_install_google_tts">安装 Google 语音</string>
     <string name="tts_install_google_tts_desc">引擎不工作？从 Play 商店安装 Google 语音。</string>
     <string name="tts_install_google">安装</string>
