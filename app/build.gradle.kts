@@ -27,8 +27,8 @@ android {
         applicationId = "com.lxseek.chat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.0.21"
+        versionCode = 23
+        versionName = "1.0.22"
 
 
         ndk {
@@ -92,6 +92,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     // The app switches locales at runtime without Play Feature Delivery. Keep every
     // packaged translation available instead of letting App Bundles split languages.

@@ -1,5 +1,6 @@
 package com.lxseek.chat
 
+import com.lxseek.chat.BuildConfig
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -8,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.StrictMode
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
@@ -102,6 +104,20 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
+                .detectDiskReads()
+                .detectDiskWrites()
+                .detectNetwork()
+                .penaltyLog()
+                .build())
+            StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder()
+                .detectActivityLeaks()
+                .detectLeakedClosableObjects()
+                .detectLeakedRegistrationObjects()
+                .penaltyLog()
+                .build())
+        }
         val splashScreen = installSplashScreen()
         var startupReady = false
         splashScreen.setKeepOnScreenCondition { !startupReady }
