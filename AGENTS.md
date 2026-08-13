@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.26` / versionCode `27` | `defaultConfig` |
+| 版本 | versionName `1.0.27` / versionCode `28` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -378,6 +378,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.27 ASR 引擎抽象层 + 模型管理器（本次会话）：ASR 集成 P1 基础设施。新建 `speech/` 包含 5 个文件：① `SpeechEngine.kt`（71 行）——ASR 引擎接口；② `SystemSpeechEngine.kt`（37 行）——适配现有 SttManager；③ `SherpaAsrEngine.kt`（92 行）——sherpa-onnx stub，优雅降级；④ `SpeechRecognitionManager.kt`（108 行）——编排引擎选择；⑤ `AsrModelManager.kt`（140 行）——模型下载管理。代码无需原生库即可编译。CI 全绿验证通过（CI #31750904823 ✓ / Build & Release #31750906971 ✓），Release `Agora-v1.0.27-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.26 shell quoting 网关 — 防注入（本次会话）：Agent 能力深化 P1。新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用（`quote()` 包单引号 + 转义内嵌引号、`buildCommand()` 拼接命令、`sanitize()` 移除 null/控制字符）。`ShellMonitorTools.kt`：`tail_follow` 路径改用 `ShellQuote.quote()` 替代不安全双引号；`kill_process` 验证 pid ≥ 1 防 kill 0/负数。bump versionCode 26→27 / versionName 1.0.25→1.0.26。CI 全绿验证通过（CI #31749416627 ✓ / Build & Release #31749418527 ✓），Release `Agora-v1.0.26-android-arm64-v8a.apk` 已发布。
 
