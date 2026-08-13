@@ -2,6 +2,8 @@ package com.lxseek.chat.util
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -38,7 +40,8 @@ object TtsManager {
     @Volatile private var tts: TextToSpeech? = null
     @Volatile private var initialized = false
     @Volatile private var initGeneration = 0
-    @Volatile private var initFailedCount = 0
+    @Volatile private var enginesToTry: List<String> = emptyList()
+    @Volatile private var currentEngineIndex = 0
 
     private val _isAvailable = MutableStateFlow(false)
     val isAvailable: StateFlow<Boolean> = _isAvailable.asStateFlow()
@@ -72,7 +75,7 @@ object TtsManager {
         val sb = StringBuilder()
         sb.append("=== TTS Diagnostic Log ===\n")
         sb.append("Date: ").append(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())).append('\n')
-        sb.append("App: Agora v1.0.16\n")
+        sb.append("App: Agora v1.0.17\n")
         val info = getDiagnosticInfo()
         sb.append("Initialized: ${info.initialized}\n")
         sb.append("Available: ${info.available}\n")
@@ -95,41 +98,61 @@ object TtsManager {
             try { tts?.stop(); tts?.shutdown() } catch (_: Throwable) {}
             tts = null
         }
-        val generation = ++initGeneration
         val appCtx = context.applicationContext
         this.appContext = appCtx
         _lastInitStatus.value = "PENDING"
+        val pm = appCtx.packageManager
+        val ttsIntent = Intent("android.speech.tts.TTS_SERVICE")
+        val resolvedEngines = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentServices(ttsIntent, PackageManager.ResolveInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.queryIntentServices(ttsIntent, 0)
+            }.map { it.serviceInfo.packageName }
+        } catch (_: Throwable) { emptyList() }
         val defaultEngine = try {
             Settings.Secure.getString(appCtx.contentResolver, "tts_default_synth")
         } catch (_: Throwable) { null }
-        log("D", "init: defaultEngine=$defaultEngine failedCount=$initFailedCount")
-        val callback = { status: Int -> onInitResult(generation, status) }
+        enginesToTry = mutableListOf<String>().apply {
+            if (!defaultEngine.isNullOrEmpty()) add(defaultEngine)
+            for (e in resolvedEngines) if (e !in this) add(e)
+            if ("com.google.android.tts" !in this) add("com.google.android.tts")
+        }
+        currentEngineIndex = 0
+        log("D", "init: enginesToTry=$enginesToTry")
+        tryNextEngine(appCtx)
+    }
+
+    private fun tryNextEngine(ctx: Context) {
+        if (currentEngineIndex >= enginesToTry.size) {
+            log("E", "All engines exhausted")
+            _lastInitStatus.value = "FAILED:all_exhausted"
+            initialized = false; _isAvailable.value = false
+            return
+        }
+        val engine = enginesToTry[currentEngineIndex]
+        val generation = ++initGeneration
+        log("D", "Trying engine ${currentEngineIndex + 1}/${enginesToTry.size}: $engine")
         tts = try {
-            if (defaultEngine != null && defaultEngine.isNotEmpty()) {
-                TextToSpeech(appCtx, callback, defaultEngine)
-            } else {
-                TextToSpeech(appCtx, callback)
-            }
+            TextToSpeech(ctx, { status -> onInitResult(generation, status, engine, ctx) }, engine)
         } catch (e: Throwable) {
-            log("E", "TextToSpeech constructor exception: ${e.javaClass.name}: ${e.message}")
-            try { TextToSpeech(appCtx, callback) } catch (_: Throwable) { null }
+            log("E", "Constructor exception for $engine: ${e.message}")
+            currentEngineIndex++
+            tryNextEngine(ctx)
+            null
         }
     }
 
     fun reinit(context: Context) { shutdown(); init(context) }
 
-    private fun onInitResult(generation: Int, status: Int) {
+    private fun onInitResult(generation: Int, status: Int, engine: String, ctx: Context) {
         if (generation != initGeneration) return
         if (status == TextToSpeech.SUCCESS) {
-            initialized = true
-            _isAvailable.value = true
-            _lastInitStatus.value = "SUCCESS"
-            initFailedCount = 0
-            val engine = tts
-            val engineName = engine?.defaultEngine
-            val engines = engine?.engines?.map { it.name }
-            log("D", "init SUCCESS, engine=$engineName, engines=$engines")
-            engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            initialized = true; _isAvailable.value = true
+            _lastInitStatus.value = "SUCCESS:$engine"
+            log("D", "init SUCCESS with engine=$engine, engines=${tts?.engines?.map { it.name }}")
+            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) { log("D", "onStart $utteranceId"); _isPlaying.value = true }
                 override fun onDone(utteranceId: String?) { log("D", "onDone $utteranceId"); _isPlaying.value = false }
                 @Deprecated("Deprecated in Java")
@@ -143,16 +166,11 @@ object TtsManager {
                 mainHandler.post { speakInternal(text, lang, rate) }
             }
         } else {
-            log("E", "init FAILED status=$status")
-            _lastInitStatus.value = "FAILED:$status"
-            initialized = false; _isAvailable.value = false; _isPlaying.value = false
-            initFailedCount++; pendingText = null
-            if (initFailedCount <= 2 && appContext != null) {
-                log("D", "retrying init with 2-arg constructor (fallback)")
-                val generation2 = ++initGeneration
-                val ctx = appContext!!
-                tts = try { TextToSpeech(ctx) { s -> onInitResult(generation2, s) } } catch (_: Throwable) { null }
-            }
+            log("E", "init FAILED for engine=$engine status=$status")
+            try { tts?.shutdown() } catch (_: Throwable) {}
+            tts = null
+            currentEngineIndex++
+            tryNextEngine(ctx)
         }
     }
 
