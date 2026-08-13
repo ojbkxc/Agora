@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.24` / versionCode `25` | `defaultConfig` |
+| 版本 | versionName `1.0.26` / versionCode `27` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.26 shell quoting 网关**：新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用。`ShellMonitorTools.kt` tail_follow/kill_process 改用安全引用。CI 待验证。
+- **v1.0.25 重复调用死循环检测**：新建 `viewmodel/ToolRepeatDetector.kt`（74 行）——同一签名连续重复 8 次注入警告打破循环。CI 全绿验证通过（#31748442635 ✓ / #31748445259 ✓）。
 - **v1.0.24 结构化进程/系统监控工具**：新建 `ShellMonitorTools.kt`（276 行）——list_processes/kill_process/system_stats/tail_follow 4 个结构化工具。CI 全绿验证通过（CI #31747117562 ✓ / Build & Release #31747119949 ✓）。
 - **v1.0.23 诊断日志写 Download 目录**：`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`（崩溃时镜像 JSON 到 MediaStore.Downloads/Agora）+ `exportDiagnostics()`（主动导出面包屑+TTS 日志到 Downloads）。`SettingsGenerationPage.kt` 加「保存到下载」按钮。CI 全绿验证通过（#31723724067 ✓）。
 - **v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer**：借鉴 ZorvAI 全量分析高优先级 4 项优化。① StrictMode（`MainActivity.kt`，debug 检测主线程 IO/泄漏）；② 网络安全配置（`res/xml/network_security_config.xml`，仅 localhost/.local 放明文）；③ 分层线程池（`util/AppExecutors.kt`，IO+CPU 双池）；④ 错误脱敏（`util/ErrorSanitizer.kt`，stripHostAndIp）。CI 全绿验证通过（CI #31721923896 ✓ / Build & Release #31721946682 ✓）。
@@ -313,7 +315,9 @@ Agora/
 - [x] v1.0.22 StrictMode + NSC + AppExecutors + ErrorSanitizer（借鉴 ZorvAI 优化 1/2/4/5）。CI 全绿验证通过（#31721923896 ✓ / #31721946682 ✓）。
 - [x] v1.0.23 诊断日志写 Download 目录（借鉴 ZorvAI 优化 3）。CI 全绿验证通过（#31723724067 ✓ / #31723718876 ✓）。
 - [x] v1.0.24 结构化进程/系统监控工具（Agent 深化 P0：list_processes/kill_process/system_stats/tail_follow）。CI 全绿验证通过（#31747117562 ✓ / #31747119949 ✓）。
-- [ ] Agent 能力深化（P1）：重复调用死循环检测 + 三态策略+审计 + shell quoting 网关。
+- [x] v1.0.25 重复调用死循环检测（Agent 深化 P1：ToolRepeatDetector）。CI 全绿验证通过（#31748442635 ✓ / #31748445259 ✓）。
+- [x] v1.0.26 shell quoting 网关（Agent 深化 P1：ShellQuote）。CI 待验证。
+- [ ] Agent 能力深化（P2）：批量多服务器执行 + 工具分档下发 + 行动轨迹总线。
 - [ ] ASR 集成（P1）：sherpa-onnx 端侧 ASR（OnlineRecognizer 流式 + OfflineRecognizer 批处理 + Silero VAD）+ 系统 SpeechRecognizer 在线回退 + 模型下载管理 + VoiceInputButton UI。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
@@ -374,6 +378,10 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.26 shell quoting 网关 — 防注入（本次会话）：Agent 能力深化 P1。新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用（`quote()` 包单引号 + 转义内嵌引号、`buildCommand()` 拼接命令、`sanitize()` 移除 null/控制字符）。`ShellMonitorTools.kt`：`tail_follow` 路径改用 `ShellQuote.quote()` 替代不安全双引号；`kill_process` 验证 pid ≥ 1 防 kill 0/负数。bump versionCode 26→27 / versionName 1.0.25→1.0.26。待 CI 验证。
+
+- 2026-08-14 v1.0.25 重复调用死循环检测（本次会话）：Agent 能力深化 P1。新建 `viewmodel/ToolRepeatDetector.kt`（74 行）——跟踪工具调用签名（toolName + arguments hashCode），同一签名连续重复 8 次时注入警告消息打破循环，防止模型卡在反复调用同一失败 SSH 命令。`GenerationManager.kt`（773→780 行）工具循环顶部集成 `repeatDetector.observe()`，检测到重复时设置 totalText 为警告并 break。bump versionCode 25→26 / versionName 1.0.24→1.0.25。CI 全绿验证通过（CI #31748442635 ✓ / Build & Release #31748445259 ✓），Release `Agora-v1.0.25-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.24 结构化进程/系统监控工具（本次会话）：Agent 能力深化 P0。新建 `tool/ShellMonitorTools.kt`（276 行）——封装 4 个结构化监控工具，通过 shell 命令 + JSON 解析返回可靠结构化数据：① `list_processes`（ReadOnly，ps aux → JSON 数组 pid/user/cpu/mem/command，可排序/限量）；② `kill_process`（HighRisk，kill -SIGNAL PID，内部确认门控）；③ `system_stats`（ReadOnly，loadavg + free + df + uptime → JSON）；④ `tail_follow`（ReadOnly，tail -n N → JSON，持续跟随用 background job）。`ShellToolDefinitions.kt`（225→271 行）加 4 个工具定义。`ShellToolProvider.kt`（661→729 行）接线 execute/handles/riskLevel/requiresApproval + 4 个执行方法。`ToolApproval.kt` 加 `kill_process` 到 `TOOLS_WITH_INTERNAL_CONFIRM` 避免双重确认。bump versionCode 24→25 / versionName 1.0.23→1.0.24。CI 全绿验证通过（CI #31747117562 ✓ / Build & Release #31747119949 ✓），Release `Agora-v1.0.24-android-arm64-v8a.apk` 已发布。
 
