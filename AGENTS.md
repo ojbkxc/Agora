@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.19` / versionCode `20` | `defaultConfig` |
+| 版本 | versionName `1.0.20` / versionCode `21` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -366,6 +366,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-13 v1.0.20 TTS 根因修复 — QUERY_ALL_PACKAGES 权限（本次会话）：用户要求「一定要小米的 TTS 能用」并提供参考项目 ZorvAI（github.com/Quor-a/ZorvAI）。拉取 ZorvAI 源码分析发现其 `QuroTtsHolder.kt` 注释记录了同样的 `OnInit status=-1` 问题，解决方案是在 `AndroidManifest.xml` 中添加 `QUERY_ALL_PACKAGES` 权限。**根因确认**：Android 11+（targetSdk 36）包可见性限制下，即使有 `<queries>` 声明，MIUI 仍限制 `bindService` 到系统 TTS 引擎（`com.xiaomi.mibrain.speech`），导致 `TextToSpeech` 构造器在 3-7ms 内返回 ERROR。`QUERY_ALL_PACKAGES` 是 normal 权限（无需用户授予），完全绕过包可见性限制，让 `bindService` 能绑定到任何 TTS 引擎。修复 `AndroidManifest.xml`：添加 `<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />`。bump versionCode 20→21 / versionName 1.0.19→1.0.20。CI 全绿验证通过（CI #31711914378 ✓ / Build & Release #31712047351 ✓），Release `Agora-v1.0.20-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-13 v1.0.19 TTS 深度诊断 — package queries + 引擎状态检查 + 手动 bindService 测试（本次会话）：用户提供 v1.0.18 日志显示 `PM resolved engines: []` + 所有 `TextToSpeech` 构造器在 3-7ms 内返回 status=-1。根因分析：① MIUI 限制 `queryIntentServices` 即使有 `<queries>` intent 声明；② `bindService` 被立即拒绝（3ms 内返回 ERROR = bindService 返回 false）。修复：① `AndroidManifest.xml` `<queries>` 新增 4 个 `<package>` 声明（`com.xiaomi.mibrain.speech`/`com.google.android.tts`/`com.samsung.SMT`/`com.huawei.hivoice`），绕过 MIUI 的 `queryIntentServices` 限制；② `TtsManager.kt` init 中对每个已知引擎包用 `getPackageInfo` 检查安装/启用状态并日志 versionCode/versionName；③ 新增手动 `bindService(TTS_SERVICE)` 测试，区分 `TextToSpeech` 构造器 bug 和系统级 `bindService` 限制。bump versionCode 19→20 / versionName 1.0.18→1.0.19。CI 全绿验证通过（CI #31709650748 ✓ / Build & Release #31709671770 ✓），Release `Agora-v1.0.19-android-arm64-v8a.apk` 已发布。
 
