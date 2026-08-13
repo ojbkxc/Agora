@@ -26,6 +26,7 @@ sealed interface ToolApprovalResult {
 val TOOLS_WITH_INTERNAL_CONFIRM: Set<String> = setOf(
     "file_write",
     "file_edit",
+    "kill_process",
 )
 
 /**

@@ -24,6 +24,7 @@ class ShellToolProvider(
 
     private val sandbox = sandboxFactory?.create()
     private val durableJobs = ShellDurableJobExecutor()
+    private val monitorTools = ShellMonitorTools()
 
     /**
      * Optional user-confirmation gate for state-changing operations. The isolated local sandbox
@@ -111,6 +112,10 @@ class ShellToolProvider(
             "file_glob" -> executeFileGlob(arguments, ctx)
             "file_grep" -> executeFileGrep(arguments, ctx)
             "view_image" -> executeViewImage(arguments, ctx).text
+            "list_processes" -> executeListProcesses(arguments, ctx)
+            "kill_process" -> executeKillProcess(arguments, ctx)
+            "system_stats" -> executeSystemStats(arguments, ctx)
+            "tail_follow" -> executeTailFollow(arguments, ctx)
             else -> "Unknown tool: $name"
         }
     }
@@ -132,19 +137,21 @@ class ShellToolProvider(
     override fun handles(name: String): Boolean = name in setOf(
         "list_shells", "execute_shell_command",
         "list_shell_jobs", "get_shell_job", "wait_for_job", "stop_shell_job",
-        "file_read", "file_write", "file_edit", "file_glob", "file_grep", "view_image"
+        "file_read", "file_write", "file_edit", "file_glob", "file_grep", "view_image",
+        "list_processes", "kill_process", "system_stats", "tail_follow"
     )
 
     override fun riskLevel(name: String): RiskLevel = when (name) {
         "list_shells", "list_shell_jobs", "get_shell_job", "wait_for_job" -> RiskLevel.ReadOnly
         "file_read", "file_glob", "file_grep", "view_image" -> RiskLevel.ReadOnly
+        "list_processes", "system_stats", "tail_follow" -> RiskLevel.ReadOnly
         "execute_shell_command" -> RiskLevel.Moderate
-        "stop_shell_job", "file_write", "file_edit" -> RiskLevel.HighRisk
+        "stop_shell_job", "file_write", "file_edit", "kill_process" -> RiskLevel.HighRisk
         else -> RiskLevel.ReadOnly
     }
 
     override fun requiresApprovalByDefault(name: String): Boolean = when (name) {
-        "file_write", "file_edit", "stop_shell_job" -> true
+        "file_write", "file_edit", "stop_shell_job", "kill_process" -> true
         else -> false
     }
 
@@ -649,6 +656,67 @@ class ShellToolProvider(
                 },
                 onFailure = { e -> jsonError("file_grep", e.message ?: "Unknown error") }
             )
+        } finally {
+            backend.close()
+        }
+    }
+
+    // ── Process / system monitoring tools ─────────────────
+
+    private suspend fun executeListProcesses(arguments: String, ctx: GenerationContext): String {
+        val args = parseToolArgs(arguments)
+        val serverName = arg(args, "server")
+        val maxCount = arg(args, "max_count").toIntOrNull() ?: 50
+        val sortBy = arg(args, "sort_by").ifBlank { "cpu" }
+        val backend = getBackend(serverName, ctx)
+            ?: return jsonError("list_processes", serverNotFoundMessage(serverName, ctx))
+        return try {
+            monitorTools.listProcesses(backend, maxCount, sortBy)
+        } finally {
+            backend.close()
+        }
+    }
+
+    private suspend fun executeKillProcess(arguments: String, ctx: GenerationContext): String {
+        val args = parseToolArgs(arguments)
+        val pid = arg(args, "pid").toIntOrNull()
+            ?: return jsonError("kill_process", "pid is required and must be an integer")
+        val signal = arg(args, "signal").ifBlank { "TERM" }
+        val serverName = arg(args, "server")
+        val backend = getBackend(serverName, ctx)
+            ?: return jsonError("kill_process", serverNotFoundMessage(serverName, ctx))
+        return try {
+            if (!confirmTarget(backend.device, "kill -$signal $pid")) {
+                return jsonError("kill_process", "denied_by_user: the user declined to kill this process", server = serverName)
+            }
+            monitorTools.killProcess(backend, pid, signal)
+        } finally {
+            backend.close()
+        }
+    }
+
+    private suspend fun executeSystemStats(arguments: String, ctx: GenerationContext): String {
+        val args = parseToolArgs(arguments)
+        val serverName = arg(args, "server")
+        val backend = getBackend(serverName, ctx)
+            ?: return jsonError("system_stats", serverNotFoundMessage(serverName, ctx))
+        return try {
+            monitorTools.systemStats(backend)
+        } finally {
+            backend.close()
+        }
+    }
+
+    private suspend fun executeTailFollow(arguments: String, ctx: GenerationContext): String {
+        val args = parseToolArgs(arguments)
+        val path = arg(args, "path")
+        if (path.isBlank()) return jsonError("tail_follow", "path is required")
+        val maxLines = arg(args, "max_lines").toIntOrNull() ?: 100
+        val serverName = arg(args, "server")
+        val backend = getBackend(serverName, ctx)
+            ?: return jsonError("tail_follow", serverNotFoundMessage(serverName, ctx))
+        return try {
+            monitorTools.tailFollow(backend, path, maxLines)
         } finally {
             backend.close()
         }

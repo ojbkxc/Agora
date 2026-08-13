@@ -53,6 +53,52 @@ internal object ShellToolDefinitions {
                     required = shellRequiredParams
                 )
             )))
+            add(ToolDefinition(function = ToolFunction(
+                name = "list_processes",
+                description = "List running processes on a shell server with structured output (pid, user, cpu%, mem%, command). More reliable than parsing raw ps output.",
+                parameters = ToolParameters(
+                    properties = mapOf(
+                        "server" to ToolProperty("string", serverPropDesc),
+                        "max_count" to ToolProperty("integer", "Maximum number of processes to return (optional, default 50, max 200)."),
+                        "sort_by" to ToolProperty("string", "Sort field: 'cpu' (default), 'mem', or 'pid'."),
+                    ),
+                    required = emptyList()
+                )
+            )))
+            add(ToolDefinition(function = ToolFunction(
+                name = "kill_process",
+                description = "Send a signal to a process by PID. Default signal is TERM. Use KILL for force-kill. Always verify the PID with list_processes first.",
+                parameters = ToolParameters(
+                    properties = mapOf(
+                        "pid" to ToolProperty("integer", "Process ID to signal."),
+                        "signal" to ToolProperty("string", "Signal name (optional, default TERM). Common: TERM, KILL, HUP, INT, STOP, CONT."),
+                        "server" to ToolProperty("string", serverPropDesc),
+                    ),
+                    required = listOf("pid")
+                )
+            )))
+            add(ToolDefinition(function = ToolFunction(
+                name = "system_stats",
+                description = "Get a structured system resource snapshot: load average, memory, disk usage, uptime. More reliable than parsing raw uptime/free/df output.",
+                parameters = ToolParameters(
+                    properties = mapOf(
+                        "server" to ToolProperty("string", serverPropDesc),
+                    ),
+                    required = emptyList()
+                )
+            )))
+            add(ToolDefinition(function = ToolFunction(
+                name = "tail_follow",
+                description = "Read the last N lines of a file (like tail -n). For continuous following, use execute_shell_command with background=true and 'tail -f'.",
+                parameters = ToolParameters(
+                    properties = mapOf(
+                        "path" to ToolProperty("string", "Absolute path to the file."),
+                        "max_lines" to ToolProperty("integer", "Number of lines to read from the end (optional, default 100, max 10000)."),
+                        "server" to ToolProperty("string", serverPropDesc),
+                    ),
+                    required = listOf("path")
+                )
+            )))
             if (conchDeviceNames.isNotEmpty()) {
                 val jobServerDescription = if (conchDeviceNames.size == 1) {
                     "Conch server name (optional; defaults to ${conchDeviceNames.single()})."
