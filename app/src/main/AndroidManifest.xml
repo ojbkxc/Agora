@@ -14,6 +14,10 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!-- Saving images to the gallery on pre-Q only; Q+ uses scoped MediaStore (no permission). -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- TTS engine is a cross-app TTS_SERVICE remote service; Android 11+ package visibility
+         restrictions require this permission to bindService to system TTS engines (e.g. Xiaomi
+         Mi Brain). Without it, TextToSpeech OnInit returns ERROR (-1) on MIUI. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
     <!-- Allows a visibility-safe preflight before using the platform capture contract. -->
     <queries>
