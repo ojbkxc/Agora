@@ -217,7 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
-- **v1.0.26 shell quoting 网关**：新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用。`ShellMonitorTools.kt` tail_follow/kill_process 改用安全引用。CI 待验证。
+- **v1.0.26 shell quoting 网关**：新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用。`ShellMonitorTools.kt` tail_follow/kill_process 改用安全引用。CI 全绿验证通过（#31749416627 ✓ / #31749418527 ✓）。
 - **v1.0.25 重复调用死循环检测**：新建 `viewmodel/ToolRepeatDetector.kt`（74 行）——同一签名连续重复 8 次注入警告打破循环。CI 全绿验证通过（#31748442635 ✓ / #31748445259 ✓）。
 - **v1.0.24 结构化进程/系统监控工具**：新建 `ShellMonitorTools.kt`（276 行）——list_processes/kill_process/system_stats/tail_follow 4 个结构化工具。CI 全绿验证通过（CI #31747117562 ✓ / Build & Release #31747119949 ✓）。
 - **v1.0.23 诊断日志写 Download 目录**：`CrashReporter.kt`（150→244 行）新增 `mirrorToDownloads()`（崩溃时镜像 JSON 到 MediaStore.Downloads/Agora）+ `exportDiagnostics()`（主动导出面包屑+TTS 日志到 Downloads）。`SettingsGenerationPage.kt` 加「保存到下载」按钮。CI 全绿验证通过（#31723724067 ✓）。
@@ -316,7 +316,7 @@ Agora/
 - [x] v1.0.23 诊断日志写 Download 目录（借鉴 ZorvAI 优化 3）。CI 全绿验证通过（#31723724067 ✓ / #31723718876 ✓）。
 - [x] v1.0.24 结构化进程/系统监控工具（Agent 深化 P0：list_processes/kill_process/system_stats/tail_follow）。CI 全绿验证通过（#31747117562 ✓ / #31747119949 ✓）。
 - [x] v1.0.25 重复调用死循环检测（Agent 深化 P1：ToolRepeatDetector）。CI 全绿验证通过（#31748442635 ✓ / #31748445259 ✓）。
-- [x] v1.0.26 shell quoting 网关（Agent 深化 P1：ShellQuote）。CI 待验证。
+- [x] v1.0.26 shell quoting 网关（Agent 深化 P1：ShellQuote）。CI 全绿验证通过（#31749416627 ✓ / #31749418527 ✓）。
 - [ ] Agent 能力深化（P2）：批量多服务器执行 + 工具分档下发 + 行动轨迹总线。
 - [ ] ASR 集成（P1）：sherpa-onnx 端侧 ASR（OnlineRecognizer 流式 + OfflineRecognizer 批处理 + Silero VAD）+ 系统 SpeechRecognizer 在线回退 + 模型下载管理 + VoiceInputButton UI。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
@@ -379,7 +379,7 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
-- 2026-08-14 v1.0.26 shell quoting 网关 — 防注入（本次会话）：Agent 能力深化 P1。新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用（`quote()` 包单引号 + 转义内嵌引号、`buildCommand()` 拼接命令、`sanitize()` 移除 null/控制字符）。`ShellMonitorTools.kt`：`tail_follow` 路径改用 `ShellQuote.quote()` 替代不安全双引号；`kill_process` 验证 pid ≥ 1 防 kill 0/负数。bump versionCode 26→27 / versionName 1.0.25→1.0.26。待 CI 验证。
+- 2026-08-14 v1.0.26 shell quoting 网关 — 防注入（本次会话）：Agent 能力深化 P1。新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用（`quote()` 包单引号 + 转义内嵌引号、`buildCommand()` 拼接命令、`sanitize()` 移除 null/控制字符）。`ShellMonitorTools.kt`：`tail_follow` 路径改用 `ShellQuote.quote()` 替代不安全双引号；`kill_process` 验证 pid ≥ 1 防 kill 0/负数。bump versionCode 26→27 / versionName 1.0.25→1.0.26。CI 全绿验证通过（CI #31749416627 ✓ / Build & Release #31749418527 ✓），Release `Agora-v1.0.26-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.25 重复调用死循环检测（本次会话）：Agent 能力深化 P1。新建 `viewmodel/ToolRepeatDetector.kt`（74 行）——跟踪工具调用签名（toolName + arguments hashCode），同一签名连续重复 8 次时注入警告消息打破循环，防止模型卡在反复调用同一失败 SSH 命令。`GenerationManager.kt`（773→780 行）工具循环顶部集成 `repeatDetector.observe()`，检测到重复时设置 totalText 为警告并 break。bump versionCode 25→26 / versionName 1.0.24→1.0.25。CI 全绿验证通过（CI #31748442635 ✓ / Build & Release #31748445259 ✓），Release `Agora-v1.0.25-android-arm64-v8a.apk` 已发布。
 
