@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.17` / versionCode `18` | `defaultConfig` |
+| 版本 | versionName `1.0.18` / versionCode `19` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -366,6 +366,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-13 v1.0.18 TTS 2 参数构造器优先 + 引擎间延迟 + 安装 Google TTS 按钮（本次会话）：用户反馈 v1.0.17「还是没声音」。策略调整：① **2 参数构造器优先**——之前所有版本都用 3 参数 `TextToSpeech(ctx, callback, engine)` 显式指定引擎，但 MIUI 上显式指定引擎可能触发 `bindService` 限制；改为先尝试 2 参数构造器 `TextToSpeech(ctx, callback)`（null engine = 让系统选择默认引擎，走隐式绑定路径），再回退到显式引擎；② **300ms 延迟**——引擎间切换加 `mainHandler.postDelayed(300ms)`，避免前一个 `TextToSpeech` 实例的 `bindService` 未完全清理就创建新实例导致实例污染；③ **PM 查询结果单独日志**——`queryIntentServices` 返回的引擎列表逐个 `getPackageInfo` 检查安装状态并单独日志；④ **安装 Google TTS 按钮**——新增 `installGoogleTtsIntent()`，设置页在 TTS 不可用时显示「安装 Google 语音」按钮（含 Play Store Web 回退）。修改 `util/TtsManager.kt`（234→266 行）：`enginesToTry` 改为 `List<String?>`，`tryNextEngine` 支持 null engine 分支，构造异常/失败回退加 300ms 延迟。修改 `ui/settings/SettingsGenerationPage.kt`（774→804 行）：新增条件项「安装 Google TTS」。strings.xml en+zh 各加 3 个字符串。bump versionCode 18→19 / versionName 1.0.17→1.0.18。首次 CI 失败（`Icons.Default.GetApp` 未解析）→ 改用 `Icons.Default.Build`，移动 tag 重触发。CI 全绿验证通过（CI #31707411230 ✓ / Build & Release #31707432134 ✓），Release `Agora-v1.0.18-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-13 v1.0.15 TTS 关键修复——主线程 speak + 移除 AudioAttributes/focus + init 重试回退（本次会话）：用户反馈 v1.0.14「还有细节问题影响了，还是没声音」。全量复审 TtsManager.k) 在 `onInitResult`（binder 线程）中直接调用 `speakInternal()` flush `pendingText`——`TextToSpeech.speak()` 在 binder 线程执行，该线程无 Looper，某些 TTS 引擎要求 speak 在主线程调用，导致静默失败；② `setAudioAttributes(USAGE_MEDIA)` 可能覆盖引擎内部音频路由，路由到静音流；③ `requestAudioFocus` 可能被拒绝导致 TTS 静默。修复 `util/TtsManager.kt`（288→234 行）：① 新增 `mainHandler = Handler(Looper.getMainLooper())`，init 回调中 flush pendingText 时 `mainHandler.post { speakInternal(...) }` 强制切到主线程；② **移除 `setAudioAttributes`**——让引擎使用默认音频路由；③ **移除 `requestAudioFocus`/`abandonAudioFocus`** 及相关字段（`audioManager`/`audioFocusRequest`）和 import；④ init 失败时自动回退重试——3 参数构造器失败后用 2 参数构造器重试（最多 2 次）；⑤ 构造器加 try-catch 防异常崩溃。bump versionCode 15→16 / versionName 1.0.14→1.0.15，打 tag `v1.0.15` 触发 CI 发版。CI 全绿验证通过（Build & Release #31695867505 ✓ / CI #31695865344 ✓），Release `Agora-v1.0.15-android-arm64-v8a.apk` 已发布。
 
