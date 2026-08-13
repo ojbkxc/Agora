@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import com.lxseek.chat.util.ShellQuote
 
 /**
  * Structured process / system monitoring tools that wrap shell commands with JSON parsing.
@@ -61,7 +62,8 @@ internal class ShellMonitorTools {
         signal: String,
     ): String = try {
         val sig = validateSignal(signal)
-        val cmd = if (sig == "TERM") "kill $pid" else "kill -$sig $pid"
+        val safePid = pid.coerceAtLeast(1)
+        val cmd = if (sig == "TERM") "kill $safePid" else "kill -$sig $safePid"
         val raw = backend.executeCommand(cmd, "", 5_000)
         val text = extractOutputText(raw)
         val exitCode = extractExitCode(raw)
@@ -136,7 +138,8 @@ internal class ShellMonitorTools {
         maxLines: Int,
     ): String = try {
         val lines = maxLines.coerceIn(1, 10_000)
-        val cmd = "tail -n $lines \"$path\" 2>&1"
+        val safePath = ShellQuote.sanitize(path)
+        val cmd = "tail -n $lines ${ShellQuote.quote(safePath)} 2>&1"
         val raw = backend.executeCommand(cmd, "", 10_000)
         val text = extractOutputText(raw)
         val exitCode = extractExitCode(raw)
