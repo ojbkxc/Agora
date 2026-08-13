@@ -400,6 +400,8 @@
     <string name="tts_install">安装</string>
     <string name="tts_engine_info">语音引擎</string>
     <string name="tts_no_engine">未找到语音引擎</string>
+    <string name="tts_export_log">导出日志</string>
+    <string name="tts_copy_log">复制日志</string>
 
     <!-- Settings - Web Search Page -->
     <string name="web_search_title">网页搜索</string>

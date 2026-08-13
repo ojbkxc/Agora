@@ -443,6 +443,8 @@
     <string name="tts_install">Install</string>
     <string name="tts_engine_info">TTS Engine</string>
     <string name="tts_no_engine">No TTS engine found</string>
+    <string name="tts_export_log">Export Log</string>
+    <string name="tts_copy_log">Copy Log</string>
     <string name="message_display">Message Display</string>
     <string name="tool_call_display_mode">Thinking &amp; Tool Blocks</string>
     <string name="tool_call_display_mode_timeline">Timeline</string>

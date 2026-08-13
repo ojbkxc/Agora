@@ -462,6 +462,22 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
+                                Row(
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    TextButton(onClick = {
+                                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                            putExtra(android.content.Intent.EXTRA_TEXT, TtsManager.getLogText())
+                                            type = "text/plain"
+                                        }
+                                        ttsContext.startActivity(android.content.Intent.createChooser(sendIntent, "TTS Log"))
+                                    }) { Text(stringResource(R.string.tts_export_log)) }
+                                    TextButton(onClick = {
+                                        val clipboard = ttsContext.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("TTS Log", TtsManager.getLogText()))
+                                    }) { Text(stringResource(R.string.tts_copy_log)) }
+                                }
                             }
                         },
                     ),
