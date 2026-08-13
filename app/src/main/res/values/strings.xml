@@ -432,6 +432,17 @@
     <string name="tts_play">Play</string>
     <string name="tts_stop">Stop</string>
     <string name="tts_playing">Reading aloud…</string>
+    <string name="tts_test">Test TTS</string>
+    <string name="tts_test_desc">Play a test phrase to verify TTS works</string>
+    <string name="tts_test_run">Test</string>
+    <string name="tts_system_settings">System TTS Settings</string>
+    <string name="tts_system_settings_desc">Configure system text-to-speech engine</string>
+    <string name="tts_open">Open</string>
+    <string name="tts_install_data">Install TTS Data</string>
+    <string name="tts_install_data_desc">Language data missing. Tap to install.</string>
+    <string name="tts_install">Install</string>
+    <string name="tts_engine_info">TTS Engine</string>
+    <string name="tts_no_engine">No TTS engine found</string>
     <string name="message_display">Message Display</string>
     <string name="tool_call_display_mode">Thinking &amp; Tool Blocks</string>
     <string name="tool_call_display_mode_timeline">Timeline</string>

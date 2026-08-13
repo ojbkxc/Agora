@@ -389,6 +389,17 @@
     <string name="tts_play">播放</string>
     <string name="tts_stop">停止</string>
     <string name="tts_playing">正在朗读…</string>
+    <string name="tts_test">测试语音</string>
+    <string name="tts_test_desc">播放测试语句以验证语音功能</string>
+    <string name="tts_test_run">测试</string>
+    <string name="tts_system_settings">系统语音设置</string>
+    <string name="tts_system_settings_desc">配置系统文本转语音引擎</string>
+    <string name="tts_open">打开</string>
+    <string name="tts_install_data">安装语音数据</string>
+    <string name="tts_install_data_desc">语音数据缺失，点击安装</string>
+    <string name="tts_install">安装</string>
+    <string name="tts_engine_info">语音引擎</string>
+    <string name="tts_no_engine">未找到语音引擎</string>
 
     <!-- Settings - Web Search Page -->
     <string name="web_search_title">网页搜索</string>

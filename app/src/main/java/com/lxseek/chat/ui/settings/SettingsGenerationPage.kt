@@ -21,10 +21,12 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
@@ -34,6 +36,7 @@ import com.lxseek.chat.ui.common.OpenAiServiceTierControlPanel
 import com.lxseek.chat.ui.common.ThinkingControlPanel
 import com.lxseek.chat.ui.common.openAiServiceTierShortLabel
 import com.lxseek.chat.ui.common.thinkingControlShortLabel
+import com.lxseek.chat.util.TtsManager
 import com.lxseek.chat.viewmodel.ChatViewModel
 import kotlin.math.roundToInt
 import java.util.Locale
@@ -58,6 +61,10 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val ttsAutoPlay by viewModel.settings.ttsAutoPlay.collectAsState()
     val ttsLanguage by viewModel.settings.ttsLanguage.collectAsState()
     val ttsSpeechRate by viewModel.settings.ttsSpeechRate.collectAsState()
+    val ttsAvailable by TtsManager.isAvailable.collectAsState()
+    val ttsLangMissingData by TtsManager.langMissingData.collectAsState()
+    val ttsDiagnostic = TtsManager.getDiagnosticInfo()
+    val ttsContext = LocalContext.current
     val shareIncludeThinking by viewModel.settings.shareIncludeThinking.collectAsState()
     val shareIncludeTools by viewModel.settings.shareIncludeTools.collectAsState()
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
@@ -360,6 +367,92 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         )
                                     }
                                 }
+                            }
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.tts_test)) },
+                                supportingContent = { Text(stringResource(R.string.tts_test_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    TextButton(onClick = {
+                                        if (!ttsAvailable) TtsManager.init(ttsContext)
+                                        TtsManager.testSpeak()
+                                    }) {
+                                        Text(stringResource(R.string.tts_test_run))
+                                    }
+                                },
+                            )
+                        },
+                        {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.tts_system_settings)) },
+                                supportingContent = { Text(stringResource(R.string.tts_system_settings_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.Build,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    TextButton(onClick = {
+                                        ttsContext.startActivity(TtsManager.systemTtsSettingsIntent())
+                                    }) {
+                                        Text(stringResource(R.string.tts_open))
+                                    }
+                                },
+                            )
+                        },
+                        {
+                            if (ttsLangMissingData) {
+                                SettingsItem(
+                                    headlineContent = { Text(stringResource(R.string.tts_install_data)) },
+                                    supportingContent = { Text(stringResource(R.string.tts_install_data_desc)) },
+                                    leadingContent = {
+                                        Icon(
+                                            Icons.Default.Build,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    trailingContent = {
+                                        TextButton(onClick = {
+                                            ttsContext.startActivity(TtsManager.installTtsDataIntent())
+                                        }) {
+                                            Text(stringResource(R.string.tts_install))
+                                        }
+                                    },
+                                )
+                            }
+                        },
+                        {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.tts_engine_info),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = if (ttsDiagnostic.availableEngines.isEmpty()) {
+                                        stringResource(R.string.tts_no_engine)
+                                    } else {
+                                        "${ttsDiagnostic.engineName ?: "unknown"} (${ttsDiagnostic.availableEngines.joinToString(", ")})"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
                             }
                         },
                     ),

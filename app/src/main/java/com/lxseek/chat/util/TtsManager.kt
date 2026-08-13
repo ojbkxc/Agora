@@ -1,11 +1,12 @@
 package com.lxseek.chat.util
 
 import android.content.Context
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
-import android.os.Bundle
+import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +14,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 import java.util.UUID
+
+data class TtsDiagnosticInfo(
+    val initialized: Boolean,
+    val available: Boolean,
+    val engineName: String?,
+    val availableEngines: List<String>,
+    val langMissingData: Boolean,
+)
 
 /**
  * Process-scoped singleton wrapping Android [TextToSpeech] for assistant message read-aloud.
@@ -39,6 +48,9 @@ object TtsManager {
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    private val _langMissingData = MutableStateFlow(false)
+    val langMissingData: StateFlow<Boolean> = _langMissingData.asStateFlow()
 
     @Volatile private var pendingText: String? = null
     @Volatile private var pendingLanguage: String = "system"
@@ -128,11 +140,15 @@ object TtsManager {
         }
         val langResult = engine.setLanguage(locale)
         DebugLog.d("TtsManager", "setLanguage($locale)=$langResult lang=$language")
+        _langMissingData.value = (langResult == TextToSpeech.LANG_MISSING_DATA)
         if (langResult == TextToSpeech.LANG_NOT_SUPPORTED ||
             langResult == TextToSpeech.LANG_MISSING_DATA
         ) {
             val fallbackResult = engine.setLanguage(Locale.getDefault())
             DebugLog.d("TtsManager", "fallback setLanguage(default)=$fallbackResult")
+            if (fallbackResult == TextToSpeech.LANG_MISSING_DATA) {
+                _langMissingData.value = true
+            }
             if (fallbackResult == TextToSpeech.LANG_NOT_SUPPORTED ||
                 fallbackResult == TextToSpeech.LANG_MISSING_DATA
             ) {
@@ -140,8 +156,7 @@ object TtsManager {
             }
         }
         engine.setSpeechRate(rate.coerceIn(0.5f, 2.0f))
-        val params = Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f) }
-        val speakResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, UUID.randomUUID().toString())
+        val speakResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, UUID.randomUUID().toString())
         DebugLog.d("TtsManager", "speak result=$speakResult textLen=${text.length} text='${text.take(50)}'")
         if (speakResult != TextToSpeech.SUCCESS) {
             _isPlaying.value = false
@@ -196,9 +211,29 @@ object TtsManager {
         initialized = false
         _isAvailable.value = false
         _isPlaying.value = false
+        _langMissingData.value = false
         pendingText = null
         abandonAudioFocus()
     }
+
+    fun getDiagnosticInfo(): TtsDiagnosticInfo {
+        val engine = tts
+        return TtsDiagnosticInfo(
+            initialized = initialized,
+            available = _isAvailable.value,
+            engineName = engine?.defaultEngine,
+            availableEngines = engine?.engines?.map { it.name } ?: emptyList(),
+            langMissingData = _langMissingData.value,
+        )
+    }
+
+    fun testSpeak(): Boolean {
+        return speak("Hello, this is a TTS test. 你好，这是语音测试。", "system", 1.0f)
+    }
+
+    fun systemTtsSettingsIntent(): Intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+
+    fun installTtsDataIntent(): Intent = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)
 
     /**
      * Best-effort Markdown stripping for TTS: removes code spans, images, links, heading
