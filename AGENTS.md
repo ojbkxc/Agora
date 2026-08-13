@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.13` / versionCode `14` | `defaultConfig` |
+| 版本 | versionName `1.0.14` / versionCode `15` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -366,6 +366,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-13 v1.0.14 TTS 根因修复——Log 替代 DebugLog + queries + ProGuard + 显式引擎 + reinit（本次会话）：用户反馈 v1.0.13「播放还是没有声音」。全量分析 TTS 调用链发现 3 个严重根因：① **DebugLog 在 release 中完全无效**——`FLAG_DEBUGGABLE=false` 时所有 `DebugLog.d/e/w` 是 no-op，v1.0.12/v1.0.13 的诊断日志在 release APK 中根本不输出，用户无法通过 logcat 看到任何信息；② **AndroidManifest 缺少 `<queries>` 声明**——targetSdk 36（API 30+ 包可见性过滤），未声明 `android.speech.tts.TTS_SERVICE` action，`TextToSpeech` 构造时 `bindService` 可能无法发现/绑定 TTS 引擎；③ **ProGuard/R8 可能混淆 UtteranceProgressListener 回调**——`isMinifyEnabled=true` 但无 keep 规则，匿名内部类的 `onStart/onDone/onError` 可能被重命名，导致 TTS 引擎无法回调。修复：① `util/TtsManager.kt`（253→288 行）——所有 `DebugLog.d/e` 替换为 `android.util.Log.d/e`（release 有效）；新增 `lastInitStatus`/`lastSpeakResult`/`lastLanguageResult` 三个 StateFlow 供 UI 实时显示诊断状态；使用 3 参数 `TextToSpeech(ctx, callback, engineName)` 构造器，从 `Settings.Secure.tts_default_synth` 读取系统默认引擎名显式指定；新增 `reinit()` 方法强制重建 TTS 实例；提取 `onInitResult()` 方法；`setLanguage` 返回值转为可读字符串（AVAILABLE/NOT_SUPPORTED/MISSING_DATA 等）。② `AndroidManifest.xml`——`<queries>` 新增 `android.speech.tts.TTS_SERVICE` intent action。③ `proguard-rules.pro`——新增 `-keep class com.lxseek.chat.util.TtsManager { *; }` 和 `-keep class com.lxseek.chat.util.TtsManager$* { *; }`。④ `ui/settings/SettingsGenerationPage.kt`（749→758 行）——测试按钮改用 `reinit()` 强制重建；诊断信息显示新增 Init/Speak/Lang 实时状态行。bump versionCode 14→15 / versionName 1.0.13→1.0.14，打 tag `v1.0.14` 触发 CI 发版。CI 全绿验证通过（Build & Release #31683387710 ✓ / CI #31683385871 ✓），Release `Agora-v1.0.14-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-13 v1.0.13 TTS 诊断工具 + 测试按钮 + 系统设置入口 + 简化 speak params（本次会话）：用户反馈 v1.0.12「还是没声音」且无法提供 logcat 日志。策略转向：添加诊断工具让用户自行定位和修复 TTS 问题。① `util/TtsManager.kt`（218→253 行）：新增 `TtsDiagnosticInfo` 数据类（initialized/available/engineName/availableEngines/langMissingData）；新增 `getDiagnosticInfo()` 返回引擎名+可用引擎列表+初始化状态+语言数据状态；新增 `testSpeak()` 播放中英文测试语句；新增 `systemTtsSettingsIntent()` 返回 `Settings.ACTION_ACCESSIBILITY_SETTINGS` Intent；新增 `installTtsDataIntent()` 返回 `TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA` Intent；新增 `_langMissingData` StateFlow 跟踪 `LANG_MISSING_DATA`；**简化 speak 调用**——移除 `Bundle(KEY_PARAM_VOLUME=1.0f)` 改用 `null` params（最高兼容性，部分引擎不支持 KEY_PARAM_VOLUME）；移除未使用的 `import android.os.Bundle`。② `ui/settings/SettingsGenerationPage.kt`（663→749 行）：TTS 设置组新增 4 项——「测试语音」按钮（调用 testSpeak）、「系统语音设置」按钮（打开系统 TTS 配置页）、「安装语音数据」按钮（条件显示，仅 langMissingData=true 时显示，调用 ACTION_INSTALL_TTS_DATA）、引擎信息显示（引擎名+可用引擎列表，或「未找到语音引擎」）。③ strings.xml en+zh 各加 11 个字符串。bump versionCode 13→14 / versionName 1.0.12→1.0.13，打 tag `v1.0.13` 触发 CI 发版。CI 全绿验证通过（Build & Release #31668857014 ✓ / CI #31668841546 ✓），Release `Agora-v1.0.13-android-arm64-v8a.apk` 已发布。
 
