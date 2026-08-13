@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.18` / versionCode `19` | `defaultConfig` |
+| 版本 | versionName `1.0.19` / versionCode `20` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -366,6 +366,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-13 v1.0.19 TTS 深度诊断 — package queries + 引擎状态检查 + 手动 bindService 测试（本次会话）：用户提供 v1.0.18 日志显示 `PM resolved engines: []` + 所有 `TextToSpeech` 构造器在 3-7ms 内返回 status=-1。根因分析：① MIUI 限制 `queryIntentServices` 即使有 `<queries>` intent 声明；② `bindService` 被立即拒绝（3ms 内返回 ERROR = bindService 返回 false）。修复：① `AndroidManifest.xml` `<queries>` 新增 4 个 `<package>` 声明（`com.xiaomi.mibrain.speech`/`com.google.android.tts`/`com.samsung.SMT`/`com.huawei.hivoice`），绕过 MIUI 的 `queryIntentServices` 限制；② `TtsManager.kt` init 中对每个已知引擎包用 `getPackageInfo` 检查安装/启用状态并日志 versionCode/versionName；③ 新增手动 `bindService(TTS_SERVICE)` 测试，区分 `TextToSpeech` 构造器 bug 和系统级 `bindService` 限制。bump versionCode 19→20 / versionName 1.0.18→1.0.19。CI 全绿验证通过（CI #31709650748 ✓ / Build & Release #31709671770 ✓），Release `Agora-v1.0.19-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-13 v1.0.18 TTS 2 参数构造器优先 + 引擎间延迟 + 安装 Google TTS 按钮（本次会话）：用户反馈 v1.0.17「还是没声音」。策略调整：① **2 参数构造器优先**——之前所有版本都用 3 参数 `TextToSpeech(ctx, callback, engine)` 显式指定引擎，但 MIUI 上显式指定引擎可能触发 `bindService` 限制；改为先尝试 2 参数构造器 `TextToSpeech(ctx, callback)`（null engine = 让系统选择默认引擎，走隐式绑定路径），再回退到显式引擎；② **300ms 延迟**——引擎间切换加 `mainHandler.postDelayed(300ms)`，避免前一个 `TextToSpeech` 实例的 `bindService` 未完全清理就创建新实例导致实例污染；③ **PM 查询结果单独日志**——`queryIntentServices` 返回的引擎列表逐个 `getPackageInfo` 检查安装状态并单独日志；④ **安装 Google TTS 按钮**——新增 `installGoogleTtsIntent()`，设置页在 TTS 不可用时显示「安装 Google 语音」按钮（含 Play Store Web 回退）。修改 `util/TtsManager.kt`（234→266 行）：`enginesToTry` 改为 `List<String?>`，`tryNextEngine` 支持 null engine 分支，构造异常/失败回退加 300ms 延迟。修改 `ui/settings/SettingsGenerationPage.kt`（774→804 行）：新增条件项「安装 Google TTS」。strings.xml en+zh 各加 3 个字符串。bump versionCode 18→19 / versionName 1.0.17→1.0.18。首次 CI 失败（`Icons.Default.GetApp` 未解析）→ 改用 `Icons.Default.Build`，移动 tag 重触发。CI 全绿验证通过（CI #31707411230 ✓ / Build & Release #31707432134 ✓），Release `Agora-v1.0.18-android-arm64-v8a.apk` 已发布。
 
