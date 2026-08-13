@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,26 +22,16 @@ data class TtsDiagnosticInfo(
     val engineName: String?,
     val availableEngines: List<String>,
     val langMissingData: Boolean,
+    val lastInitStatus: String,
+    val lastSpeakResult: String,
+    val lastLanguageResult: String,
 )
 
-/**
- * Process-scoped singleton wrapping Android [TextToSpeech] for assistant message read-aloud.
- *
- * Initialization is async and **retryable**: a failed first attempt (engine missing or
- * temporarily unavailable) does not permanently poison the singleton — later [init] calls
- * shut down the dead instance and rebuild. The first [speak] before the engine is ready is
- * buffered and flushed once [TextToSpeech.SUCCESS] arrives; on failure the buffer is cleared
- * and [speak] returns `false` so the caller can cancel its playing indicator immediately.
- *
- * Playback state is exposed as hot [StateFlow]s so the ViewModel can drive a per-message
- * playing indicator without polling.
- */
 object TtsManager {
+    private const val TAG = "TtsManager"
+
     @Volatile private var tts: TextToSpeech? = null
     @Volatile private var initialized = false
-    // Bumped on every (re)init/shutdown so a stale callback from a torn-down instance can
-    // be detected and ignored — without this, a late ERROR from the old engine could clobber
-    // the `initialized`/`isAvailable` flags just set by the new engine's SUCCESS.
     @Volatile private var initGeneration = 0
 
     private val _isAvailable = MutableStateFlow(false)
@@ -52,6 +43,15 @@ object TtsManager {
     private val _langMissingData = MutableStateFlow(false)
     val langMissingData: StateFlow<Boolean> = _langMissingData.asStateFlow()
 
+    private val _lastInitStatus = MutableStateFlow("IDLE")
+    val lastInitStatus: StateFlow<String> = _lastInitStatus.asStateFlow()
+
+    private val _lastSpeakResult = MutableStateFlow("")
+    val lastSpeakResult: StateFlow<String> = _lastSpeakResult.asStateFlow()
+
+    private val _lastLanguageResult = MutableStateFlow("")
+    val lastLanguageResult: StateFlow<String> = _lastLanguageResult.asStateFlow()
+
     @Volatile private var pendingText: String? = null
     @Volatile private var pendingLanguage: String = "system"
     @Volatile private var pendingRate: Float = 1.0f
@@ -60,68 +60,78 @@ object TtsManager {
     @Volatile private var audioFocusRequest: AudioFocusRequest? = null
 
     fun init(context: Context) {
-        // Already up — nothing to do.
         if (tts != null && initialized) return
-        // A previous attempt left a dead instance (init callback reported ERROR, or the
-        // engine was later uninstalled). Tear it down so we can rebuild from scratch.
         if (tts != null && !initialized) {
             try {
                 tts?.stop()
                 tts?.shutdown()
-            } catch (_: Throwable) {
-                // Best-effort teardown; ignore.
-            }
+            } catch (_: Throwable) {}
             tts = null
         }
         val generation = ++initGeneration
-        val appContext = context.applicationContext
-        this.appContext = appContext
-        tts = TextToSpeech(appContext) { status ->
-            if (generation != initGeneration) return@TextToSpeech
-            if (status == TextToSpeech.SUCCESS) {
-                initialized = true
-                _isAvailable.value = true
-                tts?.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build()
-                )
-                DebugLog.d("TtsManager", "init SUCCESS, engines: ${tts?.engines?.map { it.name }}")
-                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) { DebugLog.d("TtsManager", "onStart $utteranceId"); _isPlaying.value = true }
-                    override fun onDone(utteranceId: String?) { DebugLog.d("TtsManager", "onDone $utteranceId"); _isPlaying.value = false }
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) { DebugLog.d("TtsManager", "onError $utteranceId"); _isPlaying.value = false }
-                    override fun onError(utteranceId: String?, errorCode: Int) { DebugLog.d("TtsManager", "onError $utteranceId code=$errorCode"); _isPlaying.value = false }
-                })
-                pendingText?.let { text ->
-                    pendingText = null
-                    speakInternal(text, pendingLanguage, pendingRate)
-                }
-            } else {
-                DebugLog.e("TtsManager", "init FAILED status=$status")
-                initialized = false
-                _isAvailable.value = false
-                _isPlaying.value = false
-                // Drop any buffered utterance — it can never be flushed now, and leaving it
-                // pinned would make a follow-up speak() silently enqueue against a dead engine.
-                pendingText = null
-            }
+        val appCtx = context.applicationContext
+        this.appContext = appCtx
+        _lastInitStatus.value = "PENDING"
+        val defaultEngine = try {
+            Settings.Secure.getString(appCtx.contentResolver, "tts_default_synth")
+        } catch (_: Throwable) { null }
+        Log.d(TAG, "init: defaultEngine=$defaultEngine")
+        tts = if (defaultEngine != null && defaultEngine.isNotEmpty()) {
+            TextToSpeech(appCtx, { status -> onInitResult(generation, status) }, defaultEngine)
+        } else {
+            TextToSpeech(appCtx) { status -> onInitResult(generation, status) }
         }
     }
 
-    /**
-     * Enqueue [text] for synthesis. Returns `true` if the utterance was handed to the engine
-     * (or buffered while the engine finishes initializing); `false` if it was rejected
-     * (blank text, engine missing, or [speak] reported an error). The caller should use the
-     * `false` result to cancel any playing indicator it optimistically set.
-     */
+    fun reinit(context: Context) {
+        shutdown()
+        init(context)
+    }
+
+    private fun onInitResult(generation: Int, status: Int) {
+        if (generation != initGeneration) return
+        if (status == TextToSpeech.SUCCESS) {
+            initialized = true
+            _isAvailable.value = true
+            _lastInitStatus.value = "SUCCESS"
+            val engine = tts
+            val engineName = engine?.defaultEngine
+            val engines = engine?.engines?.map { it.name }
+            Log.d(TAG, "init SUCCESS, engine=$engineName, engines=$engines")
+            engine?.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) { Log.d(TAG, "onStart $utteranceId"); _isPlaying.value = true }
+                override fun onDone(utteranceId: String?) { Log.d(TAG, "onDone $utteranceId"); _isPlaying.value = false }
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) { Log.d(TAG, "onError $utteranceId"); _isPlaying.value = false }
+                override fun onError(utteranceId: String?, errorCode: Int) { Log.d(TAG, "onError $utteranceId code=$errorCode"); _isPlaying.value = false }
+            })
+            pendingText?.let { text ->
+                pendingText = null
+                speakInternal(text, pendingLanguage, pendingRate)
+            }
+        } else {
+            Log.e(TAG, "init FAILED status=$status")
+            _lastInitStatus.value = "FAILED:$status"
+            initialized = false
+            _isAvailable.value = false
+            _isPlaying.value = false
+            pendingText = null
+        }
+    }
+
     fun speak(text: String, language: String = "system", rate: Float = 1.0f): Boolean {
-        if (text.isBlank()) return false
+        if (text.isBlank()) {
+            Log.d(TAG, "speak: text is blank, ignoring")
+            return false
+        }
         if (!initialized || tts == null) {
-            // Engine still initializing — buffer and flush on SUCCESS. If init ultimately
-            // fails the buffer is cleared in the ERROR branch, so this never leaks.
+            Log.d(TAG, "speak: buffering (initialized=$initialized, tts=${tts != null})")
             pendingText = text
             pendingLanguage = language
             pendingRate = rate
@@ -131,7 +141,11 @@ object TtsManager {
     }
 
     private fun speakInternal(text: String, language: String, rate: Float): Boolean {
-        val engine = tts ?: return false
+        val engine = tts ?: run {
+            Log.e(TAG, "speakInternal: engine is null")
+            _lastSpeakResult.value = "ERROR:no_engine"
+            return false
+        }
         requestAudioFocus()
         val locale = when (language) {
             "en" -> Locale.US
@@ -139,13 +153,30 @@ object TtsManager {
             else -> Locale.getDefault()
         }
         val langResult = engine.setLanguage(locale)
-        DebugLog.d("TtsManager", "setLanguage($locale)=$langResult lang=$language")
+        val langResultStr = when (langResult) {
+            TextToSpeech.LANG_AVAILABLE -> "AVAILABLE"
+            TextToSpeech.LANG_COUNTRY_AVAILABLE -> "COUNTRY_AVAILABLE"
+            TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE -> "COUNTRY_VAR_AVAILABLE"
+            TextToSpeech.LANG_NOT_SUPPORTED -> "NOT_SUPPORTED"
+            TextToSpeech.LANG_MISSING_DATA -> "MISSING_DATA"
+            else -> "UNKNOWN:$langResult"
+        }
+        Log.d(TAG, "setLanguage($locale)=$langResultStr lang=$language")
+        _lastLanguageResult.value = "$language:$langResultStr"
         _langMissingData.value = (langResult == TextToSpeech.LANG_MISSING_DATA)
         if (langResult == TextToSpeech.LANG_NOT_SUPPORTED ||
             langResult == TextToSpeech.LANG_MISSING_DATA
         ) {
             val fallbackResult = engine.setLanguage(Locale.getDefault())
-            DebugLog.d("TtsManager", "fallback setLanguage(default)=$fallbackResult")
+            val fallbackStr = when (fallbackResult) {
+                TextToSpeech.LANG_AVAILABLE -> "AVAILABLE"
+                TextToSpeech.LANG_COUNTRY_AVAILABLE -> "COUNTRY_AVAILABLE"
+                TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE -> "COUNTRY_VAR_AVAILABLE"
+                TextToSpeech.LANG_NOT_SUPPORTED -> "NOT_SUPPORTED"
+                TextToSpeech.LANG_MISSING_DATA -> "MISSING_DATA"
+                else -> "UNKNOWN:$fallbackResult"
+            }
+            Log.d(TAG, "fallback setLanguage(default)=$fallbackStr")
             if (fallbackResult == TextToSpeech.LANG_MISSING_DATA) {
                 _langMissingData.value = true
             }
@@ -157,7 +188,9 @@ object TtsManager {
         }
         engine.setSpeechRate(rate.coerceIn(0.5f, 2.0f))
         val speakResult = engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, UUID.randomUUID().toString())
-        DebugLog.d("TtsManager", "speak result=$speakResult textLen=${text.length} text='${text.take(50)}'")
+        val speakStr = if (speakResult == TextToSpeech.SUCCESS) "SUCCESS" else "ERROR:$speakResult"
+        Log.d(TAG, "speak result=$speakStr textLen=${text.length} text='${text.take(80)}'")
+        _lastSpeakResult.value = speakStr
         if (speakResult != TextToSpeech.SUCCESS) {
             _isPlaying.value = false
             return false
@@ -212,6 +245,9 @@ object TtsManager {
         _isAvailable.value = false
         _isPlaying.value = false
         _langMissingData.value = false
+        _lastInitStatus.value = "IDLE"
+        _lastSpeakResult.value = ""
+        _lastLanguageResult.value = ""
         pendingText = null
         abandonAudioFocus()
     }
@@ -224,6 +260,9 @@ object TtsManager {
             engineName = engine?.defaultEngine,
             availableEngines = engine?.engines?.map { it.name } ?: emptyList(),
             langMissingData = _langMissingData.value,
+            lastInitStatus = _lastInitStatus.value,
+            lastSpeakResult = _lastSpeakResult.value,
+            lastLanguageResult = _lastLanguageResult.value,
         )
     }
 
@@ -235,10 +274,6 @@ object TtsManager {
 
     fun installTtsDataIntent(): Intent = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)
 
-    /**
-     * Best-effort Markdown stripping for TTS: removes code spans, images, links, heading
-     * markers, emphasis, blockquotes, and list bullets so only prose reaches the engine.
-     */
     fun stripMarkdown(text: String): String =
         text
             .replace(Regex("`{1,3}[^`]*`{1,3}"), "")

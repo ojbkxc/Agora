@@ -63,6 +63,9 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val ttsSpeechRate by viewModel.settings.ttsSpeechRate.collectAsState()
     val ttsAvailable by TtsManager.isAvailable.collectAsState()
     val ttsLangMissingData by TtsManager.langMissingData.collectAsState()
+    val ttsInitStatus by TtsManager.lastInitStatus.collectAsState()
+    val ttsSpeakResult by TtsManager.lastSpeakResult.collectAsState()
+    val ttsLangResult by TtsManager.lastLanguageResult.collectAsState()
     val ttsDiagnostic = TtsManager.getDiagnosticInfo()
     val ttsContext = LocalContext.current
     val shareIncludeThinking by viewModel.settings.shareIncludeThinking.collectAsState()
@@ -382,7 +385,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 },
                                 trailingContent = {
                                     TextButton(onClick = {
-                                        if (!ttsAvailable) TtsManager.init(ttsContext)
+                                        TtsManager.reinit(ttsContext)
                                         TtsManager.testSpeak()
                                     }) {
                                         Text(stringResource(R.string.tts_test_run))
@@ -449,6 +452,12 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     } else {
                                         "${ttsDiagnostic.engineName ?: "unknown"} (${ttsDiagnostic.availableEngines.joinToString(", ")})"
                                     },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                                Text(
+                                    text = "Init: $ttsInitStatus | Speak: ${ttsSpeakResult.ifEmpty { "—" }} | Lang: ${ttsLangResult.ifEmpty { "—" }}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 4.dp),
