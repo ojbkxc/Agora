@@ -919,7 +919,9 @@ class ChatViewModel(
             _ttsPlayingMessageId.value = null
             return
         }
-        if (!settings.ttsEnabled.value) return
+        if (!settings.ttsEnabled.value) {
+            settings.setTtsEnabled(true)
+        }
         playTtsForMessage(message.id, message.text, showFailureSnackbar = true)
     }
 
