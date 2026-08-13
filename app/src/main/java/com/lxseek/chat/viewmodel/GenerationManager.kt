@@ -567,8 +567,15 @@ class GenerationManager(
             // Multi-tool loop
             var toolRound = 0
             toolPath = currentPath
+            val repeatDetector = ToolRepeatDetector()
 
             while (toolCallDataList.isNotEmpty() && currentStatus != MessageStatus.ERROR && currentCoroutineContext().isActive) {
+                val repeatWarning = repeatDetector.observe(toolCallDataList)
+                if (repeatWarning != null) {
+                    totalText = repeatWarning
+                    currentStatus = MessageStatus.SUCCESS
+                    break
+                }
                 toolRound++
                 val roundToolList = roundToolSegments.toList()
                 roundToolSegments.clear()
