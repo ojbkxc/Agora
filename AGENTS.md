@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.12` / versionCode `13` | `defaultConfig` |
+| 版本 | versionName `1.0.13` / versionCode `14` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -366,6 +366,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-13 v1.0.13 TTS 诊断工具 + 测试按钮 + 系统设置入口 + 简化 speak params（本次会话）：用户反馈 v1.0.12「还是没声音」且无法提供 logcat 日志。策略转向：添加诊断工具让用户自行定位和修复 TTS 问题。① `util/TtsManager.kt`（218→253 行）：新增 `TtsDiagnosticInfo` 数据类（initialized/available/engineName/availableEngines/langMissingData）；新增 `getDiagnosticInfo()` 返回引擎名+可用引擎列表+初始化状态+语言数据状态；新增 `testSpeak()` 播放中英文测试语句；新增 `systemTtsSettingsIntent()` 返回 `Settings.ACTION_ACCESSIBILITY_SETTINGS` Intent；新增 `installTtsDataIntent()` 返回 `TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA` Intent；新增 `_langMissingData` StateFlow 跟踪 `LANG_MISSING_DATA`；**简化 speak 调用**——移除 `Bundle(KEY_PARAM_VOLUME=1.0f)` 改用 `null` params（最高兼容性，部分引擎不支持 KEY_PARAM_VOLUME）；移除未使用的 `import android.os.Bundle`。② `ui/settings/SettingsGenerationPage.kt`（663→749 行）：TTS 设置组新增 4 项——「测试语音」按钮（调用 testSpeak）、「系统语音设置」按钮（打开系统 TTS 配置页）、「安装语音数据」按钮（条件显示，仅 langMissingData=true 时显示，调用 ACTION_INSTALL_TTS_DATA）、引擎信息显示（引擎名+可用引擎列表，或「未找到语音引擎」）。③ strings.xml en+zh 各加 11 个字符串。bump versionCode 13→14 / versionName 1.0.12→1.0.13，打 tag `v1.0.13` 触发 CI 发版。CI 全绿验证通过（Build & Release #31668857014 ✓ / CI #31668841546 ✓），Release `Agora-v1.0.13-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-13 v1.0.12 TTS 诊断日志 + USAGE_MEDIA 修复（本次会话）：用户反馈 v1.0.11「还是没声音」。拉取分析 3 个开源 TTS 项目（Maise/VoxSherpa-TTS/CloneTTS）——均为 TTS 引擎（实现 `TextToSpeechService`），非调用方。Maise 的 `TtsFragment.kt` 用 `USAGE_MEDIA`（非 `USAGE_ASSISTANT`）。修复 `util/TtsManager.kt`（213→218 行）：① `USAGE_ASSISTANT` → `USAGE_MEDIA`（setAudioAttributes + requestAudioFocus 两处，Maise 同样用 USAGE_MEDIA）；② `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK` → `AUDIOFOCUS_GAIN`（更强焦点请求）；③ 添加 DebugLog 诊断日志——init SUCCESS/FAILED、setLanguage 结果、speak 返回值+文本前50字、onStart/onDone/onError 回调、可用引擎列表（`tts?.engines`），用户可在 logcat 过滤 `TtsManager` tag 定位根因。bump versionCode 12→13 / versionName 1.0.11→1.0.12，打 tag `v1.0.12` 触发 CI 发版。CI 全绿验证通过（#31664603832 ✓），Release `Agora-v1.0.12-android-arm64-v8a.apk` 已发布。
 
