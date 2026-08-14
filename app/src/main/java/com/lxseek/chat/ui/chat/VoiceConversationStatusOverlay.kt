@@ -43,6 +43,7 @@ import com.lxseek.chat.viewmodel.VoiceConversationController
 internal fun VoiceConversationStatusOverlay(
     state: VoiceConversationController.State,
     partialTranscript: String,
+    amplitude: Float,
     modifier: Modifier = Modifier,
 ) {
     val isActive = state != VoiceConversationController.State.IDLE
@@ -113,6 +114,13 @@ internal fun VoiceConversationStatusOverlay(
                         style = MaterialTheme.typography.labelLarge,
                         color = stateColor,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                    )
+                }
+                if (state == VoiceConversationController.State.LISTENING ||
+                    state == VoiceConversationController.State.TRANSCRIBING) {
+                    VoiceWaveformIndicator(
+                        amplitude = if (state == VoiceConversationController.State.LISTENING) amplitude else 0.15f,
+                        color = stateColor,
                     )
                 }
                 if (state == VoiceConversationController.State.LISTENING && partialTranscript.isNotBlank()) {

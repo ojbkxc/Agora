@@ -114,6 +114,7 @@ fun ChatApp(
     val ttsPlayingMessageId by viewModel.ttsPlayingMessageId.collectAsState()
     val voiceConversationState by viewModel.voiceConversation.state.collectAsState()
     val voiceConversationPartial by viewModel.voiceConversation.partialTranscript.collectAsState()
+    val voiceConversationAmplitude by viewModel.voiceConversation.amplitude.collectAsState()
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
     val compactPreview by viewModel.compactPreview.collectAsState()
     val compactModel by viewModel.settings.contextCompactModel.collectAsState()
@@ -738,6 +739,7 @@ fun ChatApp(
                     VoiceConversationStatusOverlay(
                         state = voiceConversationState,
                         partialTranscript = voiceConversationPartial,
+                        amplitude = voiceConversationAmplitude,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = bottomBarHeight + 8.dp)
@@ -799,6 +801,7 @@ fun ChatApp(
                 onInitPdfSelection = onInitPdfSelection,
                 fullScreenViewerUrls = fullScreenViewerUrls,
                 voiceConversationState = voiceConversationState,
+                voiceConversationAmplitude = voiceConversationAmplitude,
                 voiceConversationEnabled = voiceConversationEnabled,
                 onVoiceConversationToggle = {
                     if (!com.lxseek.chat.util.SttManager.isSupported(context)) {

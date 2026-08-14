@@ -149,6 +149,7 @@ fun ChatBottomBar(
     onRemoveQueuedSend: (String) -> Unit = {},
     isStopping: Boolean = false,
     voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
+    voiceConversationAmplitude: Float = 0f,
     voiceConversationEnabled: Boolean = false,
     onVoiceConversationToggle: () -> Unit = {},
 ) {
@@ -821,6 +822,7 @@ fun ChatBottomBar(
             if (voiceConversationEnabled) {
                 VoiceMicButton(
                     state = voiceConversationState,
+                    amplitude = voiceConversationAmplitude,
                     onClick = onVoiceConversationToggle,
                     modifier = Modifier.padding(end = 8.dp),
                 )

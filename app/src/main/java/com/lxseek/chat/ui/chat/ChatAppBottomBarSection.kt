@@ -77,6 +77,7 @@ internal fun ChatAppBottomBarSection(
     onInitPdfSelection: ((Set<Int>) -> Unit)? = null,
     fullScreenViewerUrls: List<String>? = null,
     voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
+    voiceConversationAmplitude: Float = 0f,
     voiceConversationEnabled: Boolean = false,
     onVoiceConversationToggle: () -> Unit = {},
 ) {
@@ -236,6 +237,7 @@ internal fun ChatAppBottomBarSection(
                             onRemoveQueuedSend = viewModel::removeQueuedSend,
                             isStopping = isStopping,
                             voiceConversationState = voiceConversationState,
+                            voiceConversationAmplitude = voiceConversationAmplitude,
                             voiceConversationEnabled = voiceConversationEnabled,
                             onVoiceConversationToggle = onVoiceConversationToggle,
                         )

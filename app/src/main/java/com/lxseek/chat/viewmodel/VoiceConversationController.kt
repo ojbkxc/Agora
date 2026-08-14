@@ -41,10 +41,8 @@ class VoiceConversationController(
     private val _partialTranscript = MutableStateFlow("")
     val partialTranscript: StateFlow<String> = _partialTranscript.asStateFlow()
 
-    private val _amplitude = MutableStateFlow(0f)
-    val amplitude: StateFlow<Float> = _amplitude.asStateFlow()
-
     private val recorder = VoiceRecorder()
+    val amplitude: StateFlow<Float> = recorder.amplitude
     val isListening: StateFlow<Boolean> = SttManager.isListening
 
     @Volatile private var active = false

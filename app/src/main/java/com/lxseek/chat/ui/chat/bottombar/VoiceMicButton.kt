@@ -7,7 +7,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -22,16 +24,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lxseek.chat.R
+import com.lxseek.chat.ui.chat.VoiceWaveformIndicator
 import com.lxseek.chat.viewmodel.VoiceConversationController
 
 @Composable
 internal fun VoiceMicButton(
     state: VoiceConversationController.State,
+    amplitude: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -42,32 +44,12 @@ internal fun VoiceMicButton(
     val transition = rememberInfiniteTransition(label = "micPulse")
     val pulseScale by transition.animateFloat(
         initialValue = 1f,
-        targetValue = if (isListening) 1.15f else 1f,
+        targetValue = if (isListening) 1.1f else 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(700, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "micPulseScale",
-    )
-
-    val haloAlpha by transition.animateFloat(
-        initialValue = if (isListening) 0.4f else 0f,
-        targetValue = if (isListening) 0f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "micHaloAlpha",
-    )
-
-    val haloScale by transition.animateFloat(
-        initialValue = if (isListening) 1f else 1f,
-        targetValue = if (isListening) 1.8f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "micHaloScale",
     )
 
     val containerColor = when (state) {
@@ -89,27 +71,23 @@ internal fun VoiceMicButton(
         stringResource(R.string.voice_conversation_tap_to_speak)
     }
 
-    Box(
-        modifier = modifier.size(56.dp),
-        contentAlignment = Alignment.Center,
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (isListening) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .scale(haloScale)
-                    .graphicsLayer { alpha = haloAlpha },
-            ) {
-                androidx.compose.foundation.Canvas(modifier = Modifier.size(46.dp)) {
-                    drawCircle(color = Color.Red.copy(alpha = 0.3f))
-                }
-            }
+        if (isActive) {
+            VoiceWaveformIndicator(
+                amplitude = if (isListening) amplitude else 0.1f,
+                color = containerColor,
+                modifier = Modifier.scale(pulseScale),
+            )
         }
         FloatingActionButton(
             onClick = onClick,
             containerColor = containerColor,
             contentColor = contentColor,
-            modifier = Modifier.size(46.dp).scale(pulseScale),
+            modifier = Modifier.size(46.dp),
             shape = CircleShape,
             elevation = FloatingActionButtonDefaults.elevation(
                 defaultElevation = if (isActive) 8.dp else 2.dp,

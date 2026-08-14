@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 
-private const val SILENCE_THRESHOLD_DB = 65.0
-private const val SILENCE_AFTER_SPEECH_MS = 2000L
-private const val MAX_RECORDING_MS = 60_000L
+private const val SILENCE_THRESHOLD_DB = 60.0
+private const val SILENCE_AFTER_SPEECH_MS = 1500L
+private const val MAX_RECORDING_MS = 30_000L
 private const val MIN_SPEECH_MS = 300L
-private const val SAMPLE_INTERVAL_MS = 100L
+private const val SAMPLE_INTERVAL_MS = 80L
 
 class VoiceRecorder {
 
