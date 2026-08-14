@@ -892,9 +892,6 @@
     <string name="asr_import_model">从文件导入模型</string>
     <string name="asr_import_model_desc">从设备存储选择模型文件</string>
     <string name="asr_native_not_loaded">Sherpa-ONNX 原生库未加载。需添加 libsherpa-onnx-jni.so 才能激活。</string>
-    <string name="voice_input_listening">聆听中…</string>
-    <string name="voice_input_tap">语音输入</string>
-    <string name="voice_input_error">语音输入失败</string>
     <string name="voice_conversation_listening">聆听中…</string>
     <string name="voice_conversation_processing">思考中…</string>
     <string name="voice_conversation_speaking">朗读中…</string>

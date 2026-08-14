@@ -185,9 +185,6 @@
     <string name="asr_import_model">Import Model from File</string>
     <string name="asr_import_model_desc">Select a model file from device storage</string>
     <string name="asr_native_not_loaded">Sherpa-ONNX native library not loaded. Add libsherpa-onnx-jni.so to activate.</string>
-    <string name="voice_input_listening">Listening…</string>
-    <string name="voice_input_tap">Voice input</string>
-    <string name="voice_input_error">Voice input failed</string>
     <string name="voice_conversation_listening">Listening…</string>
     <string name="voice_conversation_processing">Thinking…</string>
     <string name="voice_conversation_speaking">Speaking…</string>

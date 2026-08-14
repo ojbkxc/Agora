@@ -151,9 +151,6 @@ fun ChatBottomBar(
     voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
     voiceConversationEnabled: Boolean = false,
     onVoiceConversationToggle: () -> Unit = {},
-    voiceInputState: com.lxseek.chat.viewmodel.VoiceInputController.State = com.lxseek.chat.viewmodel.VoiceInputController.State.IDLE,
-    voiceInputAvailable: Boolean = false,
-    onVoiceInputStart: () -> Unit = {},
 ) {
     val allowSpatialTransitions = LocalAgoraMotionPolicy.current.allowSpatialTransitions
     val scrollState = rememberScrollState()
@@ -826,14 +823,6 @@ fun ChatBottomBar(
                     state = voiceConversationState,
                     onClick = onVoiceConversationToggle,
                     modifier = Modifier.padding(end = 8.dp),
-                )
-            }
-            if (voiceInputAvailable) {
-                VoiceInputButton(
-                    state = voiceInputState,
-                    enabled = voiceInputState == com.lxseek.chat.viewmodel.VoiceInputController.State.IDLE,
-                    onClick = onVoiceInputStart,
-                    modifier = Modifier.padding(end = 4.dp),
                 )
             }
             ComposerSendButton(

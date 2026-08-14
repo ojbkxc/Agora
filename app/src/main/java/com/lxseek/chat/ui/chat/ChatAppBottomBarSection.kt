@@ -79,9 +79,6 @@ internal fun ChatAppBottomBarSection(
     voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
     voiceConversationEnabled: Boolean = false,
     onVoiceConversationToggle: () -> Unit = {},
-    voiceInputState: com.lxseek.chat.viewmodel.VoiceInputController.State = com.lxseek.chat.viewmodel.VoiceInputController.State.IDLE,
-    voiceInputAvailable: Boolean = false,
-    onVoiceInputStart: () -> Unit = {},
 ) {
     val density = LocalDensity.current
     val gradientTopPaddingPx = with(density) { 20.dp.toPx() }
@@ -241,9 +238,6 @@ internal fun ChatAppBottomBarSection(
                             voiceConversationState = voiceConversationState,
                             voiceConversationEnabled = voiceConversationEnabled,
                             onVoiceConversationToggle = onVoiceConversationToggle,
-                            voiceInputState = voiceInputState,
-                            voiceInputAvailable = voiceInputAvailable,
-                            onVoiceInputStart = onVoiceInputStart,
                         )
                     }
                 }
