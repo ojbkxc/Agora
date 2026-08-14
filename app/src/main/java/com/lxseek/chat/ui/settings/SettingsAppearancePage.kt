@@ -32,7 +32,7 @@ import com.lxseek.chat.model.ThinkingSegmentDisplayModes
 import com.lxseek.chat.ui.theme.ColorSchemePreset
 import com.lxseek.chat.ui.theme.SchemeStyle
 import com.lxseek.chat.ui.theme.colorSchemeForPreset
-import com.lxseek.chat.util.readFontName
+
 import com.lxseek.chat.viewmodel.ChatViewModel
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -100,7 +100,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         }
                         return@launch
                     }
-                    val fontName = readFontName(dest)
+                    val fontName = dest.nameWithoutExtension
                     withContext(Dispatchers.Main) {
                         viewModel.settings.setCustomFontPath(dest.absolutePath)
                         viewModel.settings.setCustomFontName(fontName)

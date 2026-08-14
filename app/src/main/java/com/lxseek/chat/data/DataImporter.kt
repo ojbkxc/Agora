@@ -290,7 +290,7 @@ class DataImporter(
                     }
                 }
             } ?: return null
-            val displayName = com.lxseek.chat.util.readFontName(temporary)
+            val displayName = temporary.nameWithoutExtension
             if (!temporary.renameTo(target)) {
                 temporary.copyTo(target, overwrite = true)
                 temporary.delete()

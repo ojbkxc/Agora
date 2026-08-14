@@ -449,6 +449,16 @@
     <string name="sandbox_env">环境信息</string>
     <string name="sandbox_alpine_version">Alpine Linux</string>
     <string name="sandbox_disk_usage">磁盘使用</string>
+    <string name="sandbox_snackbar_installed">已安装 %s</string>
+    <string name="sandbox_snackbar_install_failed">安装失败: %s</string>
+    <string name="sandbox_snackbar_removed">已移除 %s</string>
+    <string name="sandbox_snackbar_remove_failed">移除失败: %s</string>
+    <string name="sandbox_snackbar_upgrade_done">已升级 %d 个包</string>
+    <string name="sandbox_snackbar_upgrade_none">所有包已是最新</string>
+    <string name="sandbox_snackbar_upgrade_failed">升级失败</string>
+    <string name="sandbox_snackbar_reset">沙箱已重置</string>
+    <string name="sandbox_snackbar_reset_failed">重置失败</string>
+    <string name="sandbox_snackbar_error">错误: %s</string>
     <string name="sandbox_install">安装</string>
     <string name="sandbox_upgrade">升级</string>
     <string name="sandbox_install_packages">安装包</string>

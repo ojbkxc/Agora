@@ -497,6 +497,16 @@
     <string name="sandbox_env">Environment</string>
     <string name="sandbox_alpine_version">Alpine Linux</string>
     <string name="sandbox_disk_usage">Disk Usage</string>
+    <string name="sandbox_snackbar_installed">Installed %s</string>
+    <string name="sandbox_snackbar_install_failed">Failed to install %s</string>
+    <string name="sandbox_snackbar_removed">Removed %s</string>
+    <string name="sandbox_snackbar_remove_failed">Failed to remove %s</string>
+    <string name="sandbox_snackbar_upgrade_done">Upgraded %d packages</string>
+    <string name="sandbox_snackbar_upgrade_none">Packages already up to date</string>
+    <string name="sandbox_snackbar_upgrade_failed">Upgrade failed</string>
+    <string name="sandbox_snackbar_reset">Sandbox reset</string>
+    <string name="sandbox_snackbar_reset_failed">Reset failed</string>
+    <string name="sandbox_snackbar_error">Error: %s</string>
     <string name="sandbox_install">Install</string>
     <string name="sandbox_upgrade">Upgrade</string>
     <string name="sandbox_install_packages">Install Packages</string>
