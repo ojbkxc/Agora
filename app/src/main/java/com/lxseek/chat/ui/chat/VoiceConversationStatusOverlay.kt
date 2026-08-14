@@ -50,18 +50,21 @@ internal fun VoiceConversationStatusOverlay(
 
     val stateText = when (state) {
         VoiceConversationController.State.LISTENING -> stringResource(R.string.voice_conversation_listening)
+        VoiceConversationController.State.TRANSCRIBING -> stringResource(R.string.asr_remote_transcribing)
         VoiceConversationController.State.PROCESSING -> stringResource(R.string.voice_conversation_processing)
         VoiceConversationController.State.SPEAKING -> stringResource(R.string.voice_conversation_speaking)
         else -> ""
     }
     val stateIcon = when (state) {
         VoiceConversationController.State.LISTENING -> Icons.Default.GraphicEq
+        VoiceConversationController.State.TRANSCRIBING -> Icons.Default.GraphicEq
         VoiceConversationController.State.PROCESSING -> Icons.Default.Lightbulb
         VoiceConversationController.State.SPEAKING -> Icons.Default.VolumeUp
         else -> Icons.Default.RecordVoiceOver
     }
     val stateColor = when (state) {
         VoiceConversationController.State.LISTENING -> MaterialTheme.colorScheme.error
+        VoiceConversationController.State.TRANSCRIBING -> MaterialTheme.colorScheme.tertiary
         VoiceConversationController.State.PROCESSING -> MaterialTheme.colorScheme.tertiary
         VoiceConversationController.State.SPEAKING -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.primary

@@ -185,6 +185,12 @@
     <string name="asr_import_model">Import Model from File</string>
     <string name="asr_import_model_desc">Select a model file from device storage</string>
     <string name="asr_native_not_loaded">Sherpa-ONNX native library not loaded. Add libsherpa-onnx-jni.so to activate.</string>
+    <string name="asr_use_remote">Use Remote Transcription (Whisper API)</string>
+    <string name="asr_use_remote_desc">Record audio locally and transcribe via OpenAI-compatible API. More reliable than system STT.</string>
+    <string name="asr_remote_base_url">API Base URL</string>
+    <string name="asr_remote_api_key">API Key</string>
+    <string name="asr_remote_model">Model</string>
+    <string name="asr_remote_transcribing">Transcribing…</string>
     <string name="voice_conversation_listening">Listening…</string>
     <string name="voice_conversation_processing">Thinking…</string>
     <string name="voice_conversation_speaking">Speaking…</string>

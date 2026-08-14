@@ -393,6 +393,10 @@ class SettingsManager(private val context: Context) {
     val shareIncludeTools: Flow<Boolean> = context.dataStore.data.map { it[SHARE_INCLUDE_TOOLS] ?: true }
     val voiceConversationEnabled: Flow<Boolean> = context.dataStore.data.map { it[VOICE_CONVERSATION_ENABLED] ?: false }
     val asrEnginePref: Flow<String> = context.dataStore.data.map { it[ASR_ENGINE_PREF] ?: "auto" }
+    val asrUseRemote: Flow<Boolean> = context.dataStore.data.map { it[ASR_USE_REMOTE] ?: false }
+    val asrRemoteBaseUrl: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_BASE_URL] ?: "https://api.openai.com/v1" }
+    val asrRemoteApiKey: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_API_KEY] ?: "" }
+    val asrRemoteModel: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_MODEL] ?: "whisper-1" }
 
     suspend fun saveShareIncludeThinking(enabled: Boolean) {
         context.dataStore.edit { it[SHARE_INCLUDE_THINKING] = enabled }
@@ -408,6 +412,22 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveAsrEnginePref(pref: String) {
         context.dataStore.edit { it[ASR_ENGINE_PREF] = pref }
+    }
+
+    suspend fun saveAsrUseRemote(enabled: Boolean) {
+        context.dataStore.edit { it[ASR_USE_REMOTE] = enabled }
+    }
+
+    suspend fun saveAsrRemoteBaseUrl(url: String) {
+        context.dataStore.edit { it[ASR_REMOTE_BASE_URL] = url }
+    }
+
+    suspend fun saveAsrRemoteApiKey(key: String) {
+        context.dataStore.edit { it[ASR_REMOTE_API_KEY] = key }
+    }
+
+    suspend fun saveAsrRemoteModel(model: String) {
+        context.dataStore.edit { it[ASR_REMOTE_MODEL] = model }
     }
 
     suspend fun saveTtsLanguage(language: String) {
@@ -835,6 +855,10 @@ class SettingsManager(private val context: Context) {
             prefs.remove(SHARE_INCLUDE_TOOLS)
             prefs.remove(VOICE_CONVERSATION_ENABLED)
             prefs.remove(ASR_ENGINE_PREF)
+            prefs.remove(ASR_USE_REMOTE)
+            prefs.remove(ASR_REMOTE_BASE_URL)
+            prefs.remove(ASR_REMOTE_API_KEY)
+            prefs.remove(ASR_REMOTE_MODEL)
             prefs.remove(THINKING_LEVEL)
             prefs.remove(THINKING_BUDGET_ENABLED)
             prefs.remove(THINKING_BUDGET_TOKENS)

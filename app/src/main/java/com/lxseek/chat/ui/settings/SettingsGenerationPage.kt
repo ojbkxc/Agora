@@ -28,6 +28,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material3.Switch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,6 +85,10 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val shareIncludeTools by viewModel.settings.shareIncludeTools.collectAsState()
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
     val asrEnginePref by viewModel.settings.asrEnginePref.collectAsState()
+    val asrUseRemote by viewModel.settings.asrUseRemote.collectAsState()
+    val asrRemoteBaseUrl by viewModel.settings.asrRemoteBaseUrl.collectAsState()
+    val asrRemoteApiKey by viewModel.settings.asrRemoteApiKey.collectAsState()
+    val asrRemoteModel by viewModel.settings.asrRemoteModel.collectAsState()
     val asrIsAvailable by SpeechRecognitionManager.isAvailable.collectAsState()
     val asrModelStates by AsrModelManager.modelStates.collectAsState()
     val asrDownloadProgress by AsrModelManager.downloadProgress.collectAsState()
@@ -655,6 +661,14 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     SpeechRecognitionManager.preferredEngine = next
                                     SpeechRecognitionManager.init(ttsContext)
                                 },
+                            )
+                        }
+                        add {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.asr_use_remote)) },
+                                supportingContent = { Text(stringResource(R.string.asr_use_remote_desc)) },
+                                leadingContent = { Icon(Icons.Default.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                trailingContent = { Switch(checked = asrUseRemote, onCheckedChange = { viewModel.settings.setAsrUseRemote(it) }) },
                             )
                         }
                         if (!asrIsAvailable) {

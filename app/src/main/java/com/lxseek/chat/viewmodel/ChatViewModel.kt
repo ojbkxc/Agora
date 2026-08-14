@@ -934,13 +934,22 @@ class ChatViewModel(
     }
 
     val voiceConversation = VoiceConversationController(
-        scope = viewModelScope,
-        appContext = appContext,
+        scope = viewModelScope, appContext = appContext,
         languageProvider = { settings.ttsLanguage.value },
         ttsAutoPlayOn = { settings.ttsEnabled.value && settings.ttsAutoPlay.value },
-        isLoading = isLoading,
-        ttsPlayingMessageId = _ttsPlayingMessageId,
+        isLoading = isLoading, ttsPlayingMessageId = _ttsPlayingMessageId,
         sendMessage = { text -> sendMessage(text) },
+        useRemoteAsr = { settings.asrUseRemote.value },
+        remoteAsrBaseUrl = {
+            val p = providerRegistry.providerForModel(settings.selectedModel.value)
+            settings.asrRemoteBaseUrl.value.takeIf { it.isNotBlank() && it != "https://api.openai.com/v1" }
+                ?: providerRegistry.getEffectiveBaseUrl(p) ?: "https://api.openai.com/v1"
+        },
+        remoteAsrApiKey = {
+            val p = providerRegistry.providerForModel(settings.selectedModel.value)
+            settings.asrRemoteApiKey.value.takeIf { it.isNotBlank() } ?: settings.resolveActiveKey(p) ?: ""
+        },
+        remoteAsrModel = { settings.asrRemoteModel.value },
     )
     fun toggleVoiceConversation() = voiceConversation.toggle()
     fun stopVoiceConversation() = voiceConversation.stop()

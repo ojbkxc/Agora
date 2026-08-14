@@ -36,7 +36,8 @@ internal fun VoiceMicButton(
     modifier: Modifier = Modifier,
 ) {
     val isActive = state != VoiceConversationController.State.IDLE
-    val isListening = state == VoiceConversationController.State.LISTENING
+    val isListening = state == VoiceConversationController.State.LISTENING ||
+        state == VoiceConversationController.State.TRANSCRIBING
 
     val transition = rememberInfiniteTransition(label = "micPulse")
     val pulseScale by transition.animateFloat(
@@ -72,6 +73,7 @@ internal fun VoiceMicButton(
     val containerColor = when (state) {
         VoiceConversationController.State.IDLE -> MaterialTheme.colorScheme.surfaceVariant
         VoiceConversationController.State.LISTENING -> MaterialTheme.colorScheme.error
+        VoiceConversationController.State.TRANSCRIBING -> MaterialTheme.colorScheme.tertiary
         VoiceConversationController.State.PROCESSING -> MaterialTheme.colorScheme.tertiary
         VoiceConversationController.State.SPEAKING -> MaterialTheme.colorScheme.secondary
     }
