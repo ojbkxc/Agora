@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.30` / versionCode `31` | `defaultConfig` |
+| 版本 | versionName `1.0.33` / versionCode `34` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -381,6 +381,10 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.33 可靠语音对话 — MediaRecorder + VAD + Whisper API（本次会话）：用户反馈"按了功能都不能正常实现，要跟 ChatGPT 那种效果一样"。根因：原实现仅依赖系统 `SpeechRecognizer`，在国产 ROM（MIUI/EMUI/ColorOS）上不可靠或完全不可用。**新建 `util/VoiceRecorder.kt`**（159 行）：`MediaRecorder`（AAC/M4A, 16kHz, mono）+ 基于幅度的 VAD（65dB 阈值 + LPF 平滑 + 说话后 2s 静音自动停止 + 60s 最大录音 + 300ms 最小语音时长）。**新建 `speech/RemoteTranscriber.kt`**（53 行）：`MultipartBody` 上传音频文件到 OpenAI 兼容 `/v1/audio/transcriptions`，复用 `HttpClient.client`（OkHttp），`kotlinx.serialization` 解析 `{"text":"..."}`。**重写 `VoiceConversationController.kt`**（143→225 行）：混合方案——远程 Whisper API 为主（`VoiceRecorder` 录音 → VAD 自动停止 → `RemoteTranscriber.transcribe()` → `sendMessage()`），系统 `SpeechRecognizer` 为回退；新增 `State.TRANSCRIBING` 状态；错误重试（最多 3 次）而非首次错误即终止对话；`ChatViewModel` 传入 `useRemoteAsr`/`remoteAsrBaseUrl`/`remoteAsrApiKey`/`remoteAsrModel` 参数，**自动从当前 provider 解析 API key/base URL**（若未单独配置则用当前选中模型的 provider 密钥和地址）。**设置四层**加 `asr_use_remote`/`asr_remote_base_url`/`asr_remote_api_key`/`asr_remote_model`（Schema + Manager + Repository + UI Switch）。`VoiceConversationStatusOverlay` + `VoiceMicButton` 加 `TRANSCRIBING` 状态支持。strings en+zh 各加 7 个字符串。bump versionCode 33→34 / versionName 1.0.32→1.0.33。CI 全绿验证通过（CI #31767753793 ✓ / Build & Release #31767766199 ✓），Release `Agora-v1.0.33-android-arm64-v8a.apk` 已发布。
+
+- 2026-08-14 v1.0.32 删除重复麦克风按钮（本次会话）：用户反馈"对话框有两个麦克风按钮"。v1.0.30 创建 `VoiceMicButton`（连续语音对话 FAB）+ v1.0.31 创建 `VoiceInputButton`（单次语音输入 IconButton），两者同时显示在 `ChatBottomBar`。用户选择只保留连续语音对话。删除 `VoiceInputButton.kt`/`VoiceInputOverlay.kt`/`VoiceInputController.kt` 3 文件，清理 `ChatApp.kt`/`ChatAppBottomBarSection.kt`/`ChatBottomBar.kt`/`ChatViewModel.kt` 中所有 `voiceInput` 引用 + strings en+zh 3 个 `voice_input_*` 字符串。bump versionCode 32→33 / versionName 1.0.31→1.0.32。
 
 - 2026-08-14 v1.0.30 语音对话 UI + 存相册（本次会话）：① **VoiceMicButton 增强**（90→132 行）：listening 时红色 halo ring 扩散动画（Canvas + graphicsLayer alpha + scale 无限循环）+ 活跃时 elevation 8dp 增强可见性 + 56dp Box 包裹给 halo 留空间。② **VoiceConversationStatusOverlay**（新建 128 行）：语音对话状态覆盖层，`ChatApp` 中 align BottomCenter + padding(bottom = bottomBarHeight + 8dp) 定位在底部栏上方——状态图标（GraphicEq/Lightbulb/VolumeUp，按 state 着色 + 脉冲 alpha 动画）+ 状态文字（聆听中…/思考中…/朗读中…，labelLarge + FontWeight.Medium）+ 部分识别文本（listening 时显示 `"\u201C${partialTranscript}\u201D"`，bodyMedium + maxLines 2 + Ellipsis）。`ChatApp` 加 `voiceConversationPartial` collectAsState。③ **保存到相册**：`ShareSelectionFab` 加 SaveAlt 图标按钮，`ChatAppShareSelectionOverlay` 加 `onSaveToGallery` 参数，`ChatApp` 接线 `viewModel.saveLongImageToGallery()`。`MessageExportController.saveLongImageToGallery()`（77→155 行）：`MessageLongImageRenderer.renderToBitmap()` 生成 Bitmap → API 29+ 用 `MediaStore.Images.Media.EXTERNAL_CONTENT_URI` + `RELATIVE_PATH = Pictures/Agora` + `IS_PENDING` 协议存入相册 → API 24-28 用 `Environment.getExternalStoragePublicDirectory(PICTURES)/Agora/` + `ACTION_MEDIA_SCANNER_SCAN_FILE` 广播。`MessageLongImageRenderer` 加 `renderToBitmap()` 公开方法（88→93 行）。`ChatViewModel` 加 `saveLongImageToGallery()` 委托（989 行）。strings en+zh 各加 `share_save_to_gallery`/`share_saved_to_gallery`。bump versionCode 30→31 / versionName 1.0.29→1.0.30。CI 全绿验证通过（CI #31759321853 ✓ / Build & Release #31759324326 ✓），Release `Agora-v1.0.30-android-arm64-v8a.apk` 已发布。
 
