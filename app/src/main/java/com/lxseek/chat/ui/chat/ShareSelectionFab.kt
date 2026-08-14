@@ -39,11 +39,11 @@ internal fun ShareSelectionFab(
 ) {
     Surface(
         modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(16),
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 4.dp,
-        shadowElevation = 6.dp,
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.width(4.dp))

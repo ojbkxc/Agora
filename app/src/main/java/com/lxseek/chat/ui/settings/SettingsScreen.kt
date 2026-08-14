@@ -73,21 +73,18 @@ fun SettingsGroup(
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
         Column(modifier = Modifier.fillMaxWidth()) {
             items.forEachIndexed { index, item ->
-                if (index > 0) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                }
                 val isFirst = index == 0
                 val isLast = index == items.lastIndex
                 val shape = when {
-                    items.size == 1 -> RoundedCornerShape(24.dp)
-                    isFirst -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-                    isLast -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                    else -> RoundedCornerShape(5.dp)
+                    items.size == 1 -> RoundedCornerShape(20.dp)
+                    isFirst -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
+                    isLast -> RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
+                    else -> RoundedCornerShape(2.dp)
                 }
                 Surface(
                     shape = shape,
@@ -96,6 +93,13 @@ fun SettingsGroup(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     item()
+                }
+                if (!isLast) {
+                    HorizontalDivider(
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                 }
             }
         }

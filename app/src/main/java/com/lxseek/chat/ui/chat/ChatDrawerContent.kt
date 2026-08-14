@@ -138,7 +138,7 @@ internal fun ChatDrawerContent(
     val generatingConversationIds by viewModel.generatingConversationIds.collectAsState()
 
     ModalDrawerSheet(
-        drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+        drawerShape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface,
         drawerTonalElevation = 1.dp,
         modifier = Modifier
@@ -390,7 +390,7 @@ internal fun ChatDrawerContent(
 
                             DropdownMenu(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                tonalElevation = 16.dp,
+                                tonalElevation = 6.dp,
                                 expanded = showMenu,
                                 onDismissRequest = { showMenu = false },
                                 offset = pressOffset,

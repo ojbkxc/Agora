@@ -160,7 +160,7 @@ fun SettingsTranscriptionPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             }
                                             DropdownMenu(
                                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                                tonalElevation = 16.dp,
+                                                tonalElevation = 6.dp,
                                                 expanded = showMenuForModel == model,
                                                 onDismissRequest = { showMenuForModel = null },
                                                 shape = RoundedCornerShape(12.dp)

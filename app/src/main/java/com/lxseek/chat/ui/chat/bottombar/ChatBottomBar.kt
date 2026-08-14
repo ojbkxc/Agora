@@ -74,7 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 
-internal val CHAT_BOTTOM_BAR_OUTER_RADIUS = 28.dp
+internal val CHAT_BOTTOM_BAR_OUTER_RADIUS = 24.dp
 internal val CHAT_BOTTOM_BAR_OUTER_SHAPE = RoundedCornerShape(CHAT_BOTTOM_BAR_OUTER_RADIUS)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -171,8 +171,8 @@ fun ChatBottomBar(
     var showOpenAiServiceTierSheet by rememberSaveable { mutableStateOf(false) }
     val composerOcclusionColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
     val composerOcclusionShape = RoundedCornerShape(
-        topStart = 20.dp,
-        topEnd = 20.dp,
+        topStart = 24.dp,
+        topEnd = 24.dp,
     )
 
     // Restore PDF dialog after viewer closes

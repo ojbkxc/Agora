@@ -166,7 +166,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         expanded = expanded,
                                         onDismissRequest = { expanded = false },
                                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                        tonalElevation = 16.dp,
+                                        tonalElevation = 6.dp,
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
                                         options.forEach { (mode, pair) ->
@@ -268,7 +268,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             expanded = expanded,
                                             onDismissRequest = { expanded = false },
                                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            tonalElevation = 16.dp,
+                                            tonalElevation = 6.dp,
                                             shape = RoundedCornerShape(12.dp),
                                         ) {
                                             listOf(
@@ -329,7 +329,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         )
                                         DropdownMenu(
                                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            tonalElevation = 16.dp,
+                                            tonalElevation = 6.dp,
                                             expanded = expanded,
                                             onDismissRequest = { expanded = false },
                                             shape = RoundedCornerShape(12.dp)
@@ -463,7 +463,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             expanded = expanded,
                                             onDismissRequest = { expanded = false },
                                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            tonalElevation = 16.dp,
+                                            tonalElevation = 6.dp,
                                             shape = RoundedCornerShape(12.dp)
                                         ) {
                                             ColorSchemePreset.entries.forEach { preset ->
@@ -508,7 +508,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             expanded = expanded,
                                             onDismissRequest = { expanded = false },
                                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            tonalElevation = 16.dp,
+                                            tonalElevation = 6.dp,
                                             shape = RoundedCornerShape(12.dp)
                                         ) {
                                             SchemeStyle.entries.forEach { style ->
@@ -563,7 +563,7 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             expanded = expanded,
                                             onDismissRequest = { expanded = false },
                                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            tonalElevation = 16.dp,
+                                            tonalElevation = 6.dp,
                                             shape = RoundedCornerShape(12.dp)
                                         ) {
                                             options.forEach { (value, label) ->

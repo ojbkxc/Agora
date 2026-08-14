@@ -44,7 +44,7 @@ internal fun VoiceMicButton(
     val transition = rememberInfiniteTransition(label = "micPulse")
     val pulseScale by transition.animateFloat(
         initialValue = 1f,
-        targetValue = if (isListening) 1.1f else 1f,
+        targetValue = if (isListening) 1.05f else 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(700, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
@@ -87,10 +87,10 @@ internal fun VoiceMicButton(
             onClick = onClick,
             containerColor = containerColor,
             contentColor = contentColor,
-            modifier = Modifier.size(46.dp),
+            modifier = Modifier.size(48.dp),
             shape = CircleShape,
             elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = if (isActive) 8.dp else 2.dp,
+                defaultElevation = if (isActive) 4.dp else 2.dp,
                 pressedElevation = 4.dp,
                 focusedElevation = 4.dp,
                 hoveredElevation = 4.dp,

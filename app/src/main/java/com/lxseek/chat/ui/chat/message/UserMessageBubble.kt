@@ -281,7 +281,7 @@ internal fun UserMessageBubble(
                     }
                     DropdownMenu(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        tonalElevation = 16.dp,
+                        tonalElevation = 6.dp,
                         shape = RoundedCornerShape(12.dp),
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }

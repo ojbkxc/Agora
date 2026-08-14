@@ -136,7 +136,7 @@ internal fun MessageItem(
 
     val backgroundColor = when (message.participant) {
         Participant.USER -> MaterialTheme.colorScheme.primaryContainer
-        Participant.MODEL -> Color.Transparent
+        Participant.MODEL -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         Participant.ERROR -> MaterialTheme.colorScheme.errorContainer
     }
 
@@ -147,12 +147,12 @@ internal fun MessageItem(
     }
 
     val shape = when (message.participant) {
-        Participant.USER -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
-        Participant.MODEL -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
-        Participant.ERROR -> RoundedCornerShape(12.dp)
+        Participant.USER -> RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 4.dp)
+        Participant.MODEL -> RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 4.dp, bottomEnd = 18.dp)
+        Participant.ERROR -> RoundedCornerShape(16.dp)
     }
     val selectionRippleShape = when (message.participant) {
-        Participant.MODEL -> RoundedCornerShape(20.dp)
+        Participant.MODEL -> RoundedCornerShape(18.dp)
         else -> shape
     }
 
@@ -185,7 +185,7 @@ internal fun MessageItem(
             .onSizeChanged {
                 onHeightChanged(it.height)
             }
-            .padding(vertical = 8.dp)
+            .padding(vertical = 6.dp)
             .then(entranceModifier),
         verticalAlignment = Alignment.Top,
     ) {

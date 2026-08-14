@@ -109,7 +109,7 @@ internal fun ChatTopBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 180.dp)
+            .defaultMinSize(minHeight = 140.dp)
             .background(
                 Brush.verticalGradient(
                     0.0f to MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
@@ -353,7 +353,7 @@ internal fun ChatTopBar(
                                 onDismissRequest = { moreMenuOpen = false },
                                 shape = RoundedCornerShape(12.dp),
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                tonalElevation = 16.dp,
+                                tonalElevation = 6.dp,
                             ) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.conversation_search)) },
@@ -412,7 +412,7 @@ private fun ChatTopBarCapsule(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(50)
+    val shape = RoundedCornerShape(16)
     Box(
         modifier = modifier,
         propagateMinConstraints = true,
@@ -421,12 +421,12 @@ private fun ChatTopBarCapsule(
             modifier = Modifier.matchParentSize(),
             shape = shape,
             color = Color.Transparent,
-            shadowElevation = 4.dp,
+            shadowElevation = 0.dp,
         ) {}
         Surface(
             shape = shape,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 4.dp,
+            tonalElevation = 2.dp,
             shadowElevation = 0.dp,
             content = content,
         )

@@ -237,7 +237,7 @@ private fun PromptList(
                                     IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
                                         Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.options), modifier = Modifier.size(18.dp))
                                     }
-                                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 16.dp, shape = RoundedCornerShape(12.dp)) {
+                                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 6.dp, shape = RoundedCornerShape(12.dp)) {
                                         DropdownMenuItem(text = { Text(stringResource(R.string.provider_edit)) }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { showMenu = false; onEdit(entry) })
                                         DropdownMenuItem(text = { Text(stringResource(R.string.prompts_duplicate)) }, leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.scale(0.9f)) }, onClick = { showMenu = false; onDuplicate(entry) })
                                         DropdownMenuItem(text = { Text(stringResource(R.string.provider_delete), color = MaterialTheme.colorScheme.error) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false; onDeleteRequest(entry) })

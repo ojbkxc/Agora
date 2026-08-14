@@ -91,8 +91,8 @@ internal fun VoiceConversationStatusOverlay(
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
+            tonalElevation = 3.dp,
+            shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Box {

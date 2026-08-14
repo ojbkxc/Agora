@@ -32,7 +32,7 @@ fun CircularBackButton(
     contentDescription: String = stringResource(R.string.back),
     containerColor: Color = MaterialTheme.colorScheme.surface,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    tonalElevation: Dp = 6.dp,
+    tonalElevation: Dp = 2.dp,
     size: Dp = 40.dp,
 ) {
     Surface(

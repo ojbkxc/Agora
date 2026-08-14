@@ -559,7 +559,7 @@ internal fun ExecutionRow(
                         onDismissRequest = { menuOpen = false },
                         shape = RoundedCornerShape(12.dp),
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        tonalElevation = 16.dp,
+                        tonalElevation = 6.dp,
                     ) {
                         DropdownMenuItem(
                             text = {

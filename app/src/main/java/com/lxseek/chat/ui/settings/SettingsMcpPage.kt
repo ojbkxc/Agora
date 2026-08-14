@@ -230,7 +230,7 @@ fun SettingsMcpPage(
                                                                 menuExpanded = false
                                                             },
                                                             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                                            tonalElevation = 16.dp,
+                                                            tonalElevation = 6.dp,
                                                             shape = RoundedCornerShape(12.dp),
                                                         ) {
                                                             DropdownMenuItem(

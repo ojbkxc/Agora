@@ -142,8 +142,8 @@ internal fun ChatAppBottomBarSection(
                         .fillMaxWidth()
                         .then(if (isExpanded) Modifier.weight(1f) else Modifier),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp,
-                    shadowElevation = 8.dp,
+                    tonalElevation = 1.dp,
+                    shadowElevation = 0.dp,
                     shape = CHAT_BOTTOM_BAR_OUTER_SHAPE,
                 ) {
                     Box(

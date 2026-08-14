@@ -148,7 +148,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     )
                                     DropdownMenu(
                                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                        tonalElevation = 16.dp,
+                                        tonalElevation = 6.dp,
                                         expanded = expanded,
                                         onDismissRequest = { expanded = false },
                                         shape = RoundedCornerShape(12.dp)
@@ -193,7 +193,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     )
                                     DropdownMenu(
                                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                        tonalElevation = 16.dp,
+                                        tonalElevation = 6.dp,
                                         expanded = expanded,
                                         onDismissRequest = { expanded = false },
                                         shape = RoundedCornerShape(12.dp)
@@ -291,7 +291,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                                 }
                                                 DropdownMenu(
                                                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                                    tonalElevation = 16.dp,
+                                                    tonalElevation = 6.dp,
                                                     expanded = showMenuForModel == model.id,
                                                     onDismissRequest = { showMenuForModel = null },
                                                     shape = RoundedCornerShape(12.dp)

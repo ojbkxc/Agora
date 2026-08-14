@@ -183,7 +183,7 @@ fun SettingsMemoryPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             }
                                             DropdownMenu(
                                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                                tonalElevation = 16.dp,
+                                                tonalElevation = 6.dp,
                                                 expanded = showFileMenu,
                                                 onDismissRequest = { showFileMenu = false },
                                                 shape = RoundedCornerShape(12.dp)
