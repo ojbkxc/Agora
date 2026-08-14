@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Check
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
@@ -43,6 +46,7 @@ import com.lxseek.chat.util.CrashReporter
 import com.lxseek.chat.util.TtsManager
 import com.lxseek.chat.speech.SpeechRecognitionManager
 import com.lxseek.chat.speech.AsrModelManager
+import com.lxseek.chat.speech.ModelDownloadState
 import com.lxseek.chat.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -80,7 +84,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
     val asrEnginePref by viewModel.settings.asrEnginePref.collectAsState()
     val asrIsAvailable by SpeechRecognitionManager.isAvailable.collectAsState()
-    val asrIsDownloading by AsrModelManager.isDownloading.collectAsState()
+    val asrModelStates by AsrModelManager.modelStates.collectAsState()
     val asrDownloadProgress by AsrModelManager.downloadProgress.collectAsState()
     val asrActiveModel by AsrModelManager.activeModelId.collectAsState()
 
@@ -609,7 +613,17 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
 
                 // ── Section 8: ASR (Speech Recognition) ──
                 val asrScope = rememberCoroutineScope()
-                val engineStatuses = SpeechRecognitionManager.engineStatus()
+                val asrImportLauncher = rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.GetContent()
+                ) { uri ->
+                    if (uri != null) {
+                        asrScope.launch {
+                            AsrModelManager.importModel(ttsContext, "imported-model", uri)
+                            AsrModelManager.refreshStates(ttsContext)
+                        }
+                    }
+                }
+                LaunchedEffect(Unit) { AsrModelManager.refreshStates(ttsContext) }
                 SettingsGroup(
                     title = stringResource(R.string.asr_settings_title),
                     items = buildList {
@@ -618,11 +632,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 headlineContent = { Text(stringResource(R.string.asr_settings_title)) },
                                 supportingContent = { Text(stringResource(R.string.asr_settings_desc)) },
                                 leadingContent = {
-                                    Icon(
-                                        Icons.Default.GraphicEq,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
+                                    Icon(Icons.Default.GraphicEq, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 },
                                 trailingContent = {
                                     Text(
@@ -652,47 +662,93 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 SettingsItem(
                                     headlineContent = { Text(stringResource(R.string.asr_no_engine_available)) },
                                     supportingContent = { Text(stringResource(R.string.asr_native_not_loaded)) },
-                                    leadingContent = {
-                                        Icon(Icons.Default.Build, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                                    },
+                                    leadingContent = { Icon(Icons.Default.Build, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                                     trailingContent = {},
                                 )
                             }
                         }
+                        add {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.asr_import_model)) },
+                                supportingContent = { Text(stringResource(R.string.asr_import_model_desc)) },
+                                leadingContent = { Icon(Icons.Default.Download, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                trailingContent = {},
+                                modifier = Modifier.clickable { asrImportLauncher.launch("*/*") },
+                            )
+                        }
                         for (model in AsrModelManager.availableModels) {
                             add {
-                                val isDownloaded = AsrModelManager.isModelDownloaded(ttsContext, model.id)
-                                val isActive = asrActiveModel == model.id
+                                val state = asrModelStates[model.id] ?: AsrModelManager.getModelState(ttsContext, model.id)
+                                val progress = asrDownloadProgress[model.id] ?: 0
+                                val isActive = state == ModelDownloadState.ACTIVE
+                                val isDownloading = state == ModelDownloadState.DOWNLOADING
+                                val isDownloaded = state == ModelDownloadState.DOWNLOADED || state == ModelDownloadState.ACTIVE
                                 SettingsItem(
                                     headlineContent = { Text(model.displayName) },
                                     supportingContent = {
                                         Text(
                                             "${model.language} | ${model.type} | ${model.sizeMb}MB" +
-                                                if (isDownloaded) " | ${stringResource(R.string.asr_model_downloaded)}" else ""
+                                                when (state) {
+                                                    ModelDownloadState.ACTIVE -> " | ${stringResource(R.string.asr_model_active)}"
+                                                    ModelDownloadState.DOWNLOADED -> " | ${stringResource(R.string.asr_model_downloaded)}"
+                                                    ModelDownloadState.DOWNLOADING -> " | ${stringResource(R.string.asr_model_downloading, progress)}"
+                                                    else -> ""
+                                                }
                                         )
                                     },
                                     leadingContent = {
                                         Icon(
-                                            if (isDownloaded) Icons.Default.Delete else Icons.Default.Download,
+                                            when {
+                                                isActive -> Icons.Default.Check
+                                                isDownloading -> Icons.Default.Download
+                                                isDownloaded -> Icons.Default.Delete
+                                                else -> Icons.Default.Download
+                                            },
                                             contentDescription = null,
-                                            tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = when {
+                                                isActive -> MaterialTheme.colorScheme.primary
+                                                isDownloading -> MaterialTheme.colorScheme.tertiary
+                                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
                                         )
                                     },
                                     trailingContent = {
-                                        if (asrIsDownloading && asrDownloadProgress > 0) {
-                                            Text(
-                                                stringResource(R.string.asr_model_downloading, asrDownloadProgress),
+                                        when {
+                                            isActive -> Text(
+                                                stringResource(R.string.asr_model_deactivate),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.primary,
                                             )
+                                            isDownloaded -> Text(
+                                                stringResource(R.string.asr_model_activate),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                            isDownloading -> Text(
+                                                stringResource(R.string.cancel),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                            else -> {}
                                         }
                                     },
                                     modifier = Modifier.clickable {
-                                        if (isDownloaded) {
-                                            AsrModelManager.deleteModel(ttsContext, model.id)
-                                        } else if (!asrIsDownloading) {
-                                            asrScope.launch {
-                                                AsrModelManager.downloadModel(ttsContext, model)
+                                        when (state) {
+                                            ModelDownloadState.ACTIVE -> {
+                                                AsrModelManager.deactivateModel()
+                                                AsrModelManager.refreshStates(ttsContext)
+                                            }
+                                            ModelDownloadState.DOWNLOADED -> {
+                                                if (asrActiveModel != null) {
+                                                    AsrModelManager.deactivateModel()
+                                                }
+                                                AsrModelManager.activateModel(ttsContext, model.id)
+                                            }
+                                            ModelDownloadState.DOWNLOADING -> {
+                                                AsrModelManager.cancelDownload(ttsContext, model.id)
+                                            }
+                                            ModelDownloadState.NOT_DOWNLOADED -> {
+                                                AsrModelManager.downloadModel(ttsContext, model, asrScope)
                                             }
                                         }
                                     },

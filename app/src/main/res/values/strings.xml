@@ -179,7 +179,15 @@
     <string name="asr_model_downloaded">Downloaded</string>
     <string name="asr_model_downloading">Downloading… %1$d%%</string>
     <string name="asr_model_delete">Delete Model</string>
+    <string name="asr_model_active">Active</string>
+    <string name="asr_model_activate">Use</string>
+    <string name="asr_model_deactivate">In Use</string>
+    <string name="asr_import_model">Import Model from File</string>
+    <string name="asr_import_model_desc">Select a model file from device storage</string>
     <string name="asr_native_not_loaded">Sherpa-ONNX native library not loaded. Add libsherpa-onnx-jni.so to activate.</string>
+    <string name="voice_input_listening">Listening…</string>
+    <string name="voice_input_tap">Voice input</string>
+    <string name="voice_input_error">Voice input failed</string>
     <string name="voice_conversation_listening">Listening…</string>
     <string name="voice_conversation_processing">Thinking…</string>
     <string name="voice_conversation_speaking">Speaking…</string>

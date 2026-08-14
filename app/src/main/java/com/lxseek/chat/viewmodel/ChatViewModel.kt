@@ -285,6 +285,7 @@ class ChatViewModel(
         generationRegistry.detachUiCallbacks(generationCallbackOwner)
         dataControl.destroy()
         voiceConversation.stop()
+        voiceInput.cancel()
         TtsManager.stop()
     }
 
@@ -944,6 +945,13 @@ class ChatViewModel(
     )
     fun toggleVoiceConversation() = voiceConversation.toggle()
     fun stopVoiceConversation() = voiceConversation.stop()
+
+    val voiceInput = VoiceInputController(
+        appContext = appContext,
+        languageProvider = { settings.ttsLanguage.value },
+    )
+    fun startVoiceInput(onResult: (String) -> Unit) = voiceInput.start(onResult)
+    fun cancelVoiceInput() = voiceInput.cancel()
 
     fun regenerate(messageId: String): Boolean = generationController.regenerate(messageId)
 

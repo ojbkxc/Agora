@@ -115,6 +115,9 @@ fun ChatApp(
     val voiceConversationState by viewModel.voiceConversation.state.collectAsState()
     val voiceConversationPartial by viewModel.voiceConversation.partialTranscript.collectAsState()
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
+    val voiceInputState by viewModel.voiceInput.state.collectAsState()
+    val voiceInputPartial by viewModel.voiceInput.partialText.collectAsState()
+    val voiceInputError by viewModel.voiceInput.errorMessage.collectAsState()
     val compactPreview by viewModel.compactPreview.collectAsState()
     val compactModel by viewModel.settings.contextCompactModel.collectAsState()
     val compactPrompt by viewModel.settings.contextCompactPrompt.collectAsState()
@@ -743,6 +746,17 @@ fun ChatApp(
                             .padding(bottom = bottomBarHeight + 8.dp)
                             .padding(horizontal = 16.dp),
                     )
+
+                    VoiceInputOverlay(
+                        state = voiceInputState,
+                        partialText = voiceInputPartial,
+                        errorMessage = voiceInputError,
+                        onDismiss = { viewModel.cancelVoiceInput() },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = bottomBarHeight + 8.dp)
+                            .padding(horizontal = 16.dp),
+                    )
                 }
             }
 
@@ -812,6 +826,26 @@ fun ChatApp(
                         } else {
                             micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                         }
+                    }
+                },
+                voiceInputState = voiceInputState,
+                voiceInputAvailable = com.lxseek.chat.util.SttManager.isSupported(context),
+                onVoiceInputStart = {
+                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.RECORD_AUDIO,
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (hasPermission) {
+                        viewModel.startVoiceInput { text ->
+                            val current = textFieldState.text.toString()
+                            val newText = if (current.isBlank()) text else "$current $text"
+                            textFieldState.edit {
+                                replace(0, length, newText)
+                                placeCursorAtEnd()
+                            }
+                        }
+                    } else {
+                        micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                     }
                 },
             )
