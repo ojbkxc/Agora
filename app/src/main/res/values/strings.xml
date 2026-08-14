@@ -156,6 +156,8 @@
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="share_long_image">Share as Long Image</string>
     <string name="share_markdown">Export Markdown</string>
+    <string name="share_save_to_gallery">Save to Gallery</string>
+    <string name="share_saved_to_gallery">Image saved to gallery</string>
     <string name="share_failed">Could not share</string>
     <string name="share_label_user">User</string>
     <string name="share_label_ai">AI</string>

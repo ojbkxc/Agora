@@ -89,6 +89,7 @@ internal fun ChatAppShareSelectionOverlay(
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareMarkdown: () -> Unit,
+    onSaveToGallery: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     AnimatedVisibility(
@@ -118,6 +119,7 @@ internal fun ChatAppShareSelectionOverlay(
             onCopy = onCopy,
             onShareImage = onShareImage,
             onShareMarkdown = onShareMarkdown,
+            onSaveToGallery = onSaveToGallery,
             onConfirm = onConfirm,
         )
     }

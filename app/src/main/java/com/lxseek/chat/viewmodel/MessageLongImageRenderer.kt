@@ -43,6 +43,11 @@ internal object MessageLongImageRenderer {
         return file
     }
 
+    fun renderToBitmap(title: String, body: String): Bitmap? {
+        if (body.isBlank()) return null
+        return render(title, body)
+    }
+
     private fun render(title: String, body: String): Bitmap? {
         val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = TITLE_SIZE

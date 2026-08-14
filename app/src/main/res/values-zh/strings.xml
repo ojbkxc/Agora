@@ -863,6 +863,8 @@
     <string name="copied_to_clipboard">已复制到剪贴板</string>
     <string name="share_long_image">分享为长图</string>
     <string name="share_markdown">导出 Markdown</string>
+    <string name="share_save_to_gallery">保存到相册</string>
+    <string name="share_saved_to_gallery">图片已保存到相册</string>
     <string name="share_failed">分享失败</string>
     <string name="share_label_user">用户</string>
     <string name="share_label_ai">AI</string>

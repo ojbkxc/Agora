@@ -113,6 +113,7 @@ fun ChatApp(
     val isCompacting by viewModel.isCompacting.collectAsState()
     val ttsPlayingMessageId by viewModel.ttsPlayingMessageId.collectAsState()
     val voiceConversationState by viewModel.voiceConversation.state.collectAsState()
+    val voiceConversationPartial by viewModel.voiceConversation.partialTranscript.collectAsState()
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
     val compactPreview by viewModel.compactPreview.collectAsState()
     val compactModel by viewModel.settings.contextCompactModel.collectAsState()
@@ -713,6 +714,14 @@ fun ChatApp(
                                 )
                             }
                         },
+                        onSaveToGallery = {
+                            if (selectedShareMessageIds.isNotEmpty()) {
+                                viewModel.saveLongImageToGallery(
+                                    selectedShareMessageIds,
+                                    currentConversation?.title ?: "",
+                                )
+                            }
+                        },
                         onConfirm = {
                             val selection = conversationInteraction.takeShareSelection()
                             if (selection.isNotEmpty()) {
@@ -724,6 +733,15 @@ fun ChatApp(
                     ChatAppSwitchingOverlay(
                         isSwitching = isSwitching,
                         isTransitioningToNewChat = isTransitioningToNewChat,
+                    )
+
+                    VoiceConversationStatusOverlay(
+                        state = voiceConversationState,
+                        partialTranscript = voiceConversationPartial,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = bottomBarHeight + 8.dp)
+                            .padding(horizontal = 16.dp),
                     )
                 }
             }

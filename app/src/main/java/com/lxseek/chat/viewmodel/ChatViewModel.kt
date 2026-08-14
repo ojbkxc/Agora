@@ -867,6 +867,9 @@ class ChatViewModel(
     fun shareMessagesAsLongImage(messageIds: Set<String>, title: String) =
         messageExportController.shareMessagesAsLongImage(currentConversationId.value, messageIds, title)
 
+    fun saveLongImageToGallery(messageIds: Set<String>, title: String) =
+        messageExportController.saveLongImageToGallery(currentConversationId.value, messageIds, title)
+
     fun renameConversation(id: String, newTitle: String) {
         conversationLifecycleController.rename(id, newTitle)
     }

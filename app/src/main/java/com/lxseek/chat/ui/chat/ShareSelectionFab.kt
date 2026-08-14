@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +33,7 @@ internal fun ShareSelectionFab(
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareMarkdown: () -> Unit,
+    onSaveToGallery: () -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -65,6 +67,12 @@ internal fun ShareSelectionFab(
                 onClick = onShareImage,
             ) {
                 Icon(Icons.Default.Image, contentDescription = stringResource(R.string.share_long_image))
+            }
+            IconButton(
+                enabled = hasSelection,
+                onClick = onSaveToGallery,
+            ) {
+                Icon(Icons.Default.SaveAlt, contentDescription = stringResource(R.string.share_save_to_gallery))
             }
             IconButton(
                 enabled = hasSelection,
