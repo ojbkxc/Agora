@@ -418,6 +418,13 @@ fun ChatApp(
                         conversationActionsEnabled =
                             !isNewChatMode && currentConversationId != null && !isLoading &&
                                 !shareSelectionActive,
+                        shareSelectionActive = shareSelectionActive,
+                        shareSelectionCount = selectedShareMessageIds.size,
+                        shareAllSelected = selectedShareMessageIds.isNotEmpty() &&
+                            selectableShareMessageIds.isNotEmpty() &&
+                            selectedShareMessageIds.containsAll(selectableShareMessageIds),
+                        onDismissShareSelection = { conversationInteraction.dismissShareSelection() },
+                        onShareToggleAll = { conversationInteraction.toggleAllShareMessages() },
                         onNavigateBack = onNavigateBack,
                         onOpenDrawer = {
                             if (drawerEnabled) {
@@ -594,7 +601,8 @@ fun ChatApp(
                                     viewModel.forkConversationFrom(id)
                                 },
                                 onShare = { id ->
-                                    viewModel.shareGeneration(id)
+                                    viewModel.stopTts()
+                                    conversationInteraction.activateShareSelection(id)
                                 },
                                 onDelete = { id -> viewModel.deleteMessage(id) },
                                 ttsPlayingMessageId = ttsPlayingMessageId,
@@ -621,6 +629,7 @@ fun ChatApp(
                                 onMessageLongPress = {
                                     if (!shareSelectionActive) {
                                         haptics.longPress()
+                                        viewModel.stopTts()
                                         conversationInteraction.activateShareSelection()
                                     }
                                 },
@@ -679,22 +688,22 @@ fun ChatApp(
                         onRequestScroll = { scrollCoordinator.requestAbsoluteBottomScroll() },
                     )
 
+                   ) {
                     ChatAppShareSelectionOverlay(
                         shareSelectionActive = shareSelectionActive,
                         motionPolicy = motionPolicy,
                         bottomBarHeight = bottomBarHeight,
                         modifier = Modifier.align(Alignment.BottomCenter),
-                        allSelected = selectableShareMessageIds.isNotEmpty() &&
-                            selectedShareMessageIds.containsAll(selectableShareMessageIds),
                         hasSelection = selectedShareMessageIds.isNotEmpty(),
                         onDismiss = { conversationInteraction.dismissShareSelection() },
-                        onToggleAll = {
-                            haptics.selection()
-                            conversationInteraction.toggleAllShareMessages()
-                        },
                         onCopy = {
                             if (selectedShareMessageIds.isNotEmpty()) {
                                 viewModel.copyMessagesAsPlainText(selectedShareMessageIds)
+                            }
+                        },
+                        onShareMarkdown = {
+                            if (selectedShareMessageIds.isNotEmpty()) {
+                                viewModel.shareMessages(selectedShareMessageIds)
                             }
                         },
                         onShareImage = {

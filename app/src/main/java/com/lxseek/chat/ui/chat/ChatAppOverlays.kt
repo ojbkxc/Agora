@@ -84,12 +84,11 @@ internal fun ChatAppShareSelectionOverlay(
     motionPolicy: AgoraMotionPolicy,
     bottomBarHeight: androidx.compose.ui.unit.Dp,
     modifier: Modifier,
-    allSelected: Boolean,
     hasSelection: Boolean,
     onDismiss: () -> Unit,
-    onToggleAll: () -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
+    onShareMarkdown: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     AnimatedVisibility(
@@ -114,12 +113,11 @@ internal fun ChatAppShareSelectionOverlay(
             .padding(bottom = bottomBarHeight + 10.dp),
     ) {
         ShareSelectionFab(
-            allSelected = allSelected,
             hasSelection = hasSelection,
             onDismiss = onDismiss,
-            onToggleAll = onToggleAll,
             onCopy = onCopy,
             onShareImage = onShareImage,
+            onShareMarkdown = onShareMarkdown,
             onConfirm = onConfirm,
         )
     }

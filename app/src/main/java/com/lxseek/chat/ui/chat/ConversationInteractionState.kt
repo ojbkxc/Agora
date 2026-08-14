@@ -83,9 +83,9 @@ internal class ConversationInteractionState internal constructor(
         searchActive = true
     }
 
-    internal fun activateShareSelection() {
+    internal fun activateShareSelection(initialMessageId: String? = null) {
         dismissSearch()
-        selectedShareMessageIds = emptySet()
+        selectedShareMessageIds = if (initialMessageId != null) setOf(initialMessageId) else emptySet()
         shareSelectionActive = true
     }
 
@@ -249,7 +249,7 @@ internal class ConversationInteractionProjection internal constructor(
 
     fun activateSearch() = state.activateSearch()
 
-    fun activateShareSelection() = state.activateShareSelection()
+    fun activateShareSelection(initialMessageId: String? = null) = state.activateShareSelection(initialMessageId)
 
     fun dismissShareSelection() = state.dismissShareSelection()
 

@@ -78,7 +78,21 @@ internal fun ChatTopBar(
     onForkConversation: () -> Unit = {},
     onShareConversation: () -> Unit = {},
     onNewChat: () -> Unit,
+    shareSelectionActive: Boolean = false,
+    shareSelectionCount: Int = 0,
+    shareAllSelected: Boolean = false,
+    onDismissShareSelection: () -> Unit = {},
+    onShareToggleAll: () -> Unit = {},
 ) {
+    if (shareSelectionActive) {
+        ShareSelectionTopBar(
+            selectedCount = shareSelectionCount,
+            allSelected = shareAllSelected,
+            onDismiss = onDismissShareSelection,
+            onToggleAll = onShareToggleAll,
+        )
+        return
+    }
     var moreMenuOpen by remember { mutableStateOf(false) }
     val allowSpatialTransitions = LocalAgoraMotionPolicy.current.allowSpatialTransitions
     val searchFocusRequester = remember { FocusRequester() }
@@ -415,5 +429,46 @@ private fun ChatTopBarCapsule(
             shadowElevation = 0.dp,
             content = content,
         )
+    }
+}
+
+@Composable
+private fun ShareSelectionTopBar(
+    selectedCount: Int,
+    allSelected: Boolean,
+    onDismiss: () -> Unit,
+    onToggleAll: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.cancel),
+                )
+            }
+            Text(
+                text = stringResource(R.string.share_selected_count, selectedCount),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onToggleAll) {
+                Text(
+                    stringResource(
+                        if (allSelected) R.string.deselect_all else R.string.select_all
+                    )
+                )
+            }
+        }
     }
 }

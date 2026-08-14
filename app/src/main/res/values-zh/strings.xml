@@ -862,6 +862,7 @@
     <string name="copy">复制</string>
     <string name="copied_to_clipboard">已复制到剪贴板</string>
     <string name="share_long_image">分享为长图</string>
+    <string name="share_markdown">导出 Markdown</string>
     <string name="share_failed">分享失败</string>
     <string name="share_label_user">用户</string>
     <string name="share_label_ai">AI</string>
@@ -1064,6 +1065,7 @@
     <string name="gpt_import_no_data">此文件中没有可导入的数据。</string>
     <string name="select_all">全选</string>
     <string name="deselect_all">取消全选</string>
+    <string name="share_selected_count">已选 %1$d</string>
 
     <!-- Caching & Sync -->
     <string name="embedding_model_caching">嵌入模型 \"%1$s\" 正在缓存…</string>

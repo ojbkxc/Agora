@@ -155,6 +155,7 @@
     <string name="copy">Copy</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="share_long_image">Share as Long Image</string>
+    <string name="share_markdown">Export Markdown</string>
     <string name="share_failed">Could not share</string>
     <string name="share_label_user">User</string>
     <string name="share_label_ai">AI</string>
@@ -946,6 +947,7 @@
     <string name="gpt_import_no_data">This file contains no importable data.</string>
     <string name="select_all">Select All</string>
     <string name="deselect_all">Deselect All</string>
+    <string name="share_selected_count">Selected %1$d</string>
 
     <!-- Video Slicing -->
     <string name="video_slice_title">Video Frame Extraction</string>

@@ -1,11 +1,13 @@
 package com.lxseek.chat.ui.chat
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -25,12 +27,11 @@ import com.lxseek.chat.R
 
 @Composable
 internal fun ShareSelectionFab(
-    allSelected: Boolean,
     hasSelection: Boolean,
     onDismiss: () -> Unit,
-    onToggleAll: () -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
+    onShareMarkdown: () -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -47,18 +48,17 @@ internal fun ShareSelectionFab(
             IconButton(onClick = onDismiss) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
             }
-            TextButton(onClick = onToggleAll) {
-                Text(
-                    stringResource(
-                        if (allSelected) R.string.deselect_all else R.string.select_all
-                    )
-                )
-            }
             IconButton(
                 enabled = hasSelection,
                 onClick = onCopy,
             ) {
                 Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy))
+            }
+            IconButton(
+                enabled = hasSelection,
+                onClick = onShareMarkdown,
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Description, contentDescription = stringResource(R.string.share_markdown))
             }
             IconButton(
                 enabled = hasSelection,
