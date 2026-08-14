@@ -18,6 +18,9 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
@@ -38,7 +41,10 @@ import com.lxseek.chat.ui.common.openAiServiceTierShortLabel
 import com.lxseek.chat.ui.common.thinkingControlShortLabel
 import com.lxseek.chat.util.CrashReporter
 import com.lxseek.chat.util.TtsManager
+import com.lxseek.chat.speech.SpeechRecognitionManager
+import com.lxseek.chat.speech.AsrModelManager
 import com.lxseek.chat.viewmodel.ChatViewModel
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import java.util.Locale
 
@@ -72,6 +78,11 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val shareIncludeThinking by viewModel.settings.shareIncludeThinking.collectAsState()
     val shareIncludeTools by viewModel.settings.shareIncludeTools.collectAsState()
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
+    val asrEnginePref by viewModel.settings.asrEnginePref.collectAsState()
+    val asrIsAvailable by SpeechRecognitionManager.isAvailable.collectAsState()
+    val asrIsDownloading by AsrModelManager.isDownloading.collectAsState()
+    val asrDownloadProgress by AsrModelManager.downloadProgress.collectAsState()
+    val asrActiveModel by AsrModelManager.activeModelId.collectAsState()
 
     CollapsingSettingsScaffold(
         title = stringResource(R.string.generation_title),
@@ -594,6 +605,101 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             )
                         },
                     ),
+                )
+
+                // ── Section 8: ASR (Speech Recognition) ──
+                val asrScope = rememberCoroutineScope()
+                val engineStatuses = SpeechRecognitionManager.engineStatus()
+                SettingsGroup(
+                    title = stringResource(R.string.asr_settings_title),
+                    items = buildList {
+                        add {
+                            SettingsItem(
+                                headlineContent = { Text(stringResource(R.string.asr_settings_title)) },
+                                supportingContent = { Text(stringResource(R.string.asr_settings_desc)) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.GraphicEq,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Text(
+                                        when (asrEnginePref) {
+                                            "system" -> stringResource(R.string.asr_engine_system)
+                                            "sherpa-onnx" -> stringResource(R.string.asr_engine_sherpa)
+                                            else -> stringResource(R.string.asr_engine_auto)
+                                        },
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    val next = when (asrEnginePref) {
+                                        "auto" -> "system"
+                                        "system" -> "sherpa-onnx"
+                                        else -> "auto"
+                                    }
+                                    viewModel.settings.setAsrEnginePref(next)
+                                    SpeechRecognitionManager.preferredEngine = next
+                                    SpeechRecognitionManager.init(ttsContext)
+                                },
+                            )
+                        }
+                        if (!asrIsAvailable) {
+                            add {
+                                SettingsItem(
+                                    headlineContent = { Text(stringResource(R.string.asr_no_engine_available)) },
+                                    supportingContent = { Text(stringResource(R.string.asr_native_not_loaded)) },
+                                    leadingContent = {
+                                        Icon(Icons.Default.Build, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                    },
+                                    trailingContent = {},
+                                )
+                            }
+                        }
+                        for (model in AsrModelManager.availableModels) {
+                            add {
+                                val isDownloaded = AsrModelManager.isModelDownloaded(ttsContext, model.id)
+                                val isActive = asrActiveModel == model.id
+                                SettingsItem(
+                                    headlineContent = { Text(model.displayName) },
+                                    supportingContent = {
+                                        Text(
+                                            "${model.language} | ${model.type} | ${model.sizeMb}MB" +
+                                                if (isDownloaded) " | ${stringResource(R.string.asr_model_downloaded)}" else ""
+                                        )
+                                    },
+                                    leadingContent = {
+                                        Icon(
+                                            if (isDownloaded) Icons.Default.Delete else Icons.Default.Download,
+                                            contentDescription = null,
+                                            tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    },
+                                    trailingContent = {
+                                        if (asrIsDownloading && asrDownloadProgress > 0) {
+                                            Text(
+                                                stringResource(R.string.asr_model_downloading, asrDownloadProgress),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.clickable {
+                                        if (isDownloaded) {
+                                            AsrModelManager.deleteModel(ttsContext, model.id)
+                                        } else if (!asrIsDownloading) {
+                                            asrScope.launch {
+                                                AsrModelManager.downloadModel(ttsContext, model)
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    },
                 )
             }
 

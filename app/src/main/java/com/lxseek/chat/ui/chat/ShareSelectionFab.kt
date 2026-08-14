@@ -58,7 +58,7 @@ internal fun ShareSelectionFab(
                 enabled = hasSelection,
                 onClick = onShareMarkdown,
             ) {
-                Icon(Icons.AutoMirrored.Filled.Description, contentDescription = stringResource(R.string.share_markdown))
+                Icon(Icons.Default.Description, contentDescription = stringResource(R.string.share_markdown))
             }
             IconButton(
                 enabled = hasSelection,

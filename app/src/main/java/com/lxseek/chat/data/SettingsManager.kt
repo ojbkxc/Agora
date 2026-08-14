@@ -392,6 +392,7 @@ class SettingsManager(private val context: Context) {
     val shareIncludeThinking: Flow<Boolean> = context.dataStore.data.map { it[SHARE_INCLUDE_THINKING] ?: true }
     val shareIncludeTools: Flow<Boolean> = context.dataStore.data.map { it[SHARE_INCLUDE_TOOLS] ?: true }
     val voiceConversationEnabled: Flow<Boolean> = context.dataStore.data.map { it[VOICE_CONVERSATION_ENABLED] ?: false }
+    val asrEnginePref: Flow<String> = context.dataStore.data.map { it[ASR_ENGINE_PREF] ?: "auto" }
 
     suspend fun saveShareIncludeThinking(enabled: Boolean) {
         context.dataStore.edit { it[SHARE_INCLUDE_THINKING] = enabled }
@@ -403,6 +404,10 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveVoiceConversationEnabled(enabled: Boolean) {
         context.dataStore.edit { it[VOICE_CONVERSATION_ENABLED] = enabled }
+    }
+
+    suspend fun saveAsrEnginePref(pref: String) {
+        context.dataStore.edit { it[ASR_ENGINE_PREF] = pref }
     }
 
     suspend fun saveTtsLanguage(language: String) {
@@ -829,6 +834,7 @@ class SettingsManager(private val context: Context) {
             prefs.remove(SHARE_INCLUDE_THINKING)
             prefs.remove(SHARE_INCLUDE_TOOLS)
             prefs.remove(VOICE_CONVERSATION_ENABLED)
+            prefs.remove(ASR_ENGINE_PREF)
             prefs.remove(THINKING_LEVEL)
             prefs.remove(THINKING_BUDGET_ENABLED)
             prefs.remove(THINKING_BUDGET_TOKENS)

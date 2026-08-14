@@ -688,7 +688,6 @@ fun ChatApp(
                         onRequestScroll = { scrollCoordinator.requestAbsoluteBottomScroll() },
                     )
 
-                   ) {
                     ChatAppShareSelectionOverlay(
                         shareSelectionActive = shareSelectionActive,
                         motionPolicy = motionPolicy,
