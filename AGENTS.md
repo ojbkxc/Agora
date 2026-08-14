@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.36` / versionCode `37` | `defaultConfig` |
+| 版本 | versionName `1.0.37` / versionCode `38` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.37 修复 partialTranscript bug + 远程 ASR UI + 死代码清理**：① 修复 `_partialTranscript` 不更新 bug（收集 `SttManager.partialText`）；② 添加远程 ASR 设置 UI（Base URL/API Key/Model 输入框）；③ 删除 3 个死代码文件 + 2 个死字段/参数；④ 删除 84 个孤立字符串（恢复误删的 10 个 `sandbox_snackbar_*`）。CI 全绿验证通过（CI #31788398268 ✓ / Build & Release #31788418064 ✓），Release `Agora-v1.0.37-android-arm64-v8a.apk` 已发布。
 - **v1.0.36 删除死代码 AsrModelManager + 孤立字符串**：v1.0.34 删除假 ASR UI 后的遗留清理，删除 `AsrModelManager.kt`（140 行死代码）+ 11 个孤立 ASR 字符串（en+zh）。CI 全绿验证通过（CI #31780615261 ✓ / Build & Release #31780642151 ✓），Release `Agora-v1.0.36-android-arm64-v8a.apk` 已发布。
 - **v1.0.35 接线 VoiceGradientBackground**：发现 v1.0.34 创建的 `VoiceGradientBackground.kt` 从未被调用（死代码），接入 `VoiceConversationStatusOverlay` 作为动态渐变背景。CI 全绿验证通过（CI #31779195803 ✓ / Build & Release #31779205895 ✓），Release `Agora-v1.0.35-android-arm64-v8a.apk` 已发布。
 - **v1.0.34 UI 细化 + 删除假 ASR 模型下载 UI**：三球波形动画（`VoiceWaveformIndicator.kt`，借鉴 VoiceRobot）+ 渐变背景（`VoiceGradientBackground.kt`）+ VoiceMicButton 用波形替换 halo + VAD 参数改进（借鉴 Half_duplex Silero VAD）+ 删除假 ASR 模型下载 UI（`SherpaAsrEngine`/`AsrModelManager` 未真正实现）+ amplitude 接线。CI 全绿验证通过（CI #31774607828 ✓ / Build & Release #31774617629 ✓），Release `Agora-v1.0.34-android-arm64-v8a.apk` 已发布。
@@ -384,6 +385,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.37 修复 partialTranscript bug + 远程 ASR 设置 UI + 死代码清理（本次会话）：全面检查发现并修复多个问题。① **Bug: `_partialTranscript` 永远不更新**（`VoiceConversationController.kt`）：`_partialTranscript` 仅在 `stop()`/`beginListening()` 中被设为 `""`，从未收集 `SttManager.partialText`，导致部分识别文本 UI 永远不显示。修复：添加 `partialJob` 在 `beginSystemListening()` 中收集 `SttManager.partialText` → `_partialTranscript`，`stop()` 中取消。② **Bug: 远程 ASR 设置 UI 缺失**（`SettingsGenerationPage.kt`）：`asrRemoteBaseUrl`/`asrRemoteApiKey`/`asrRemoteModel` 三个设置值已收集但从未在 UI 中显示。修复：当 `asrUseRemote=true` 时显示三个 `OutlinedTextField`（Base URL/API Key/Model）。③ **死代码清理**：删除 `AppExecutors.kt`（0 引用）、`ErrorSanitizer.kt`（0 引用）、`FontUtils.kt`（0 引用，自定义字体已删除）；删除 `VoiceConversationController.isListening` 死字段 + `ttsPlayingMessageId` 死参数（ChatViewModel 调用处同步更新）；`DataImporter.kt`/`SettingsAppearancePage.kt` 中 `readFontName()` 替换为 `file.nameWithoutExtension`。④ **孤立字符串清理**：删除 94 个孤立字符串（en+zh 各 94 个），但首次 CI 失败因误删 `sandbox_snackbar_*`（在 `app/src/fdroid/` 中使用，脚本只搜索了 `app/src/main/`）→ 恢复 10 个 `sandbox_snackbar_*` 字符串。bump versionCode 37→38 / versionName 1.0.36→1.0.37。CI 全绿验证通过（CI #31788398268 ✓ / Build & Release #31788418064 ✓），Release `Agora-v1.0.37-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.36 删除死代码 AsrModelManager + 11 个孤立 ASR 字符串（本次会话）：v1.0.34 删除假 ASR 模型下载 UI 后遗留的死代码清理。① **删除 `speech/AsrModelManager.kt`**（140 行）— 0 引用，完全死代码。② **删除 11 个孤立字符串**（en + zh 各 11 个）：`asr_engine_status`/`asr_model_download`/`asr_model_downloaded`/`asr_model_downloading`/`asr_model_delete`/`asr_model_active`/`asr_model_activate`/`asr_model_deactivate`/`asr_import_model`/`asr_import_model_desc`/`asr_native_not_loaded`，全部 0 引用。bump versionCode 36→37 / versionName 1.0.35→1.0.36。CI 全绿验证通过（CI #31780615261 ✓ / Build & Release #31780642151 ✓），Release `Agora-v1.0.36-android-arm64-v8a.apk` 已发布。
 
