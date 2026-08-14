@@ -841,7 +841,6 @@ fun ChatApp(
                             val newText = if (current.isBlank()) text else "$current $text"
                             textFieldState.edit {
                                 replace(0, length, newText)
-                                placeCursorAtEnd()
                             }
                         }
                     } else {
