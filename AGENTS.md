@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.35` / versionCode `36` | `defaultConfig` |
+| 版本 | versionName `1.0.36` / versionCode `37` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.36 删除死代码 AsrModelManager + 孤立字符串**：v1.0.34 删除假 ASR UI 后的遗留清理，删除 `AsrModelManager.kt`（140 行死代码）+ 11 个孤立 ASR 字符串（en+zh）。CI 全绿验证通过（CI #31780615261 ✓ / Build & Release #31780642151 ✓），Release `Agora-v1.0.36-android-arm64-v8a.apk` 已发布。
 - **v1.0.35 接线 VoiceGradientBackground**：发现 v1.0.34 创建的 `VoiceGradientBackground.kt` 从未被调用（死代码），接入 `VoiceConversationStatusOverlay` 作为动态渐变背景。CI 全绿验证通过（CI #31779195803 ✓ / Build & Release #31779205895 ✓），Release `Agora-v1.0.35-android-arm64-v8a.apk` 已发布。
 - **v1.0.34 UI 细化 + 删除假 ASR 模型下载 UI**：三球波形动画（`VoiceWaveformIndicator.kt`，借鉴 VoiceRobot）+ 渐变背景（`VoiceGradientBackground.kt`）+ VoiceMicButton 用波形替换 halo + VAD 参数改进（借鉴 Half_duplex Silero VAD）+ 删除假 ASR 模型下载 UI（`SherpaAsrEngine`/`AsrModelManager` 未真正实现）+ amplitude 接线。CI 全绿验证通过（CI #31774607828 ✓ / Build & Release #31774617629 ✓），Release `Agora-v1.0.34-android-arm64-v8a.apk` 已发布。
 - **v1.0.30 语音对话 UI + 存相册**：① VoiceMicButton 增强脉冲光晕（listening 时红色 halo ring 扩散动画 + 活跃时 elevation 8dp）。② 新建 `VoiceConversationStatusOverlay.kt`（128 行）——语音对话状态覆盖层，显示在底部栏上方：状态图标 + 状态文字（聆听中/思考中/朗读中）+ 部分识别文本（listening 时实时显示 STT partial transcript）。③ 分享面板加「保存到相册」按钮（SaveAlt 图标），`MessageExportController.saveLongImageToGallery()` 用 MediaStore API 29+ 存到 `Pictures/Agora/`，API 24-28 用 legacy 路径 + ACTION_MEDIA_SCANNER_SCAN_FILE。`MessageLongImageRenderer.renderToBitmap()` 公开方法。strings en+zh 各加 2 个字符串。CI 全绿验证通过（CI #31759321853 ✓ / Build & Release #31759324326 ✓）。
@@ -383,6 +384,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.36 删除死代码 AsrModelManager + 11 个孤立 ASR 字符串（本次会话）：v1.0.34 删除假 ASR 模型下载 UI 后遗留的死代码清理。① **删除 `speech/AsrModelManager.kt`**（140 行）— 0 引用，完全死代码。② **删除 11 个孤立字符串**（en + zh 各 11 个）：`asr_engine_status`/`asr_model_download`/`asr_model_downloaded`/`asr_model_downloading`/`asr_model_delete`/`asr_model_active`/`asr_model_activate`/`asr_model_deactivate`/`asr_import_model`/`asr_import_model_desc`/`asr_native_not_loaded`，全部 0 引用。bump versionCode 36→37 / versionName 1.0.35→1.0.36。CI 全绿验证通过（CI #31780615261 ✓ / Build & Release #31780642151 ✓），Release `Agora-v1.0.36-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.35 接线 VoiceGradientBackground 到状态覆盖层（本次会话）：发现 `VoiceGradientBackground.kt`（v1.0.34 创建）从未被调用（死代码）。修改 `VoiceConversationStatusOverlay.kt`（139→142 行）：在 `Surface` 内用 `Box` 包裹，先放 `VoiceGradientBackground(matchParentSize())` 作为动态渐变背景，再放 `Column` 内容；Surface alpha 0.95→0.92 让渐变背景透出；删除未使用的 `background` import。bump versionCode 35→36 / versionName 1.0.34→1.0.35。CI 全绿验证通过（CI #31779195803 ✓ / Build & Release #31779205895 ✓），Release `Agora-v1.0.35-android-arm64-v8a.apk` 已发布。
 
