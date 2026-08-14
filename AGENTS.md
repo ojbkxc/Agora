@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.29` / versionCode `30` | `defaultConfig` |
+| 版本 | versionName `1.0.30` / versionCode `31` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.30 语音对话 UI + 存相册**：① VoiceMicButton 增强脉冲光晕（listening 时红色 halo ring 扩散动画 + 活跃时 elevation 8dp）。② 新建 `VoiceConversationStatusOverlay.kt`（128 行）——语音对话状态覆盖层，显示在底部栏上方：状态图标 + 状态文字（聆听中/思考中/朗读中）+ 部分识别文本（listening 时实时显示 STT partial transcript）。③ 分享面板加「保存到相册」按钮（SaveAlt 图标），`MessageExportController.saveLongImageToGallery()` 用 MediaStore API 29+ 存到 `Pictures/Agora/`，API 24-28 用 legacy 路径 + ACTION_MEDIA_SCANNER_SCAN_FILE。`MessageLongImageRenderer.renderToBitmap()` 公开方法。strings en+zh 各加 2 个字符串。CI 全绿验证通过（CI #31759321853 ✓ / Build & Release #31759324326 ✓）。
 - **v1.0.29 ASR 设置 UI + v1.0.28 编译修复**：v1.0.28 分享选择 UI 有 3 个编译错误（ChatApp.kt:691 多余 `) {` / ChatTopBar.kt 缺 TextButton import / ShareSelectionFab.kt 错用 AutoMirrored.Filled.Description）。v1.0.29 修复 + 添加 ASR 设置 section（SettingsGenerationPage Section 8：引擎选择 Auto/System/Sherpa + 引擎状态 + 模型下载列表 + 下载进度）。设置四层加 `asr_engine_pref`（Schema/Manager/Repository/UI）。CI 全绿验证通过（CI #31757506824 ✓ / Build & Release #31757518101 ✓）。
 - **v1.0.27 ASR 引擎抽象层**：新建 `speech/` 包 5 文件（SpeechEngine 接口 + SystemSpeechEngine + SherpaAsrEngine stub + SpeechRecognitionManager + AsrModelManager）。CI 全绿验证通过（CI #31750904823 ✓ / Build & Release #31750906971 ✓）。
 - **v1.0.26 shell quoting 网关**：新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用。`ShellMonitorTools.kt` tail_follow/kill_process 改用安全引用。CI 全绿验证通过（#31749416627 ✓ / #31749418527 ✓）。
@@ -380,6 +381,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.30 语音对话 UI + 存相册（本次会话）：① **VoiceMicButton 增强**（90→132 行）：listening 时红色 halo ring 扩散动画（Canvas + graphicsLayer alpha + scale 无限循环）+ 活跃时 elevation 8dp 增强可见性 + 56dp Box 包裹给 halo 留空间。② **VoiceConversationStatusOverlay**（新建 128 行）：语音对话状态覆盖层，`ChatApp` 中 align BottomCenter + padding(bottom = bottomBarHeight + 8dp) 定位在底部栏上方——状态图标（GraphicEq/Lightbulb/VolumeUp，按 state 着色 + 脉冲 alpha 动画）+ 状态文字（聆听中…/思考中…/朗读中…，labelLarge + FontWeight.Medium）+ 部分识别文本（listening 时显示 `"\u201C${partialTranscript}\u201D"`，bodyMedium + maxLines 2 + Ellipsis）。`ChatApp` 加 `voiceConversationPartial` collectAsState。③ **保存到相册**：`ShareSelectionFab` 加 SaveAlt 图标按钮，`ChatAppShareSelectionOverlay` 加 `onSaveToGallery` 参数，`ChatApp` 接线 `viewModel.saveLongImageToGallery()`。`MessageExportController.saveLongImageToGallery()`（77→155 行）：`MessageLongImageRenderer.renderToBitmap()` 生成 Bitmap → API 29+ 用 `MediaStore.Images.Media.EXTERNAL_CONTENT_URI` + `RELATIVE_PATH = Pictures/Agora` + `IS_PENDING` 协议存入相册 → API 24-28 用 `Environment.getExternalStoragePublicDirectory(PICTURES)/Agora/` + `ACTION_MEDIA_SCANNER_SCAN_FILE` 广播。`MessageLongImageRenderer` 加 `renderToBitmap()` 公开方法（88→93 行）。`ChatViewModel` 加 `saveLongImageToGallery()` 委托（989 行）。strings en+zh 各加 `share_save_to_gallery`/`share_saved_to_gallery`。bump versionCode 30→31 / versionName 1.0.29→1.0.30。CI 全绿验证通过（CI #31759321853 ✓ / Build & Release #31759324326 ✓），Release `Agora-v1.0.30-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.29 ASR 设置 UI + v1.0.28 编译修复（本次会话）：① **v1.0.28 编译修复**：v1.0.28 分享选择 UI 有 3 个编译错误——ChatApp.kt:691 多余 `) {` 致 syntax error、ChatTopBar.kt 缺 `TextButton` import、ShareSelectionFab.kt 误用 `Icons.AutoMirrored.Filled.Description`（应为 `Icons.Default.Description`）。② **ASR 设置 UI**：SettingsGenerationPage.kt（813→919 行）新增 Section 8 ASR Settings——引擎偏好选择（Auto/System/Sherpa 循环切换）+ 引擎状态显示（无可用引擎时警告）+ sherpa-onnx 模型下载列表（4 个模型：Zipformer bilingual/Paraformer zh/Whisper tiny/SenseVoice multi）+ 下载进度显示 + 已下载模型删除。设置四层加 `asr_engine_pref`（SettingsPreferenceSchema + SettingsManager + SettingsRepository + UI）。strings.xml en+zh 各加 12 个 ASR 字符串。bump versionCode 29→30 / versionName 1.0.28→1.0.29。CI 全绿验证通过（CI #31757506824 ✓ / Build & Release #31757518101 ✓），Release `Agora-v1.0.29-android-arm64-v8a.apk` 已发布。
 
