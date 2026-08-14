@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.27` / versionCode `28` | `defaultConfig` |
+| 版本 | versionName `1.0.29` / versionCode `30` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.29 ASR 设置 UI + v1.0.28 编译修复**：v1.0.28 分享选择 UI 有 3 个编译错误（ChatApp.kt:691 多余 `) {` / ChatTopBar.kt 缺 TextButton import / ShareSelectionFab.kt 错用 AutoMirrored.Filled.Description）。v1.0.29 修复 + 添加 ASR 设置 section（SettingsGenerationPage Section 8：引擎选择 Auto/System/Sherpa + 引擎状态 + 模型下载列表 + 下载进度）。设置四层加 `asr_engine_pref`（Schema/Manager/Repository/UI）。CI 全绿验证通过（CI #31757506824 ✓ / Build & Release #31757518101 ✓）。
+- **v1.0.27 ASR 引擎抽象层**：新建 `speech/` 包 5 文件（SpeechEngine 接口 + SystemSpeechEngine + SherpaAsrEngine stub + SpeechRecognitionManager + AsrModelManager）。CI 全绿验证通过（CI #31750904823 ✓ / Build & Release #31750906971 ✓）。
 - **v1.0.26 shell quoting 网关**：新建 `util/ShellQuote.kt`（75 行）——POSIX 单引号安全引用。`ShellMonitorTools.kt` tail_follow/kill_process 改用安全引用。CI 全绿验证通过（#31749416627 ✓ / #31749418527 ✓）。
 - **v1.0.25 重复调用死循环检测**：新建 `viewmodel/ToolRepeatDetector.kt`（74 行）——同一签名连续重复 8 次注入警告打破循环。CI 全绿验证通过（#31748442635 ✓ / #31748445259 ✓）。
 - **v1.0.24 结构化进程/系统监控工具**：新建 `ShellMonitorTools.kt`（276 行）——list_processes/kill_process/system_stats/tail_follow 4 个结构化工具。CI 全绿验证通过（CI #31747117562 ✓ / Build & Release #31747119949 ✓）。
@@ -318,7 +320,7 @@ Agora/
 - [x] v1.0.25 重复调用死循环检测（Agent 深化 P1：ToolRepeatDetector）。CI 全绿验证通过（#31748442635 ✓ / #31748445259 ✓）。
 - [x] v1.0.26 shell quoting 网关（Agent 深化 P1：ShellQuote）。CI 全绿验证通过（#31749416627 ✓ / #31749418527 ✓）。
 - [ ] Agent 能力深化（P2）：批量多服务器执行 + 工具分档下发 + 行动轨迹总线。
-- [ ] ASR 集成（P1）：sherpa-onnx 端侧 ASR（OnlineRecognizer 流式 + OfflineRecognizer 批处理 + Silero VAD）+ 系统 SpeechRecognizer 在线回退 + 模型下载管理 + VoiceInputButton UI。
+- [x] ASR 集成（P1）：sherpa-onnx 端侧 ASR（OnlineRecognizer 流式 + OfflineRecognizer 批处理 + Silero VAD）+ 系统 SpeechRecognizer 在线回退 + 模型下载管理 + 设置 UI（v1.0.27 抽象层 + v1.0.29 设置 UI）。**待完成**：sherpa-onnx 原生库集成 + VoiceInputButton UI 接线。
 - [ ] 功能开发 / bug 修复 / 性能优化等用户指派任务。
 
 ## 7. 编码约定（强制）
@@ -378,6 +380,10 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.29 ASR 设置 UI + v1.0.28 编译修复（本次会话）：① **v1.0.28 编译修复**：v1.0.28 分享选择 UI 有 3 个编译错误——ChatApp.kt:691 多余 `) {` 致 syntax error、ChatTopBar.kt 缺 `TextButton` import、ShareSelectionFab.kt 误用 `Icons.AutoMirrored.Filled.Description`（应为 `Icons.Default.Description`）。② **ASR 设置 UI**：SettingsGenerationPage.kt（813→919 行）新增 Section 8 ASR Settings——引擎偏好选择（Auto/System/Sherpa 循环切换）+ 引擎状态显示（无可用引擎时警告）+ sherpa-onnx 模型下载列表（4 个模型：Zipformer bilingual/Paraformer zh/Whisper tiny/SenseVoice multi）+ 下载进度显示 + 已下载模型删除。设置四层加 `asr_engine_pref`（SettingsPreferenceSchema + SettingsManager + SettingsRepository + UI）。strings.xml en+zh 各加 12 个 ASR 字符串。bump versionCode 29→30 / versionName 1.0.28→1.0.29。CI 全绿验证通过（CI #31757506824 ✓ / Build & Release #31757518101 ✓），Release `Agora-v1.0.29-android-arm64-v8a.apk` 已发布。
+
+- 2026-08-14 v1.0.28 分享选择 UI 改进（本次会话，CI 失败→v1.0.29 修复）：多选模式顶栏（ShareSelectionTopBar：返回箭头 + 已选 N + 全选/取消全选）、分享按钮改为进入多选模式并预选消息、长按进入多选时停止 TTS、专用导出 Markdown 按钮、activateShareSelection() 支持 initialMessageId 预选。v1.0.28 CI 失败（3 个编译错误），由 v1.0.29 修复。
 
 - 2026-08-14 v1.0.27 ASR 引擎抽象层 + 模型管理器（本次会话）：ASR 集成 P1 基础设施。新建 `speech/` 包含 5 个文件：① `SpeechEngine.kt`（71 行）——ASR 引擎接口；② `SystemSpeechEngine.kt`（37 行）——适配现有 SttManager；③ `SherpaAsrEngine.kt`（92 行）——sherpa-onnx stub，优雅降级；④ `SpeechRecognitionManager.kt`（108 行）——编排引擎选择；⑤ `AsrModelManager.kt`（140 行）——模型下载管理。代码无需原生库即可编译。CI 全绿验证通过（CI #31750904823 ✓ / Build & Release #31750906971 ✓），Release `Agora-v1.0.27-android-arm64-v8a.apk` 已发布。
 
