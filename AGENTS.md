@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.34` / versionCode `35` | `defaultConfig` |
+| 版本 | versionName `1.0.35` / versionCode `36` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.35 接线 VoiceGradientBackground**：发现 v1.0.34 创建的 `VoiceGradientBackground.kt` 从未被调用（死代码），接入 `VoiceConversationStatusOverlay` 作为动态渐变背景。CI 全绿验证通过（CI #31779195803 ✓ / Build & Release #31779205895 ✓），Release `Agora-v1.0.35-android-arm64-v8a.apk` 已发布。
 - **v1.0.34 UI 细化 + 删除假 ASR 模型下载 UI**：三球波形动画（`VoiceWaveformIndicator.kt`，借鉴 VoiceRobot）+ 渐变背景（`VoiceGradientBackground.kt`）+ VoiceMicButton 用波形替换 halo + VAD 参数改进（借鉴 Half_duplex Silero VAD）+ 删除假 ASR 模型下载 UI（`SherpaAsrEngine`/`AsrModelManager` 未真正实现）+ amplitude 接线。CI 全绿验证通过（CI #31774607828 ✓ / Build & Release #31774617629 ✓），Release `Agora-v1.0.34-android-arm64-v8a.apk` 已发布。
 - **v1.0.30 语音对话 UI + 存相册**：① VoiceMicButton 增强脉冲光晕（listening 时红色 halo ring 扩散动画 + 活跃时 elevation 8dp）。② 新建 `VoiceConversationStatusOverlay.kt`（128 行）——语音对话状态覆盖层，显示在底部栏上方：状态图标 + 状态文字（聆听中/思考中/朗读中）+ 部分识别文本（listening 时实时显示 STT partial transcript）。③ 分享面板加「保存到相册」按钮（SaveAlt 图标），`MessageExportController.saveLongImageToGallery()` 用 MediaStore API 29+ 存到 `Pictures/Agora/`，API 24-28 用 legacy 路径 + ACTION_MEDIA_SCANNER_SCAN_FILE。`MessageLongImageRenderer.renderToBitmap()` 公开方法。strings en+zh 各加 2 个字符串。CI 全绿验证通过（CI #31759321853 ✓ / Build & Release #31759324326 ✓）。
 - **v1.0.29 ASR 设置 UI + v1.0.28 编译修复**：v1.0.28 分享选择 UI 有 3 个编译错误（ChatApp.kt:691 多余 `) {` / ChatTopBar.kt 缺 TextButton import / ShareSelectionFab.kt 错用 AutoMirrored.Filled.Description）。v1.0.29 修复 + 添加 ASR 设置 section（SettingsGenerationPage Section 8：引擎选择 Auto/System/Sherpa + 引擎状态 + 模型下载列表 + 下载进度）。设置四层加 `asr_engine_pref`（Schema/Manager/Repository/UI）。CI 全绿验证通过（CI #31757506824 ✓ / Build & Release #31757518101 ✓）。
@@ -382,6 +383,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.35 接线 VoiceGradientBackground 到状态覆盖层（本次会话）：发现 `VoiceGradientBackground.kt`（v1.0.34 创建）从未被调用（死代码）。修改 `VoiceConversationStatusOverlay.kt`（139→142 行）：在 `Surface` 内用 `Box` 包裹，先放 `VoiceGradientBackground(matchParentSize())` 作为动态渐变背景，再放 `Column` 内容；Surface alpha 0.95→0.92 让渐变背景透出；删除未使用的 `background` import。bump versionCode 35→36 / versionName 1.0.34→1.0.35。CI 全绿验证通过（CI #31779195803 ✓ / Build & Release #31779205895 ✓），Release `Agora-v1.0.35-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.34 UI 细化 + 删除假 ASR 模型下载 UI（本次会话）：用户要求"把建议的都借鉴了，ui细化，业务细化，到成功编译"。① **三球波形动画**（新建 `VoiceWaveformIndicator.kt` 92 行，借鉴 VoiceRobot WaveformView）：三球相位差 0/0.9/1.8，idle = 0.16 + 0.06*sin(t)，`wave01` 正弦波 + `bezierArcY` 二次贝塞尔弧，振幅平滑 150ms `Animatable.animateTo`，`LocalDensity` 像素转换，Canvas `drawCircle` 三球。② **渐变背景动画**（新建 `VoiceGradientBackground.kt` 49 行，借鉴 VoiceRobot GradientBackgroundView）：`rememberInfiniteTransition` 驱动色相旋转，`Brush.linearGradient` 双色渐变。③ **VoiceMicButton 重写**（112 行）：用三球波形替换 halo 动画，listening 时显示 `VoiceWaveformIndicator`。④ **VoiceConversationStatusOverlay**（139 行）：添加波形 + amplitude 参数传递。⑤ **VAD 参数改进**（`VoiceRecorder.kt`，借鉴 Half_duplex Silero VAD）：65→60dB 阈值、2000→1500ms 静音停止、60→30s 最大录音、100→80ms 采样间隔。⑥ **删除假 ASR 模型下载 UI**（`SettingsGenerationPage.kt` 885 行）：用户指出 ASR 模型下载"根本没实现"（`SherpaAsrEngine.startListening()` 直接返回 error，`AsrModelManager.downloadModel()` 下载但不解压），删除假的模型下载列表 UI + unused vars + import。⑦ **amplitude 接线**：`VoiceConversationController` 转发 amplitude → `ChatApp` collectAsState → `ChatAppBottomBarSection` → `ChatBottomBar` → `VoiceMicButton`。bump versionCode 34→35 / versionName 1.0.33→1.0.34。**首次 CI 失败**（`VoiceWaveformIndicator.kt` garbled：`remember<parameter name=...>` + `drawCircle(color=color, radius(0f, 1f)` 截断 + 缺 `wave01` 函数）→ 重写整个文件，移动 tag 重触发。CI 全绿验证通过（CI #31774607828 ✓ / Build & Release #31774617629 ✓），Release `Agora-v1.0.34-android-arm64-v8a.apk` 已发布。
 
