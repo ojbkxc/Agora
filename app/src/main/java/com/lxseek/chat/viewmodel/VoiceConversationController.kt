@@ -26,7 +26,6 @@ class VoiceConversationController(
     private val languageProvider: () -> String,
     private val ttsAutoPlayOn: () -> Boolean,
     private val isLoading: StateFlow<Boolean>,
-    private val ttsPlayingMessageId: StateFlow<String?>,
     private val sendMessage: suspend (String) -> Unit,
     private val useRemoteAsr: () -> Boolean,
     private val remoteAsrBaseUrl: () -> String,
@@ -43,12 +42,12 @@ class VoiceConversationController(
 
     private val recorder = VoiceRecorder()
     val amplitude: StateFlow<Float> = recorder.amplitude
-    val isListening: StateFlow<Boolean> = SttManager.isListening
 
     @Volatile private var active = false
     private var observeJob: Job? = null
     private var ttsObserverJob: Job? = null
     private var sendJob: Job? = null
+    private var partialJob: Job? = null
     @Volatile private var waitingForLlm = false
     @Volatile private var llmWasLoading = false
     @Volatile private var sttErrorCount = 0
@@ -79,6 +78,8 @@ class VoiceConversationController(
         observeJob = null
         sendJob?.cancel()
         sendJob = null
+        partialJob?.cancel()
+        partialJob = null
         recorder.stop()
         SttManager.stopListening()
         TtsManager.stop()
@@ -153,6 +154,10 @@ class VoiceConversationController(
     }
 
     private fun beginSystemListening() {
+        partialJob?.cancel()
+        partialJob = scope.launch {
+            SttManager.partialText.collect { _partialTranscript.value = it }
+        }
         SttManager.init(appContext)
         SttManager.startListening(
             context = appContext,

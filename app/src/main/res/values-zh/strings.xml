@@ -32,27 +32,17 @@
     <string name="tool_web_fetch">网页抓取</string>
     <string name="tool_web_fetching">正在抓取 %1$s…</string>
     <string name="tool_web_fetch_done">已抓取 %1$s</string>
-    <string name="tool_web_fetch_default">正在抓取网页</string>
-    <string name="tool_web_fetch_failed">抓取失败</string>
     <string name="tool_search_conversations">搜索对话</string>
     <string name="tool_searching_web">正在网络搜索 \'%1$s\'</string>
-    <string name="tool_searching_conversations">正在对话中搜索 \'%1$s\'</string>
-    <string name="tool_search_failed">搜索失败</string>
     <string name="tool_web_search_no_result">未找到 \'%1$s\' 的搜索结果</string>
-    <string name="tool_web_search_error">搜索 \'%1$s\' 时出错</string>
     <string name="tool_conversation_search_no_result">未找到 \'%1$s\' 的对话匹配</string>
-    <string name="tool_conversation_search_error">搜索对话 \'%1$s\' 时出错</string>
     <string name="tool_web_search_done">搜索 \"%2$s\" 找到 %1$d 条结果</string>
     <string name="tool_web_search_done_default">搜索了网页</string>
     <string name="tool_conversation_search_done_for">搜索 \"%2$s\" 找到 %1$d 条对话</string>
     <string name="tool_list_shells">列出终端</string>
-    <string name="tool_shell_listing">正在列出可用终端</string>
     <string name="tool_shell_list_done">终端列表完成</string>
     <string name="tool_shell_list_count">列出了 %1$d 个终端</string>
     <string name="tool_execute_shell">终端</string>
-    <string name="tool_shell_executing">已执行: %1$s</string>
-    <string name="tool_shell_done">终端命令完成</string>
-    <string name="tool_shell_failed">终端命令失败</string>
     <string name="tool_thinking">思考</string>
 
     <!-- System Prompt -->
@@ -194,14 +184,10 @@
     <string name="search_desc">对话历史的访问控制和搜索方式</string>
 
     <!-- Settings - Provider Page -->
-    <string name="provider_api_provider">AI 提供商</string>
     <string name="provider_base_url">基础 URL</string>
     <string name="provider_api_keys">API 密钥</string>
-    <string name="provider_api_keys_optional">API 密钥（可选）</string>
     <string name="provider_no_keys">未为 %1$s 配置密钥</string>
-    <string name="provider_keys_count">已配置 %1$d 个密钥</string>
     <string name="provider_add_key">添加新密钥</string>
-    <string name="provider_select_provider">选择 AI 提供商</string>
     <string name="provider_edit_key">编辑 API 密钥</string>
     <string name="provider_add_key_title">添加 API 密钥</string>
     <string name="provider_key_name_hint">名称（例如：工作区）</string>
@@ -213,7 +199,6 @@
     <string name="provider_delete">删除</string>
     <string name="provider_edit">编辑</string>
     <string name="provider_cancel">取消</string>
-    <string name="custom_provider_badge">自定义</string>
     <string name="custom_provider_add">添加</string>
     <string name="custom_provider_add_title">添加提供商</string>
     <string name="custom_provider_protocol_label">API 格式</string>
@@ -227,7 +212,6 @@
     <string name="image_gen_no_model">未选择模型</string>
     <string name="image_gen_select_model">选择图像模型</string>
     <string name="image_gen_size">默认尺寸</string>
-    <string name="image_gen_size_hint">1024x1024</string>
     <string name="image_gen_show_all">显示全部模型</string>
     <string name="tool_generate_image">生成图片</string>
     <string name="tool_generating_image">正在生成图片…</string>
@@ -255,8 +239,6 @@
 
     <!-- Settings - Prompts Page -->
     <string name="prompts_title">系统指令</string>
-    <string name="prompts_default">默认系统指令</string>
-    <string name="prompts_default_desc">定义全局角色或规则</string>
     <string name="prompts_add">添加新指令</string>
     <string name="prompts_edit_title">编辑系统指令</string>
     <string name="prompts_add_title">添加系统指令</string>
@@ -304,7 +286,6 @@
     <string name="models_search_empty">没有匹配的模型</string>
     <string name="models_clear_search">清除模型搜索</string>
     <string name="models_custom_exists">该模型已存在</string>
-    <string name="models_available">可用模型</string>
     <string name="models_sync">从所有提供商同步</string>
     <string name="models_sync_desc">获取所有已配置 API 的最新模型列表</string>
     <string name="models_count">%1$d 个模型可用</string>
@@ -323,7 +304,6 @@
     <string name="generation_title">生成</string>
     <string name="context_window">上下文窗口</string>
     <string name="context_window_default">默认上下文窗口</string>
-    <string name="context_retain">保留最近 %1$d 条消息</string>
     <string name="context_token_budget_value">约 %1$s tokens</string>
     <string name="context_visualize">可视化上下文滚动</string>
     <string name="context_visualize_desc">将上下文窗口外的消息变暗</string>
@@ -338,14 +318,11 @@
     <string name="gen_frequency_penalty_desc">惩罚 token 重复（-2.0 至 2.0）</string>
     <string name="gen_presence_penalty">存在惩罚</string>
     <string name="gen_presence_penalty_desc">鼓励话题多样性（-2.0 至 2.0）</string>
-    <string name="gen_default_value">默认</string>
     <string name="gen_reset">重置</string>
     <string name="generation_params">默认生成参数</string>
     <string name="default_thinking">默认思考</string>
     <string name="gen_thinking_enabled">思考</string>
-    <string name="gen_thinking_enabled_desc">启用模型思考/推理能力</string>
     <string name="gen_thinking_level">思考深度</string>
-    <string name="gen_thinking_level_desc">控制思考深度；越高推理越深入</string>
     <string name="gen_thinking_level_minimal">极低</string>
     <string name="gen_thinking_level_low">低</string>
     <string name="gen_thinking_level_medium">中</string>
@@ -357,21 +334,11 @@
     <string name="thinking_use_budget">使用思考预算</string>
     <string name="thinking_budget_input_label">预算 (tokens)</string>
     <string name="thinking_control_off">关闭</string>
-    <string name="thinking_control_auto">自动</string>
-    <string name="thinking_control_quick">快速</string>
-    <string name="thinking_control_balanced">平衡</string>
-    <string name="thinking_control_deep">深入</string>
-    <string name="thinking_control_extreme">极限</string>
-    <string name="thinking_control_effort">强度</string>
-    <string name="thinking_control_budget">Token 预算</string>
     <string name="thinking_advanced_hide">收起高级</string>
-    <string name="thinking_budget_dynamic">动态</string>
     <string name="thinking_budget_tokens">%1$d tokens</string>
-    <string name="thinking_budget_custom">自定义</string>
     <string name="thinking_budget_note">思考预算会先占用隐藏输出 token。数值越高，复杂任务可能更稳，但也可能更慢、更贵。</string>
     <string name="advanced_settings">高级</string>
     <string name="advanced_generation_title">高级设置</string>
-    <string name="advanced_per_conversation">逐对话覆盖</string>
 
     <!-- Settings - TTS -->
     <string name="tts_title">语音播报</string>
@@ -455,8 +422,6 @@
     <string name="shell_device_url_hint">http://192.168.1.100:14216</string>
     <string name="shell_device_key">API 密钥</string>
     <string name="shell_device_key_hint">可选 Bearer Token</string>
-    <string name="shell_device_timeout">超时（秒）</string>
-    <string name="shell_timeout_value">%d 秒</string>
     <string name="shell_devices">设备</string>
     <string name="shell_add_device">添加设备</string>
     <string name="shell_remove_device">移除</string>
@@ -497,16 +462,6 @@
     <string name="sandbox_reset_desc">删除 Alpine rootfs 及所有包</string>
     <string name="sandbox_reset_confirm">这将删除 Alpine Linux rootfs 和所有已安装的包。此操作不可撤销。</string>
     <string name="sandbox_not_supported">本地沙箱不可用</string>
-    <string name="sandbox_snackbar_installed">已安装 %s</string>
-    <string name="sandbox_snackbar_install_failed">安装失败: %s</string>
-    <string name="sandbox_snackbar_removed">已移除 %s</string>
-    <string name="sandbox_snackbar_remove_failed">移除失败: %s</string>
-    <string name="sandbox_snackbar_upgrade_done">已升级 %d 个包</string>
-    <string name="sandbox_snackbar_upgrade_none">所有包已是最新</string>
-    <string name="sandbox_snackbar_upgrade_failed">升级失败</string>
-    <string name="sandbox_snackbar_reset">沙箱已重置</string>
-    <string name="sandbox_snackbar_reset_failed">重置失败</string>
-    <string name="sandbox_snackbar_error">错误: %s</string>
     <string name="sandbox_not_supported_desc">当前版本不支持此功能</string>
     <string name="sandbox_not_installed">未安装</string>
     <string name="sandbox_extracting_rootfs">正在解压 Alpine rootfs…</string>
@@ -572,7 +527,6 @@
     <string name="memory_active_empty">未设置活跃记忆。模型将在所有对话中记住此内容。</string>
     <string name="memory_saved_title">已保存的记忆</string>
     <string name="memory_add">添加记忆</string>
-    <string name="memory_add_desc">向已保存的记忆中添加新记忆</string>
     <string name="memory_no_files">暂无记忆</string>
     <string name="memory_create_hint">创建一个记忆或让模型通过工具调用来创建</string>
     <string name="memory_edit_active">编辑活跃记忆</string>
@@ -624,12 +578,10 @@
     <string name="dynamic_color">动态颜色</string>
     <string name="dynamic_color_desc">根据壁纸使用系统生成的颜色（Android 12+）</string>
     <string name="appearance_interface">界面</string>
-    <string name="visual_effects">视觉效果</string>
     <string name="blur_effects">模糊效果</string>
     <string name="blur_effects_desc">对聊天列表顶部工具栏下方应用模糊。关闭可节省性能。</string>
     <string name="reduce_motion">减少动态效果</string>
     <string name="reduce_motion_desc">减少持续运动和大范围空间位移，同时保留淡入淡出、直接手势和必要的状态反馈。</string>
-    <string name="message_display">消息显示</string>
     <string name="tool_call_display_mode">思考与工具块</string>
     <string name="tool_call_display_mode_timeline">时间线</string>
     <string name="tool_call_display_mode_grouped_timeline">分组</string>
@@ -639,7 +591,6 @@
     <string name="auto_expand_active_group">自动展开当前分组</string>
     <string name="auto_expand_active_group_desc">自动展开当前思考与工具分组，并在模型进入下一阶段时收起。</string>
     <string name="tool_call_display_mode_compact_desc">将思考和工具块聚合显示在回答上方</string>
-    <string name="interaction_feedback">交互反馈</string>
     <string name="haptic_feedback">触觉反馈</string>
     <string name="haptic_feedback_desc">为生成状态和关键操作使用轻微震动。</string>
 
@@ -652,8 +603,6 @@
 
     <!-- Sync -->
     <string name="sync_success_providers">成功同步了 %1$d 个提供商</string>
-    <string name="sync_partial">已同步：%1$s；失败：%2$s</string>
-    <string name="sync_failed_providers">同步失败：%1$s</string>
     <string name="sync_no_providers">没有配置的提供商可供同步</string>
     <string name="sync_completed">同步完成</string>
     <string name="sync_error_no_models">未返回任何模型</string>
@@ -674,11 +623,7 @@
     <string name="embedding_base_url_label">基础 URL</string>
     <string name="embedding_provider_label">提供商</string>
     <string name="embedding_api_key">API 密钥</string>
-    <string name="embedding_using_key">使用 %1$s 的密钥</string>
-    <string name="embedding_using_fallback_key">使用 %1$s 的密钥（无 %2$s 密钥）</string>
-    <string name="embedding_key_autofill_hint">留空则自动使用已配置的对话密钥</string>
     <string name="embedding_api_key_hint">输入 API 密钥</string>
-    <string name="embedding_no_key">未配置 API 密钥</string>
     <string name="embedding_custom">自定义...</string>
     <string name="embedding_custom_model_desc">输入提供商支持的任意模型名称</string>
     <string name="embedding_batch_size">批次大小</string>
@@ -743,33 +688,21 @@
 
     <!-- Tool Details -->
     <string name="tool_read_memory_success">读取记忆</string>
-    <string name="tool_read_memory_failed">读取记忆失败</string>
     <string name="scroll_to_bottom">滚动到底部</string>
-    <string name="tool_read_memory_count">读取了 %1$d 条记忆</string>
     <string name="tool_read_memory_name">读取 %1$s</string>
-    <string name="tool_save_memory_failed">保存记忆失败</string>
     <string name="tool_save_memory_name">已保存 %1$s</string>
     <string name="tool_save_memory_default">已保存一条记忆</string>
-    <string name="tool_edit_memory_failed">编辑记忆失败</string>
     <string name="tool_edit_memory_name">已更新 %1$s</string>
     <string name="tool_edit_memory_default">已更新一条记忆</string>
-    <string name="tool_delete_memory_failed">删除记忆失败</string>
     <string name="tool_delete_memory_name">已删除 %1$s</string>
     <string name="tool_delete_memory_default">已删除一条记忆</string>
-    <string name="tool_lookup_failed">查找记忆失败</string>
     <string name="tool_lookup_count">查看了 %1$d 条已保存的记忆</string>
     <string name="tool_lookup_default">查看了已保存的记忆</string>
-    <string name="tool_update_active_failed">更新活跃记忆失败</string>
     <string name="tool_update_active_default">已更新活跃记忆</string>
-    <string name="tool_searching_conversations_default">正在搜索对话</string>
     <string name="tool_done">完成</string>
     <string name="tool_context">工具</string>
     <string name="tool_execution_stopped">工具执行已停止</string>
     <string name="tool_state_executing">执行中</string>
-    <string name="tool_state_running">运行中</string>
-    <string name="tool_state_succeeded">已完成</string>
-    <string name="tool_state_failed">调用失败</string>
-    <string name="tool_state_stopped">已停止</string>
     <string name="tool_unknown_device">未知设备</string>
     <string name="tool_no_output">(No output)</string>
     <string name="tool_background_job_running">后台任务 %1$s 正在运行</string>
@@ -783,9 +716,6 @@
     <string name="tool_shell_job_count">列出了 %1$d 个 Shell 任务</string>
     <string name="tool_shell_job_status">已读取 Shell 任务 %1$s</string>
     <string name="tool_stopped_shell_job">已停止 Shell 任务 %1$s</string>
-    <string name="tool_shell_exit_summary">退出码 %1$d · %2$d 字节</string>
-    <string name="tool_shell_executed_successfully">命令执行成功</string>
-    <string name="tool_shell_execution_completed">命令执行完毕</string>
     <string name="tool_shell_returned_exit_code">命令返回退出码 %1$d</string>
     <string name="tool_read_file_empty">已读取 %1$s · 空文件</string>
     <string name="tool_found_no_matches">未找到匹配项</string>
@@ -831,9 +761,6 @@
     <string name="tool_found_files">找到 %1$d 个文件</string>
     <string name="tool_found_no_files">无匹配文件</string>
     <string name="tool_searched_file">找到 %1$d 处匹配</string>
-    <string name="tool_executed_shell">已执行: %1$s (%2$d 字节)</string>
-    <string name="tool_executed_no_output">已执行: %1$s (无输出)</string>
-    <string name="tool_read_file_failed">读取文件失败</string>
     <string name="crash_log_label">崩溃日志</string>
 
     <!-- Message Info -->
@@ -845,7 +772,6 @@
 
     <!-- Cost & Tokens -->
     <string name="cost_tokens">消耗 %1$d Tokens</string>
-    <string name="token_usage_with_label">Token 用量：%1$d</string>
     <string name="input_tokens_with_label">输入：%1$s</string>
     <string name="output_tokens_with_label">输出：%1$s</string>
     <string name="token_count">%1$d Tokens</string>
@@ -911,7 +837,6 @@
     <string name="delete_message_title">删除消息？</string>
     <string name="delete_message_confirm">此消息及其后的所有回复都将被永久删除。</string>
     <string name="clear_database">清除数据库</string>
-    <string name="conversation_prompt">对话指令</string>
     <string name="global_default_format">全局默认（%1$s）</string>
 
     <!-- General -->
@@ -920,14 +845,11 @@
     <string name="menu">菜单</string>
     <string name="options">选项</string>
     <!-- Queued messages banner -->
-    <string name="queue_clear_all">全部清除</string>
     <string name="video_thumbnail">视频缩略图</string>
     <string name="play">播放</string>
     <string name="video_preview">视频预览</string>
 
     <!-- Local Chat Provider -->
-    <string name="local_chat_models">本地聊天模型</string>
-    <string name="local_chat_models_count">已导入 %1$d 个模型</string>
     <string name="import_model_chat">导入 GGUF 模型</string>
     <string name="add_local_chat_model">添加本地模型</string>
     <string name="local_ctx_size">上下文大小</string>
@@ -949,7 +871,6 @@
     <string name="provider_connection">连接</string>
     <string name="local_models_title">本地模型</string>
     <string name="local_mmproj_path">Vision Projector 路径（可选）</string>
-    <string name="local_mmproj_path_hint">选择 vision 的 mmproj .gguf 文件</string>
     <string name="local_mmproj_path_label">Vision projector (.mmproj)</string>
 
     <!-- Video Slicing -->
@@ -1008,10 +929,8 @@
     <string name="rating_title">评价 Agora</string>
     <string name="rating_star">%1$d 星</string>
     <string name="rating_your_name">您的姓名（可选）</string>
-    <string name="rating_your_email">您的邮箱（可选）</string>
     <string name="rating_comment">评论（可选）</string>
     <string name="rating_submit">提交</string>
-    <string name="rating_submitting">提交中…</string>
     <string name="rating_success">感谢您的反馈！</string>
     <string name="rating_failed">提交失败，请重试。</string>
     <string name="rating_privacy">您的评分将在浏览器中打开为预填的 GitHub issue，您可在提交前审阅。</string>
@@ -1049,23 +968,13 @@
     <string name="third_party_import">第三方</string>
     <string name="claude_import_title">从 Claude 导入</string>
     <string name="claude_import_subtitle">从 Claude 导出的 .zip 文件中导入对话。</string>
-    <string name="claude_import_select_file">选择 Claude 导出文件</string>
-    <string name="claude_import_no_file">未选择文件</string>
     <string name="claude_import_conversations">对话</string>
     <string name="claude_import_messages">消息</string>
-    <string name="claude_import_human">用户消息</string>
-    <string name="claude_import_assistant">Claude 消息</string>
-    <string name="claude_import_has_attachments">包含附件</string>
-    <string name="claude_import_no_attachments">无附件</string>
-    <string name="claude_import_strategy">导入策略</string>
-    <string name="claude_import_replace">替换</string>
-    <string name="claude_import_merge">合并</string>
     <string name="claude_import_error_detail">导入失败: %1$s</string>
     <string name="claude_import_success">导入成功</string>
     <string name="claude_import_success_detail">已导入 %1$d 个对话 (%2$d 条消息)。</string>
     <string name="claude_import_import">导入</string>
     <string name="claude_import_progress">导入中…</string>
-    <string name="claude_import_preview_title">导入预览</string>
     <string name="claude_import_no_data">此文件中没有可导入的数据。</string>
     <string name="gpt_import_title">从 ChatGPT 导入</string>
     <string name="gpt_import_subtitle">从 ChatGPT 导出的 .zip 文件中导入对话。</string>
@@ -1133,7 +1042,6 @@
     <string name="onboarding_skip">跳过</string>
     <string name="onboarding_continue">继续</string>
     <string name="onboarding_get_started">开始使用</string>
-    <string name="onboarding_skip_for_now">以后再说</string>
     <string name="onboarding_api_key_hint">输入 API 密钥…</string>
     <string name="onboarding_ollama_hint">http://localhost:11434</string>
     <string name="onboarding_import_gguf">导入 GGUF 模型</string>
@@ -1179,7 +1087,6 @@
     <string name="shell_ssh_verify_title">验证 SSH 主机密钥</string>
     <string name="shell_ssh_verify_message">信任前请确认此指纹与您的服务器一致。固定主机密钥可防范中间人攻击。</string>
     <string name="shell_ssh_trust">信任并固定</string>
-    <string name="shell_ssh_verify_failed">无法连接主机：%1$s</string>
     <string name="shell_ssh_verifying">正在连接…</string>
     <string name="shell_ssh_unpin">移除已固定的密钥</string>
     <!-- Remote shell confirmation gate -->
@@ -1236,7 +1143,6 @@
     <string name="thinking_segment_display_mode_desc">Choose where thinking segments open</string>
     <string name="thinking_segment_display_card">Card</string>
     <string name="thinking_segment_display_bottom_sheet">Bottom sheet</string>
-    <string name="thinking_segments_title">Thinking segments</string>
     <string name="context_usage_messages">约 %1$s / %2$s tokens · %3$d 条逻辑消息</string>
     <string name="context_boundary_active">压缩边界已启用</string>
     <string name="context_boundary_none">无压缩边界</string>

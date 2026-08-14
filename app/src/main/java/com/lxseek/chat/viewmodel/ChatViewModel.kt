@@ -937,7 +937,7 @@ class ChatViewModel(
         scope = viewModelScope, appContext = appContext,
         languageProvider = { settings.ttsLanguage.value },
         ttsAutoPlayOn = { settings.ttsEnabled.value && settings.ttsAutoPlay.value },
-        isLoading = isLoading, ttsPlayingMessageId = _ttsPlayingMessageId,
+        isLoading = isLoading,
         sendMessage = { text -> sendMessage(text) },
         useRemoteAsr = { settings.asrUseRemote.value },
         remoteAsrBaseUrl = {

@@ -655,6 +655,38 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 trailingContent = { Switch(checked = asrUseRemote, onCheckedChange = { viewModel.settings.setAsrUseRemote(it) }) },
                             )
                         }
+                        if (asrUseRemote) {
+                            add {
+                                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    OutlinedTextField(
+                                        value = asrRemoteBaseUrl,
+                                        onValueChange = { viewModel.settings.setAsrRemoteBaseUrl(it) },
+                                        label = { Text(stringResource(R.string.asr_remote_base_url)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(16.dp),
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedTextField(
+                                        value = asrRemoteApiKey,
+                                        onValueChange = { viewModel.settings.setAsrRemoteApiKey(it) },
+                                        label = { Text(stringResource(R.string.asr_remote_api_key)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(16.dp),
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedTextField(
+                                        value = asrRemoteModel,
+                                        onValueChange = { viewModel.settings.setAsrRemoteModel(it) },
+                                        label = { Text(stringResource(R.string.asr_remote_model)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(16.dp),
+                                    )
+                                }
+                            }
+                        }
                         if (!asrIsAvailable && !asrUseRemote) {
                             add {
                                 SettingsItem(
