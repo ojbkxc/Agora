@@ -11,10 +11,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlin.math.sin
 
@@ -46,8 +48,9 @@ internal fun VoiceWaveformIndicator(
         )
     }
 
+    val density = LocalDensity.current
     val timeAxis = t * 0.06f
-    val idle = 0.16f + 0.06f * sin(timeAxis)
+    val idle = 0.16f + 0.06f * sin(timeAxis.toDouble()).toFloat()
     val speak = (smoothAmp.value * 1.25f).coerceIn(0f, 1f)
 
     val p1 = idle + speak * wave01(timeAxis + 0.0f)
@@ -57,10 +60,9 @@ internal fun VoiceWaveformIndicator(
     Canvas(modifier = modifier.size(width = (gap * 2 + ballSize * 2).dp, height = (maxJump * 2 + ballSize * 2).dp)) {
         val cy = size.height / 2f
         val cx = size.width / 2f
-        val density = this.density.density
-        val gapPx = gap * density
-        val baseRPx = ballSize * density
-        val maxJumpPx = maxJump * density
+        val gapPx = with(density) { gap.dp.toPx() }
+        val baseRPx = with(density) { ballSize.dp.toPx() }
+        val maxJumpPx = with(density) { maxJump.dp.toPx() }
 
         val x1 = cx - gapPx
         val x2 = cx
@@ -80,9 +82,11 @@ internal fun VoiceWaveformIndicator(
     }
 }
 
-private fun wave01(x: Float): Float = ((sin(x) + 1f) * 0.5f).coerceIn(0f, 1f)
+private fun wave01(t: Float): Float {
+    return ((sin(t.toDouble()) + 1.0) * 0.5).toFloat()
+}
 
 private fun bezierArcY(t: Float): Float {
     val u = 1f - t
-    return 2f * u * t + t * t * 0f
+    return 2f * u * t
 }
