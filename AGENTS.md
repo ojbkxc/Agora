@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.37` / versionCode `38` | `defaultConfig` |
+| 版本 | versionName `1.0.38` / versionCode `39` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.38 Apple 风格 UI 细化**：降低全局阴影/elevation（底部栏/顶栏/下拉菜单/语音覆盖等）、助手消息加浅灰气泡、统一圆角（18/20/24dp）、VoiceMicButton 统一风格（48dp/低阴影/弱脉冲）、设置卡片移除接缝改用细线分隔、顶栏胶囊圆角 50→16 + 高度 180→140dp。CI 全绿验证通过（CI #31791904839 ✓ / Build & Release #31791927093 ✓），Release `Agora-v1.0.38-android-arm64-v8a.apk` 已发布。
 - **v1.0.37 修复 partialTranscript bug + 远程 ASR UI + 死代码清理**：① 修复 `_partialTranscript` 不更新 bug（收集 `SttManager.partialText`）；② 添加远程 ASR 设置 UI（Base URL/API Key/Model 输入框）；③ 删除 3 个死代码文件 + 2 个死字段/参数；④ 删除 84 个孤立字符串（恢复误删的 10 个 `sandbox_snackbar_*`）。CI 全绿验证通过（CI #31788398268 ✓ / Build & Release #31788418064 ✓），Release `Agora-v1.0.37-android-arm64-v8a.apk` 已发布。
 - **v1.0.36 删除死代码 AsrModelManager + 孤立字符串**：v1.0.34 删除假 ASR UI 后的遗留清理，删除 `AsrModelManager.kt`（140 行死代码）+ 11 个孤立 ASR 字符串（en+zh）。CI 全绿验证通过（CI #31780615261 ✓ / Build & Release #31780642151 ✓），Release `Agora-v1.0.36-android-arm64-v8a.apk` 已发布。
 - **v1.0.35 接线 VoiceGradientBackground**：发现 v1.0.34 创建的 `VoiceGradientBackground.kt` 从未被调用（死代码），接入 `VoiceConversationStatusOverlay` 作为动态渐变背景。CI 全绿验证通过（CI #31779195803 ✓ / Build & Release #31779205895 ✓），Release `Agora-v1.0.35-android-arm64-v8a.apk` 已发布。
@@ -385,6 +386,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-14 v1.0.38 Apple 风格 UI 细化（本次会话）：用户要求"整体的UI不够细腻…要有那种苹果的简洁实用的美"。全面分析 58 处阴影/elevation、10 种圆角值、间距体系后实施以下改动：① **降低阴影/elevation**：底部输入栏 shadowElevation 8→0 + tonalElevation 2→1；顶栏胶囊 shadowElevation 4→0 + tonalElevation 4→2；语音覆盖 tonalElevation 6→3 + shadowElevation 8→2；抽屉搜索栏 tonalElevation 8→2 + CircleShape→RoundedCornerShape(12)；所有下拉菜单 tonalElevation 16→6（20 处）；ShareSelectionFab shadowElevation 6→2 + RoundedCornerShape(50)→16；CircularBackButton tonalElevation 6→2。② **助手消息加浅灰气泡**：`Color.Transparent` → `surfaceVariant.copy(alpha=0.6f)`，对应 iMessage 灰气泡。③ **统一圆角**：气泡 20→18dp；错误气泡 12→16dp；底部栏 28→24dp；composer 遮罩顶角 20→24dp；顶栏胶囊 RoundedCornerShape(50)→16；抽屉 24→20dp；设置卡片 24→20dp + 移除 5dp 接缝改用 0.5dp HorizontalDivider。④ **VoiceMicButton 统一**：尺寸 46→48dp；active shadowElevation 8→4dp；脉冲振幅 1.1→1.05。⑤ **间距优化**：消息行垂直 8→6dp；顶栏高度 180→140dp；设置组标题颜色 primary→onSurfaceVariant + padding 12→8dp。bump versionCode 38→39 / versionName 1.0.37→1.0.38。CI 全绿验证通过（CI #31791904839 ✓ / Build & Release #31791927093 ✓），Release `Agora-v1.0.38-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-14 v1.0.37 修复 partialTranscript bug + 远程 ASR 设置 UI + 死代码清理（本次会话）：全面检查发现并修复多个问题。① **Bug: `_partialTranscript` 永远不更新**（`VoiceConversationController.kt`）：`_partialTranscript` 仅在 `stop()`/`beginListening()` 中被设为 `""`，从未收集 `SttManager.partialText`，导致部分识别文本 UI 永远不显示。修复：添加 `partialJob` 在 `beginSystemListening()` 中收集 `SttManager.partialText` → `_partialTranscript`，`stop()` 中取消。② **Bug: 远程 ASR 设置 UI 缺失**（`SettingsGenerationPage.kt`）：`asrRemoteBaseUrl`/`asrRemoteApiKey`/`asrRemoteModel` 三个设置值已收集但从未在 UI 中显示。修复：当 `asrUseRemote=true` 时显示三个 `OutlinedTextField`（Base URL/API Key/Model）。③ **死代码清理**：删除 `AppExecutors.kt`（0 引用）、`ErrorSanitizer.kt`（0 引用）、`FontUtils.kt`（0 引用，自定义字体已删除）；删除 `VoiceConversationController.isListening` 死字段 + `ttsPlayingMessageId` 死参数（ChatViewModel 调用处同步更新）；`DataImporter.kt`/`SettingsAppearancePage.kt` 中 `readFontName()` 替换为 `file.nameWithoutExtension`。④ **孤立字符串清理**：删除 94 个孤立字符串（en+zh 各 94 个），但首次 CI 失败因误删 `sandbox_snackbar_*`（在 `app/src/fdroid/` 中使用，脚本只搜索了 `app/src/main/`）→ 恢复 10 个 `sandbox_snackbar_*` 字符串。bump versionCode 37→38 / versionName 1.0.36→1.0.37。CI 全绿验证通过（CI #31788398268 ✓ / Build & Release #31788418064 ✓），Release `Agora-v1.0.37-android-arm64-v8a.apk` 已发布。
 
