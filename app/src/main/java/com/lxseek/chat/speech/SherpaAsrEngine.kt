@@ -50,16 +50,24 @@ class SherpaAsrEngine : SpeechEngine {
     @Volatile private var errorCallback: ((Int) -> Unit)? = null
 
     override fun init(context: Context): Boolean {
-        if (nativeLoaded) return true
-        nativeLoaded = try {
-            System.loadLibrary("sherpa-onnx-jni")
-            true
-        } catch (_: UnsatisfiedLinkError) {
-            false
-        } catch (_: Throwable) {
-            false
+        if (nativeLoaded && _isModelLoaded.value) return true
+        if (!nativeLoaded) {
+            nativeLoaded = try {
+                System.loadLibrary("sherpa-onnx-jni")
+                true
+            } catch (_: UnsatisfiedLinkError) {
+                false
+            } catch (_: Throwable) {
+                false
+            }
+            _isAvailable.value = nativeLoaded
         }
-        _isAvailable.value = nativeLoaded
+        if (nativeLoaded && !_isModelLoaded.value) {
+            val kind = SherpaModelManager.ModelKind.ASR_ZIPFORMER_BILINGUAL
+            if (SherpaModelManager.isModelPresent(context, kind)) {
+                loadModel(SherpaModelManager.modelDir(context, kind).absolutePath)
+            }
+        }
         return nativeLoaded
     }
 
@@ -73,18 +81,21 @@ class SherpaAsrEngine : SpeechEngine {
         if (!nativeLoaded) return false
         val dir = File(modelDir)
         if (!dir.isDirectory) return false
+        val encoder = listOf("encoder-epoch-99-avg-1.int8.onnx", "encoder-epoch-99-avg-1.onnx").firstOrNull { File(dir, it).exists() } ?: return false
+        val decoder = listOf("decoder-epoch-99-avg-1.onnx", "decoder-epoch-99-avg-1.int8.onnx").firstOrNull { File(dir, it).exists() } ?: return false
+        val joiner = listOf("joiner-epoch-99-avg-1.int8.onnx", "joiner-epoch-99-avg-1.onnx").firstOrNull { File(dir, it).exists() } ?: return false
         return try {
             recognizer?.release()
             val config = OnlineRecognizerConfig(
                 featConfig = FeatureConfig(sampleRate = SAMPLE_RATE, featureDim = 80),
                 modelConfig = OnlineModelConfig(
                     transducer = OnlineTransducerModelConfig(
-                        encoder = "${dir.absolutePath}/encoder-epoch-99-avg-1.onnx",
-                        decoder = "${dir.absolutePath}/decoder-epoch-99-avg-1.onnx",
-                        joiner = "${dir.absolutePath}/joiner-epoch-99-avg-1.onnx",
+                        encoder = "${dir.absolutePath}/$encoder",
+                        decoder = "${dir.absolutePath}/$decoder",
+                        joiner = "${dir.absolutePath}/$joiner",
                     ),
                     tokens = "${dir.absolutePath}/tokens.txt",
-                    numThreads = 2,
+                    numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4),
                     modelType = "zipformer",
                 ),
                 endpointConfig = EndpointConfig(

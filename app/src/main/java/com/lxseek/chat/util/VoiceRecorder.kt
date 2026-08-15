@@ -10,6 +10,7 @@ import android.os.SystemClock
 import com.k2fsa.sherpa.onnx.SileroVadModelConfig
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
+import com.lxseek.chat.speech.SherpaModelManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,7 +61,7 @@ class VoiceRecorder {
                     minSilenceDuration = 0.25f,
                     minSpeechDuration = 0.25f,
                     windowSize = 512,
-                    maxSpeechDuration = 8.0f,
+                    maxSpeechDuration = 20.0f,
                 ),
                 sampleRate = SAMPLE_RATE,
                 numThreads = 1,
@@ -83,7 +84,7 @@ class VoiceRecorder {
     ) {
         if (isRecording) return
         if (!useSileroVad) {
-            val vadFile = File(context.getExternalFilesDir("sherpa_models"), "vad/silero_vad.onnx")
+            val vadFile = File(SherpaModelManager.modelDir(context, SherpaModelManager.ModelKind.VAD), "silero_vad.onnx")
             if (vadFile.exists()) initSileroVad(vadFile.absolutePath)
         }
         this.onComplete = onComplete

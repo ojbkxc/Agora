@@ -40,16 +40,24 @@ object SherpaTtsEngine {
     @Volatile private var speakThread: Thread? = null
 
     fun init(context: Context): Boolean {
-        if (nativeLoaded) return true
-        nativeLoaded = try {
-            System.loadLibrary("sherpa-onnx-jni")
-            true
-        } catch (_: UnsatisfiedLinkError) {
-            false
-        } catch (_: Throwable) {
-            false
+        if (nativeLoaded && _isModelLoaded.value) return true
+        if (!nativeLoaded) {
+            nativeLoaded = try {
+                System.loadLibrary("sherpa-onnx-jni")
+                true
+            } catch (_: UnsatisfiedLinkError) {
+                false
+            } catch (_: Throwable) {
+                false
+            }
+            _isAvailable.value = nativeLoaded
         }
-        _isAvailable.value = nativeLoaded
+        if (nativeLoaded && !_isModelLoaded.value) {
+            val kind = SherpaModelManager.ModelKind.TTS_KOKORO
+            if (SherpaModelManager.isModelPresent(context, kind)) {
+                loadModel(SherpaModelManager.modelDir(context, kind).absolutePath, ModelType.KOKORO)
+            }
+        }
         return nativeLoaded
     }
 
@@ -66,18 +74,28 @@ object SherpaTtsEngine {
         return try {
             tts?.release()
             val config = when (modelType) {
-                ModelType.KOKORO -> OfflineTtsConfig(
-                    model = OfflineTtsModelConfig(
-                        kokoro = OfflineTtsKokoroModelConfig(
-                            model = "${dir.absolutePath}/model.onnx",
-                            voices = "${dir.absolutePath}/voices.bin",
-                            tokens = "${dir.absolutePath}/tokens.txt",
-                            dataDir = dataDir.ifBlank { "${dir.absolutePath}/espeak-ng-data" },
-                            lengthScale = 1.0f,
+                ModelType.KOKORO -> {
+                    val lexiconParts = listOf("lexicon-us-en.txt", "lexicon-zh.txt")
+                        .filter { File(dir, it).exists() }
+                        .joinToString(",") { "${dir.absolutePath}/$it" }
+                    val ruleFstParts = listOf("phone-zh.fst", "date-zh.fst", "number-zh.fst")
+                        .filter { File(dir, it).exists() }
+                        .joinToString(",") { "${dir.absolutePath}/$it" }
+                    OfflineTtsConfig(
+                        model = OfflineTtsModelConfig(
+                            kokoro = OfflineTtsKokoroModelConfig(
+                                model = "${dir.absolutePath}/model.onnx",
+                                voices = "${dir.absolutePath}/voices.bin",
+                                tokens = "${dir.absolutePath}/tokens.txt",
+                                dataDir = dataDir.ifBlank { "${dir.absolutePath}/espeak-ng-data" },
+                                lexicon = lexiconParts,
+                                lengthScale = 1.0f,
+                            ),
+                            numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4),
                         ),
-                        numThreads = 2,
-                    ),
-                )
+                        ruleFsts = ruleFstParts,
+                    )
+                }
                 ModelType.VITS -> OfflineTtsConfig(
                     model = OfflineTtsModelConfig(
                         vits = OfflineTtsVitsModelConfig(
@@ -134,8 +152,6 @@ object SherpaTtsEngine {
             } catch (_: Throwable) {
             } finally {
                 try { audioTrack?.stop() } catch (_: Throwable) {}
-                try { audioTrack?.release() } catch (_: Throwable) {}
-                audioTrack = null
                 _isPlaying.value = false
             }
         }.also { it.isDaemon = true; it.name = "SherpaTtsEngine-Speak" }

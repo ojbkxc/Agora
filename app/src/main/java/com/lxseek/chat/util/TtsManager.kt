@@ -238,9 +238,15 @@ object TtsManager {
                 _isPlaying.value = true
                 watchdogJob?.cancel()
                 watchdogJob = watchdogScope.launch {
-                    SherpaTtsEngine.isPlaying.collect { playing ->
-                        _isPlaying.value = playing
-                        if (!playing) { watchdogJob?.cancel(); watchdogJob = null }
+                    val mirrorJob = launch {
+                        SherpaTtsEngine.isPlaying.collect { _isPlaying.value = it }
+                    }
+                    delay(WATCHDOG_TIMEOUT_MS)
+                    mirrorJob.cancel()
+                    if (_isPlaying.value) {
+                        log("E", "Sherpa TTS watchdog timeout (${WATCHDOG_TIMEOUT_MS}ms) — forcing stop")
+                        SherpaTtsEngine.stop()
+                        _isPlaying.value = false
                     }
                 }
             }

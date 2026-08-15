@@ -62,6 +62,7 @@ fun SettingsSherpaModelsSection(
 
         SherpaModelRow(
             label = stringResource(R.string.sherpa_model_vad),
+            sizeHint = SherpaModelManager.ModelKind.VAD.sizeHint,
             present = run { refresh; SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.VAD) },
             progress = progress["vad"],
             isDownloading = isDownloading,
@@ -73,6 +74,7 @@ fun SettingsSherpaModelsSection(
 
         SherpaModelRow(
             label = stringResource(R.string.sherpa_model_asr),
+            sizeHint = SherpaModelManager.ModelKind.ASR_ZIPFORMER_BILINGUAL.sizeHint,
             present = run { refresh; SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.ASR_ZIPFORMER_BILINGUAL) },
             progress = progress.filterKeys { it.startsWith("asr_") }.values.firstOrNull { it < 1f },
             isDownloading = isDownloading,
@@ -93,6 +95,7 @@ fun SettingsSherpaModelsSection(
 
         SherpaModelRow(
             label = stringResource(R.string.sherpa_model_tts),
+            sizeHint = SherpaModelManager.ModelKind.TTS_KOKORO.sizeHint,
             present = run { refresh; SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.TTS_KOKORO) },
             progress = progress.filterKeys { it.startsWith("tts_") }.values.firstOrNull { it < 1f },
             isDownloading = isDownloading,
@@ -115,6 +118,7 @@ fun SettingsSherpaModelsSection(
 @Composable
 private fun SherpaModelRow(
     label: String,
+    sizeHint: String,
     present: Boolean,
     progress: Float?,
     isDownloading: Boolean,
@@ -128,6 +132,11 @@ private fun SherpaModelRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = sizeHint,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             if (extraStatus != null) {
                 Text(
                     text = extraStatus,
