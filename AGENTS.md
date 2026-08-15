@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.39 sherpa-onnx 端侧 ASR/VAD/TTS 集成 + 发版**：端侧 ASR（sherpa-onnx OnlineRecognizer 流式）+ Silero VAD（AudioRecord + VoiceRecorder 重写）+ 端侧 TTS（SherpaTtsEngine）+ 模型下载管理 + 设置 UI。首次 CI 因 `VoiceRecorder.kt:216` `File()` 包裹错误失败，修复后全绿。bump versionCode 39→40 / versionName 1.0.38→1.0.39，Build & Release #31883331881 全绿（get-version ✓ / build-android ✓ / release ✓），Release `Agora-v1.0.39-android-arm64-v8a.apk` (21.64 MB) 已发布。
 - **v1.0.38 Apple 风格 UI 细化**：降低全局阴影/elevation（底部栏/顶栏/下拉菜单/语音覆盖等）、助手消息加浅灰气泡、统一圆角（18/20/24dp）、VoiceMicButton 统一风格（48dp/低阴影/弱脉冲）、设置卡片移除接缝改用细线分隔、顶栏胶囊圆角 50→16 + 高度 180→140dp。CI 全绿验证通过（CI #31791904839 ✓ / Build & Release #31791927093 ✓），Release `Agora-v1.0.38-android-arm64-v8a.apk` 已发布。
 - **v1.0.37 修复 partialTranscript bug + 远程 ASR UI + 死代码清理**：① 修复 `_partialTranscript` 不更新 bug（收集 `SttManager.partialText`）；② 添加远程 ASR 设置 UI（Base URL/API Key/Model 输入框）；③ 删除 3 个死代码文件 + 2 个死字段/参数；④ 删除 84 个孤立字符串（恢复误删的 10 个 `sandbox_snackbar_*`）。CI 全绿验证通过（CI #31788398268 ✓ / Build & Release #31788418064 ✓），Release `Agora-v1.0.37-android-arm64-v8a.apk` 已发布。
 - **v1.0.36 删除死代码 AsrModelManager + 孤立字符串**：v1.0.34 删除假 ASR UI 后的遗留清理，删除 `AsrModelManager.kt`（140 行死代码）+ 11 个孤立 ASR 字符串（en+zh）。CI 全绿验证通过（CI #31780615261 ✓ / Build & Release #31780642151 ✓），Release `Agora-v1.0.36-android-arm64-v8a.apk` 已发布。
@@ -386,6 +387,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-15 v1.0.39 发版成功（本次会话）：bump versionCode 39→40 / versionName 1.0.38→1.0.39，打 tag `v1.0.39` push 触发 Build & Release。CI #31883321252（master push）全绿，Build & Release #31883331881（tag push）全绿（get-version ✓ / build-android ✓ / release ✓），Release `Agora-v1.0.39-android-arm64-v8a.apk` (21.64 MB) 已发布到 GitHub Release。本次发版内容 = v1.0.39 sherpa-onnx 端侧 ASR/VAD/TTS 集成 + VoiceRecorder.kt 编译修复。
 
 - 2026-08-15 v1.0.39 CI 编译修复（本次会话）：首次 push v1.0.39 后 CI #31877316359 失败，`compileFdroidDebugKotlin` 报 `VoiceRecorder.kt:216` 类型错误——`File.createTempFile(...)` 已返回 `File`，却被外层 `File(...)` 构造器包裹（`File` 构造器只接受 `String`/`URI`），且 `mainHandler.looper.let { _ -> ... }` 是多余的无用 let。修复为 `val file = File.createTempFile("voice_record", ".wav")`。commit `235cb750`，CI #31877800161 全绿验证通过（build 6m7s ✓，含 Build F-Droid Debug APK ✓）。
 
