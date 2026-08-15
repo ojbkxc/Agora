@@ -309,7 +309,7 @@ class SherpaAsrEngine : SpeechEngine {
         return try {
             val stream = rec.createStream()
             stream.acceptWaveform(samples, SAMPLE_RATE)
-            while (rec.isReady(stream)) rec.decode(stream)
+            rec.decode(stream)
             val result = rec.getResult(stream)
             stream.release()
             result.text.trim()
