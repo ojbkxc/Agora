@@ -697,6 +697,12 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 )
                             }
                         }
+                        add {
+                            SettingsSherpaModelsSection(
+                                context = ttsContext,
+                                sherpaEngine = SpeechRecognitionManager.sherpaEngine,
+                            )
+                        }
                     },
                 )
             }
