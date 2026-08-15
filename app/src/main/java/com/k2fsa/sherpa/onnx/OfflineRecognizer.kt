@@ -237,7 +237,7 @@ class OfflineRecognizer(
 
     companion object {
         init {
-            System.loadLibrary("sherpa-onnx-jni")
+            try { System.loadLibrary("sherpa-onnx-jni") } catch (_: Throwable) {}
         }
 
         @JvmStatic

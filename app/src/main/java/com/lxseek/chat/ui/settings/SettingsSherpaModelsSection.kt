@@ -16,7 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -33,6 +36,7 @@ fun SettingsSherpaModelsSection(
     sherpaEngine: SherpaAsrEngine,
 ) {
     val scope = rememberCoroutineScope()
+    var refresh by remember { mutableIntStateOf(0) }
     val progress by SherpaModelManager.downloadProgress.collectAsState()
     val isDownloading by SherpaModelManager.isDownloading.collectAsState()
     val sherpaAvailable by sherpaEngine.isAvailable.collectAsState()
@@ -58,27 +62,19 @@ fun SettingsSherpaModelsSection(
 
         SherpaModelRow(
             label = stringResource(R.string.sherpa_model_vad),
-            present = SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.VAD),
+            present = run { refresh; SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.VAD) },
             progress = progress["vad"],
             isDownloading = isDownloading,
-            onDownload = {
-                scope.launch {
-                    if (SherpaModelManager.downloadVad(context)) {
-                        com.lxseek.chat.util.VoiceRecorder().initSileroVad(
-                            "${SherpaModelManager.modelDir(context, SherpaModelManager.ModelKind.VAD).absolutePath}/silero_vad.onnx",
-                        )
-                    }
-                }
-            },
-            onDelete = { SherpaModelManager.deleteModel(context, SherpaModelManager.ModelKind.VAD) },
+            onDownload = { scope.launch { SherpaModelManager.downloadVad(context) } },
+            onDelete = { SherpaModelManager.deleteModel(context, SherpaModelManager.ModelKind.VAD); refresh++ },
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         SherpaModelRow(
             label = stringResource(R.string.sherpa_model_asr),
-            present = SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.ASR_ZIPFORMER_BILINGUAL),
-            progress = progress.values.filter { it < 1f && progress.keys.any { k -> k.startsWith("asr_") } }.firstOrNull(),
+            present = run { refresh; SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.ASR_ZIPFORMER_BILINGUAL) },
+            progress = progress.filterKeys { it.startsWith("asr_") }.values.firstOrNull { it < 1f },
             isDownloading = isDownloading,
             extraStatus = if (asrModelLoaded) stringResource(R.string.sherpa_model_loaded) else null,
             onDownload = {
@@ -90,15 +86,15 @@ fun SettingsSherpaModelsSection(
                     }
                 }
             },
-            onDelete = { SherpaModelManager.deleteModel(context, SherpaModelManager.ModelKind.ASR_ZIPFORMER_BILINGUAL) },
+            onDelete = { SherpaModelManager.deleteModel(context, SherpaModelManager.ModelKind.ASR_ZIPFORMER_BILINGUAL); refresh++ },
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         SherpaModelRow(
             label = stringResource(R.string.sherpa_model_tts),
-            present = SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.TTS_KOKORO),
-            progress = progress.values.filter { it < 1f && progress.keys.any { k -> k.startsWith("tts_") } }.firstOrNull(),
+            present = run { refresh; SherpaModelManager.isModelPresent(context, SherpaModelManager.ModelKind.TTS_KOKORO) },
+            progress = progress.filterKeys { it.startsWith("tts_") }.values.firstOrNull { it < 1f },
             isDownloading = isDownloading,
             extraStatus = if (ttsModelLoaded) stringResource(R.string.sherpa_model_loaded) else null,
             onDownload = {
@@ -111,7 +107,7 @@ fun SettingsSherpaModelsSection(
                     }
                 }
             },
-            onDelete = { SherpaModelManager.deleteModel(context, SherpaModelManager.ModelKind.TTS_KOKORO) },
+            onDelete = { SherpaModelManager.deleteModel(context, SherpaModelManager.ModelKind.TTS_KOKORO); refresh++ },
         )
     }
 }
@@ -153,7 +149,8 @@ private fun SherpaModelRow(
             }
         } else {
             OutlinedButton(onClick = onDownload, enabled = !isDownloading) {
-                Text(if (isDownloading) stringResource(R.string.sherpa_model_downloading, 0) else stringResource(R.string.sherpa_model_download))
+                val pct = ((progress ?: 0f) * 100).toInt()
+                Text(if (isDownloading && progress != null && progress > 0f && progress < 1f) stringResource(R.string.sherpa_model_downloading, pct) else stringResource(R.string.sherpa_model_download))
             }
         }
     }

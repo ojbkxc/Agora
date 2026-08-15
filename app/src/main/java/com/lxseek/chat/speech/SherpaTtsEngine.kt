@@ -134,6 +134,8 @@ object SherpaTtsEngine {
             } catch (_: Throwable) {
             } finally {
                 try { audioTrack?.stop() } catch (_: Throwable) {}
+                try { audioTrack?.release() } catch (_: Throwable) {}
+                audioTrack = null
                 _isPlaying.value = false
             }
         }.also { it.isDaemon = true; it.name = "SherpaTtsEngine-Speak" }
@@ -163,7 +165,7 @@ object SherpaTtsEngine {
         audioTrack = AudioTrack(
             attr,
             format,
-            bufLength * 2,
+            bufLength * 4,
             AudioTrack.MODE_STREAM,
             AudioManager.AUDIO_SESSION_ID_GENERATE,
         )

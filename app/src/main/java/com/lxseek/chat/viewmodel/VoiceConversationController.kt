@@ -2,6 +2,7 @@ package com.lxseek.chat.viewmodel
 
 import android.content.Context
 import com.lxseek.chat.speech.RemoteTranscriber
+import com.lxseek.chat.speech.SpeechRecognitionManager
 import com.lxseek.chat.util.SttManager
 import com.lxseek.chat.util.TtsManager
 import com.lxseek.chat.util.VoiceRecorder
@@ -31,6 +32,7 @@ class VoiceConversationController(
     private val remoteAsrBaseUrl: () -> String,
     private val remoteAsrApiKey: () -> String,
     private val remoteAsrModel: () -> String,
+    private val asrEnginePref: () -> String,
 ) {
     enum class State { IDLE, LISTENING, TRANSCRIBING, PROCESSING, SPEAKING }
 
@@ -82,6 +84,7 @@ class VoiceConversationController(
         partialJob = null
         recorder.stop()
         SttManager.stopListening()
+        SpeechRecognitionManager.sherpaEngine.stopListening()
         TtsManager.stop()
         _state.value = State.IDLE
         _partialTranscript.value = ""
@@ -91,10 +94,15 @@ class VoiceConversationController(
         if (!active) return
         _state.value = State.LISTENING
         _partialTranscript.value = ""
-        if (useRemoteAsr() && remoteAsrApiKey().isNotBlank()) {
-            beginRemoteListening()
-        } else {
-            beginSystemListening()
+        val sherpaReady = SpeechRecognitionManager.sherpaEngine.let {
+            it.init(appContext)
+            it.isAvailable.value && it.isModelLoaded.value
+        }
+        val pref = asrEnginePref()
+        when {
+            useRemoteAsr() && remoteAsrApiKey().isNotBlank() -> beginRemoteListening()
+            (pref == "sherpa-onnx" || pref == "auto") && sherpaReady -> beginSherpaListening()
+            else -> beginSystemListening()
         }
     }
 
@@ -174,6 +182,47 @@ class VoiceConversationController(
             onError = { _ ->
                 if (!active) return@startListening
                 SttManager.stopListening()
+                sttErrorCount++
+                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
+                    _state.value = State.IDLE
+                    active = false
+                    observeJob?.cancel()
+                    observeJob = null
+                } else if (active) {
+                    scope.launch {
+                        delay(500)
+                        if (active) beginListening()
+                    }
+                }
+            },
+        )
+    }
+
+    private fun beginSherpaListening() {
+        val engine = SpeechRecognitionManager.sherpaEngine
+        if (!engine.isAvailable.value || !engine.isModelLoaded.value) {
+            beginSystemListening()
+            return
+        }
+        partialJob?.cancel()
+        partialJob = scope.launch {
+            engine.partialText.collect { _partialTranscript.value = it }
+        }
+        engine.startListening(
+            context = appContext,
+            language = languageProvider(),
+            onResult = { text ->
+                if (!active) return@startListening
+                engine.stopListening()
+                sttErrorCount = 0
+                _state.value = State.PROCESSING
+                waitingForLlm = true
+                llmWasLoading = false
+                sendJob = scope.launch { sendMessage(text) }
+            },
+            onError = { _ ->
+                if (!active) return@startListening
+                engine.stopListening()
                 sttErrorCount++
                 if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
                     _state.value = State.IDLE

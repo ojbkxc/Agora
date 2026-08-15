@@ -29,7 +29,6 @@ object SherpaModelManager {
         VAD("vad", "Silero VAD"),
         ASR_ZIPFORMER_BILINGUAL("asr_zipformer_bilingual_zh_en", "Zipformer Bilingual zh-en"),
         TTS_KOKORO("tts_kokoro", "Kokoro-82M"),
-        TTS_PIPER("tts_piper", "Piper/VITS"),
     }
 
     fun modelDir(context: Context, kind: ModelKind): File {
@@ -49,7 +48,6 @@ object SherpaModelManager {
                 "tokens.txt",
             ).all { File(dir, it).exists() }
             ModelKind.TTS_KOKORO -> listOf("model.onnx", "voices.bin", "tokens.txt").all { File(dir, it).exists() }
-            ModelKind.TTS_PIPER -> listOf("model.onnx", "tokens.txt").all { File(dir, it).exists() }
         }
     }
 
@@ -58,6 +56,7 @@ object SherpaModelManager {
      * Reports progress (0..1) via [downloadProgress] under the key [progressKey].
      */
     private suspend fun downloadFile(url: String, target: File, progressKey: String): Boolean = withContext(Dispatchers.IO) {
+        val tmp = File(target.parentFile, "${target.name}.tmp")
         try {
             target.parentFile?.mkdirs()
             val request = Request.Builder().url(url).build()
@@ -65,12 +64,12 @@ object SherpaModelManager {
                 if (!resp.isSuccessful) return@withContext false
                 val body = resp.body ?: return@withContext false
                 val total = body.contentLength()
-                FileOutputStream(target).use { out ->
+                FileOutputStream(tmp).use { out ->
                     val source = body.source()
                     val buffer = ByteArray(8192)
                     var downloaded = 0L
                     while (true) {
-                        val read = source.inputStream().read(buffer)
+                        val read = source.read(buffer)
                         if (read == -1) break
                         out.write(buffer, 0, read)
                         downloaded += read
@@ -81,9 +80,14 @@ object SherpaModelManager {
                     }
                 }
             }
+            if (!tmp.renameTo(target)) {
+                tmp.delete()
+                return@withContext false
+            }
             _downloadProgress.value = _downloadProgress.value + (progressKey to 1f)
             true
         } catch (_: Throwable) {
+            tmp.delete()
             false
         }
     }
@@ -141,8 +145,8 @@ object SherpaModelManager {
         _isDownloading.value = true
         try {
             val dir = modelDir(context, ModelKind.TTS_KOKORO)
-            val base = "https://huggingface.co/hexgrad/Kokoro-82M/resolve/main"
-            val files = listOf("model.onnx", "tokens.txt")
+            val base = "https://huggingface.co/k2-fsa/kokoro-82M/resolve/main"
+            val files = listOf("model.onnx", "voices.bin", "tokens.txt")
             for (f in files) {
                 if (!downloadFile("$base/$f", File(dir, f), "tts_$f")) return false
             }

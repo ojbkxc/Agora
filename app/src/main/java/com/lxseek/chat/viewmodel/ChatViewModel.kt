@@ -950,6 +950,7 @@ class ChatViewModel(
             settings.asrRemoteApiKey.value.takeIf { it.isNotBlank() } ?: settings.resolveActiveKey(p) ?: ""
         },
         remoteAsrModel = { settings.asrRemoteModel.value },
+        asrEnginePref = { settings.asrEnginePref.value },
     )
     fun toggleVoiceConversation() = voiceConversation.toggle()
     fun stopVoiceConversation() = voiceConversation.stop()

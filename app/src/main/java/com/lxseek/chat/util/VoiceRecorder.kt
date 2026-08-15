@@ -82,6 +82,10 @@ class VoiceRecorder {
         onError: (String) -> Unit,
     ) {
         if (isRecording) return
+        if (!useSileroVad) {
+            val vadFile = File(context.getExternalFilesDir("sherpa_models"), "vad/silero_vad.onnx")
+            if (vadFile.exists()) initSileroVad(vadFile.absolutePath)
+        }
         this.onComplete = onComplete
         this.onError = onError
         try {
@@ -126,9 +130,10 @@ class VoiceRecorder {
 
     private fun runSileroVadLoop(ar: AudioRecord, buffer: ShortArray, pcmCollector: ByteArrayOutputStream) {
         val vadInstance = vad ?: return
+        val windowSize = 512
         try {
             while (isRecording) {
-                val read = ar.read(buffer, 0, buffer.size)
+                val read = ar.read(buffer, 0, windowSize)
                 if (read > 0) {
                     val samples = FloatArray(read) { buffer[it] / 32768.0f }
                     _amplitude.value = computeAmplitude(samples)

@@ -21,7 +21,6 @@ import java.io.File
 private const val SAMPLE_RATE = 16000
 private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
 private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
-private const val RECORD_INTERVAL_MS = 100L
 
 class SherpaAsrEngine : SpeechEngine {
     override val id: String = "sherpa-onnx"
@@ -169,6 +168,8 @@ class SherpaAsrEngine : SpeechEngine {
                             rec.reset(stream)
                             _partialText.value = ""
                             if (text.isNotEmpty()) {
+                                isRecording = false
+                                _isListening.value = false
                                 mainHandler.post { resultCallback?.invoke(text) }
                                 break
                             }
@@ -177,7 +178,6 @@ class SherpaAsrEngine : SpeechEngine {
                         mainHandler.post { errorCallback?.invoke(SpeechError.AUDIO_CAPTURE) }
                         break
                     }
-                    Thread.sleep(RECORD_INTERVAL_MS)
                 }
             } catch (_: Throwable) {
                 mainHandler.post { errorCallback?.invoke(SpeechError.GENERIC) }
