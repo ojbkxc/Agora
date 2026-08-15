@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.40 语音识别全量修复 + 发版**：修复 sherpa-onnx ASR/VAD/TTS 集成的 3 个 P0 级 bug（ASR 未接线到语音对话/VAD 加载错误实例/Kokoro 缺 voices.bin）+ P1-P3 问题（companion init try-catch、sleep 丢音频、AudioTrack 泄漏、原子写入、进度过滤、VAD 窗口对齐等），13 文件改动。Build & Release #31889706819 全绿，Release `Agora-v1.0.40-android-arm64-v8a.apk` (21.64 MB) 已发布。
 - **v1.0.39 sherpa-onnx 端侧 ASR/VAD/TTS 集成 + 发版**：端侧 ASR（sherpa-onnx OnlineRecognizer 流式）+ Silero VAD（AudioRecord + VoiceRecorder 重写）+ 端侧 TTS（SherpaTtsEngine）+ 模型下载管理 + 设置 UI。首次 CI 因 `VoiceRecorder.kt:216` `File()` 包裹错误失败，修复后全绿。bump versionCode 39→40 / versionName 1.0.38→1.0.39，Build & Release #31883331881 全绿（get-version ✓ / build-android ✓ / release ✓），Release `Agora-v1.0.39-android-arm64-v8a.apk` (21.64 MB) 已发布。
 - **v1.0.38 Apple 风格 UI 细化**：降低全局阴影/elevation（底部栏/顶栏/下拉菜单/语音覆盖等）、助手消息加浅灰气泡、统一圆角（18/20/24dp）、VoiceMicButton 统一风格（48dp/低阴影/弱脉冲）、设置卡片移除接缝改用细线分隔、顶栏胶囊圆角 50→16 + 高度 180→140dp。CI 全绿验证通过（CI #31791904839 ✓ / Build & Release #31791927093 ✓），Release `Agora-v1.0.38-android-arm64-v8a.apk` 已发布。
 - **v1.0.37 修复 partialTranscript bug + 远程 ASR UI + 死代码清理**：① 修复 `_partialTranscript` 不更新 bug（收集 `SttManager.partialText`）；② 添加远程 ASR 设置 UI（Base URL/API Key/Model 输入框）；③ 删除 3 个死代码文件 + 2 个死字段/参数；④ 删除 84 个孤立字符串（恢复误删的 10 个 `sandbox_snackbar_*`）。CI 全绿验证通过（CI #31788398268 ✓ / Build & Release #31788418064 ✓），Release `Agora-v1.0.37-android-arm64-v8a.apk` 已发布。
@@ -387,6 +388,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-15 v1.0.40 语音识别全量修复 + 发版成功（本次会话）：用户反馈"生成里的语音识别还有很多问题"，分析发现 3 个 P0 级 bug（sherpa ASR 未接线/VAD 加载错误实例/Kokoro 缺 voices.bin）+ 多个 P1-P3 问题。全量修复 13 文件：① P0-1 VoiceConversationController 接线 SpeechRecognitionManager——sherpa ASR 现在实际用于语音对话（pref=sherpa-onnx/auto 时），不再是死代码；② P0-2 VoiceRecorder.start() 自动检测加载 VAD 模型，去掉 SettingsSherpaModelsSection 中创建临时 VoiceRecorder() 实例的错误代码；③ P0-3 downloadTtsKokoro 补 voices.bin + 改用 k2-fsa/kokoro-82M 官方仓库；④ P1：6 处 companion init loadLibrary 加 try-catch、去掉 ASR 循环 sleep、AudioTrack release、okio read + 原子写入、进度过滤 bug 修复 + 删除后 UI 刷新、VAD 512 窗口对齐；⑤ P2/P3：endpoint 状态复位、删 TTS_PIPER 死代码、下载按钮显示实际进度百分比。CI #31889298972 全绿，Build & Release #31889706819 全绿（get-version ✓ / build-android ✓ / release ✓），Release `Agora-v1.0.40-android-arm64-v8a.apk` (21.64 MB) 已发布。
 
 - 2026-08-15 v1.0.39 发版成功（本次会话）：bump versionCode 39→40 / versionName 1.0.38→1.0.39，打 tag `v1.0.39` push 触发 Build & Release。CI #31883321252（master push）全绿，Build & Release #31883331881（tag push）全绿（get-version ✓ / build-android ✓ / release ✓），Release `Agora-v1.0.39-android-arm64-v8a.apk` (21.64 MB) 已发布到 GitHub Release。本次发版内容 = v1.0.39 sherpa-onnx 端侧 ASR/VAD/TTS 集成 + VoiceRecorder.kt 编译修复。
 
