@@ -25,12 +25,20 @@ object RemoteTranscriber {
     ): String? = withContext(Dispatchers.IO) {
         if (apiKey.isBlank() || baseUrl.isBlank()) return@withContext null
         val url = "${baseUrl.trimEnd('/')}/audio/transcriptions"
+        val mimeType = when (audioFile.extension.lowercase()) {
+            "wav" -> "audio/wav"
+            "m4a", "mp4" -> "audio/mpeg"
+            "mp3" -> "audio/mpeg"
+            "flac" -> "audio/flac"
+            "ogg" -> "audio/ogg"
+            else -> "application/octet-stream"
+        }
         val builder = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart("model", model)
             .addFormDataPart(
                 "file",
                 audioFile.name,
-                audioFile.asRequestBody("audio/mpeg".toMediaType()),
+                audioFile.asRequestBody(mimeType.toMediaType()),
             )
         if (!language.isNullOrBlank()) {
             builder.addFormDataPart("language", language)
