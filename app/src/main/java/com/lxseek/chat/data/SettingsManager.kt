@@ -397,6 +397,9 @@ class SettingsManager(private val context: Context) {
     val asrRemoteBaseUrl: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_BASE_URL] ?: "https://api.openai.com/v1" }
     val asrRemoteApiKey: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_API_KEY] ?: "" }
     val asrRemoteModel: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_MODEL] ?: "whisper-1" }
+    val vadThreshold: Flow<Float> = context.dataStore.data.map { it[VAD_THRESHOLD]?.toFloatOrNull() ?: 0.5f }
+    val vadMinSilence: Flow<Float> = context.dataStore.data.map { it[VAD_MIN_SILENCE]?.toFloatOrNull() ?: 0.25f }
+    val vadMaxSpeech: Flow<Float> = context.dataStore.data.map { it[VAD_MAX_SPEECH]?.toFloatOrNull() ?: 20.0f }
 
     suspend fun saveShareIncludeThinking(enabled: Boolean) {
         context.dataStore.edit { it[SHARE_INCLUDE_THINKING] = enabled }
@@ -428,6 +431,18 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveAsrRemoteModel(model: String) {
         context.dataStore.edit { it[ASR_REMOTE_MODEL] = model }
+    }
+
+    suspend fun saveVadThreshold(value: Float) {
+        context.dataStore.edit { it[VAD_THRESHOLD] = value.toString() }
+    }
+
+    suspend fun saveVadMinSilence(value: Float) {
+        context.dataStore.edit { it[VAD_MIN_SILENCE] = value.toString() }
+    }
+
+    suspend fun saveVadMaxSpeech(value: Float) {
+        context.dataStore.edit { it[VAD_MAX_SPEECH] = value.toString() }
     }
 
     suspend fun saveTtsLanguage(language: String) {
@@ -859,6 +874,9 @@ class SettingsManager(private val context: Context) {
             prefs.remove(ASR_REMOTE_BASE_URL)
             prefs.remove(ASR_REMOTE_API_KEY)
             prefs.remove(ASR_REMOTE_MODEL)
+            prefs.remove(VAD_THRESHOLD)
+            prefs.remove(VAD_MIN_SILENCE)
+            prefs.remove(VAD_MAX_SPEECH)
             prefs.remove(THINKING_LEVEL)
             prefs.remove(THINKING_BUDGET_ENABLED)
             prefs.remove(THINKING_BUDGET_TOKENS)

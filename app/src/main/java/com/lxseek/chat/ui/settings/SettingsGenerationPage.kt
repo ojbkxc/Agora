@@ -87,6 +87,9 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val asrRemoteBaseUrl by viewModel.settings.asrRemoteBaseUrl.collectAsState()
     val asrRemoteApiKey by viewModel.settings.asrRemoteApiKey.collectAsState()
     val asrRemoteModel by viewModel.settings.asrRemoteModel.collectAsState()
+    val vadThreshold by viewModel.settings.vadThreshold.collectAsState()
+    val vadMinSilence by viewModel.settings.vadMinSilence.collectAsState()
+    val vadMaxSpeech by viewModel.settings.vadMaxSpeech.collectAsState()
     val asrIsAvailable by SpeechRecognitionManager.isAvailable.collectAsState()
 
     CollapsingSettingsScaffold(
@@ -701,6 +704,12 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsSherpaModelsSection(
                                 context = ttsContext,
                                 sherpaEngine = SpeechRecognitionManager.sherpaEngine,
+                                vadThreshold = vadThreshold,
+                                vadMinSilence = vadMinSilence,
+                                vadMaxSpeech = vadMaxSpeech,
+                                onVadThresholdChange = { viewModel.settings.setVadThreshold(it) },
+                                onVadMinSilenceChange = { viewModel.settings.setVadMinSilence(it) },
+                                onVadMaxSpeechChange = { viewModel.settings.setVadMaxSpeech(it) },
                             )
                         }
                     },

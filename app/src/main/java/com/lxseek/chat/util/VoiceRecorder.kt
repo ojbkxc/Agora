@@ -30,6 +30,12 @@ class VoiceRecorder {
 
     enum class RecordingState { IDLE, RECORDING, STOPPING }
 
+    companion object {
+        @Volatile var vadThreshold: Float = 0.5f
+        @Volatile var vadMinSilence: Float = 0.25f
+        @Volatile var vadMaxSpeech: Float = 20.0f
+    }
+
     private val _state = MutableStateFlow(RecordingState.IDLE)
     val state: StateFlow<RecordingState> = _state.asStateFlow()
 
@@ -57,11 +63,11 @@ class VoiceRecorder {
             val config = VadModelConfig(
                 sileroVadModelConfig = SileroVadModelConfig(
                     model = modelPath,
-                    threshold = 0.5f,
-                    minSilenceDuration = 0.25f,
+                    threshold = vadThreshold,
+                    minSilenceDuration = vadMinSilence,
                     minSpeechDuration = 0.25f,
                     windowSize = 512,
-                    maxSpeechDuration = 20.0f,
+                    maxSpeechDuration = vadMaxSpeech,
                 ),
                 sampleRate = SAMPLE_RATE,
                 numThreads = 1,

@@ -28,6 +28,7 @@ object SherpaModelManager {
 
     private const val GITHUB_ASR = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models"
     private const val HF_ASR = "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20/resolve/main"
+    private const val HF_SENSE_VOICE = "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main"
     private const val GITHUB_TTS = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models"
 
     private val _downloadProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
@@ -36,10 +37,15 @@ object SherpaModelManager {
     private val _isDownloading = MutableStateFlow(false)
     val isDownloading: StateFlow<Boolean> = _isDownloading.asStateFlow()
 
-    enum class ModelKind(val subdir: String, val displayName: String, val sizeHint: String) {
-        VAD("vad", "Silero VAD", "~2 MB"),
-        ASR_ZIPFORMER_BILINGUAL("asr_zipformer_bilingual_zh_en", "Zipformer Bilingual zh-en (int8)", "~180 MB"),
-        TTS_KOKORO("tts_kokoro", "Kokoro Multi-lang v1.0", "~200 MB"),
+    enum class Category { VAD, ASR, TTS }
+
+    enum class ModelKind(val subdir: String, val displayName: String, val sizeHint: String, val category: Category, val description: String) {
+        VAD("vad", "Silero VAD", "~2 MB", Category.VAD, "Voice activity detection"),
+        ASR_ZIPFORMER_BILINGUAL("asr_zipformer_bilingual_zh_en", "Zipformer Bilingual zh-en (int8)", "~180 MB", Category.ASR, "Streaming, zh+en, real-time partial"),
+        ASR_SENSE_VOICE("asr_sense_voice", "SenseVoice Multi-lang (int8)", "~100 MB", Category.ASR, "Offline, zh+en+ja+ko+yue, higher accuracy"),
+        TTS_KOKORO("tts_kokoro_v1_0", "Kokoro Multi-lang v1.0", "~200 MB", Category.TTS, "zh+en, natural voice"),
+        TTS_KOKORO_V1_1("tts_kokoro_v1_1", "Kokoro Multi-lang v1.1", "~200 MB", Category.TTS, "zh+en, improved quality"),
+        TTS_KOKORO_INT8_V1_1("tts_kokoro_int8_v1_1", "Kokoro int8 v1.1", "~100 MB", Category.TTS, "zh+en, smaller size"),
     }
 
     fun modelDir(context: Context, kind: ModelKind): File {
@@ -58,13 +64,19 @@ object SherpaModelManager {
                 "joiner-epoch-99-avg-1.int8.onnx",
                 "tokens.txt",
             ).all { File(dir, it).exists() }
-            ModelKind.TTS_KOKORO -> listOf(
-                "model.onnx", "voices.bin", "tokens.txt",
-                "lexicon-us-en.txt", "lexicon-zh.txt",
-                "phone-zh.fst", "date-zh.fst", "number-zh.fst",
-            ).all { File(dir, it).exists() } && File(dir, "espeak-ng-data").isDirectory
+            ModelKind.ASR_SENSE_VOICE -> listOf(
+                "model.int8.onnx",
+                "tokens.txt",
+            ).all { File(dir, it).exists() }
+            ModelKind.TTS_KOKORO, ModelKind.TTS_KOKORO_V1_1 -> kokoroFilesPresent(dir, "model.onnx")
+            ModelKind.TTS_KOKORO_INT8_V1_1 -> kokoroFilesPresent(dir, "model.int8.onnx")
         }
     }
+
+    private fun kokoroFilesPresent(dir: File, modelFile: String): Boolean =
+        listOf(modelFile, "voices.bin", "tokens.txt", "lexicon-us-en.txt", "lexicon-zh.txt",
+            "phone-zh.fst", "date-zh.fst", "number-zh.fst").all { File(dir, it).exists() }
+            && File(dir, "espeak-ng-data").isDirectory
 
     private suspend fun downloadFile(url: String, target: File, progressKey: String): Boolean = withContext(Dispatchers.IO) {
         val tmp = File(target.parentFile, "${target.name}.tmp")
@@ -197,6 +209,59 @@ object SherpaModelManager {
         } finally {
             _isDownloading.value = false
         }
+    }
+
+    /** Downloads SenseVoice multi-language ASR model (int8, ~100MB). */
+    suspend fun downloadAsrSenseVoice(context: Context): Boolean {
+        if (_isDownloading.value) return false
+        _isDownloading.value = true
+        try {
+            val dir = modelDir(context, ModelKind.ASR_SENSE_VOICE)
+            val files = listOf("model.int8.onnx", "tokens.txt")
+            for (f in files) {
+                if (!downloadFile("$HF_SENSE_VOICE/$f", File(dir, f), "asr_sv_$f")) return false
+            }
+            return true
+        } finally {
+            _isDownloading.value = false
+        }
+    }
+
+    /** Downloads Kokoro v1.1 TTS model (~200MB). */
+    suspend fun downloadTtsKokoroV11(context: Context): Boolean =
+        downloadTtsTarball(context, ModelKind.TTS_KOKORO_V1_1, "kokoro-multi-lang-v1_1.tar.bz2")
+
+    /** Downloads Kokoro int8 v1.1 TTS model (~100MB). */
+    suspend fun downloadTtsKokoroInt8V11(context: Context): Boolean =
+        downloadTtsTarball(context, ModelKind.TTS_KOKORO_INT8_V1_1, "kokoro-int8-multi-lang-v1_1.tar.bz2")
+
+    private suspend fun downloadTtsTarball(context: Context, kind: ModelKind, tarballName: String): Boolean {
+        if (_isDownloading.value) return false
+        _isDownloading.value = true
+        return try {
+            val dir = modelDir(context, kind)
+            dir.deleteRecursively()
+            val tarball = File(context.cacheDir, tarballName)
+            if (!downloadFile("$GITHUB_TTS/$tarballName", tarball, "tts_tar")) return false
+            withContext(Dispatchers.IO) { extractTarBz2(tarball, dir, stripComponents = 1) }
+            tarball.delete()
+            _downloadProgress.value = _downloadProgress.value + ("tts_tar" to 1f)
+            isModelPresent(context, kind)
+        } catch (_: Throwable) {
+            false
+        } finally {
+            _isDownloading.value = false
+        }
+    }
+
+    /** Generic download dispatch by ModelKind. */
+    suspend fun download(context: Context, kind: ModelKind): Boolean = when (kind) {
+        ModelKind.VAD -> downloadVad(context)
+        ModelKind.ASR_ZIPFORMER_BILINGUAL -> downloadAsrZipformerBilingual(context)
+        ModelKind.ASR_SENSE_VOICE -> downloadAsrSenseVoice(context)
+        ModelKind.TTS_KOKORO -> downloadTtsKokoro(context)
+        ModelKind.TTS_KOKORO_V1_1 -> downloadTtsKokoroV11(context)
+        ModelKind.TTS_KOKORO_INT8_V1_1 -> downloadTtsKokoroInt8V11(context)
     }
 
     fun clearProgress(key: String) {

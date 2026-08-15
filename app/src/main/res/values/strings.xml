@@ -157,6 +157,15 @@
     <string name="sherpa_model_delete">Delete</string>
     <string name="sherpa_model_load">Load</string>
     <string name="sherpa_model_loaded">Loaded</string>
+    <string name="sherpa_vad_params">VAD Parameters</string>
+    <string name="sherpa_vad_threshold">Sensitivity</string>
+    <string name="sherpa_vad_min_silence">Min silence (s)</string>
+    <string name="sherpa_vad_max_speech">Max speech (s)</string>
+    <string name="sherpa_download_all">Download All Models</string>
+    <string name="sherpa_no_models_title">No speech models downloaded</string>
+    <string name="sherpa_no_models_msg">Download voice models to enable offline speech recognition and TTS. Models range from 2 MB to 200 MB.</string>
+    <string name="sherpa_no_models_download">Download</string>
+    <string name="sherpa_no_models_later">Later</string>
     <string name="asr_use_remote">Use Remote Transcription (Whisper API)</string>
     <string name="asr_use_remote_desc">Record audio locally and transcribe via OpenAI-compatible API. More reliable than system STT.</string>
     <string name="asr_remote_base_url">API Base URL</string>

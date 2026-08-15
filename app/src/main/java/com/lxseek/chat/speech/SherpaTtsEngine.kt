@@ -53,9 +53,15 @@ object SherpaTtsEngine {
             _isAvailable.value = nativeLoaded
         }
         if (nativeLoaded && !_isModelLoaded.value) {
-            val kind = SherpaModelManager.ModelKind.TTS_KOKORO
-            if (SherpaModelManager.isModelPresent(context, kind)) {
-                loadModel(SherpaModelManager.modelDir(context, kind).absolutePath, ModelType.KOKORO)
+            for (kind in listOf(
+                SherpaModelManager.ModelKind.TTS_KOKORO,
+                SherpaModelManager.ModelKind.TTS_KOKORO_V1_1,
+                SherpaModelManager.ModelKind.TTS_KOKORO_INT8_V1_1,
+            )) {
+                if (SherpaModelManager.isModelPresent(context, kind)) {
+                    loadModel(SherpaModelManager.modelDir(context, kind).absolutePath, ModelType.KOKORO)
+                    break
+                }
             }
         }
         return nativeLoaded
@@ -75,6 +81,7 @@ object SherpaTtsEngine {
             tts?.release()
             val config = when (modelType) {
                 ModelType.KOKORO -> {
+                    val modelFile = listOf("model.int8.onnx", "model.onnx").firstOrNull { File(dir, it).exists() } ?: "model.onnx"
                     val lexiconParts = listOf("lexicon-us-en.txt", "lexicon-zh.txt")
                         .filter { File(dir, it).exists() }
                         .joinToString(",") { "${dir.absolutePath}/$it" }
@@ -84,7 +91,7 @@ object SherpaTtsEngine {
                     OfflineTtsConfig(
                         model = OfflineTtsModelConfig(
                             kokoro = OfflineTtsKokoroModelConfig(
-                                model = "${dir.absolutePath}/model.onnx",
+                                model = "${dir.absolutePath}/$modelFile",
                                 voices = "${dir.absolutePath}/voices.bin",
                                 tokens = "${dir.absolutePath}/tokens.txt",
                                 dataDir = dataDir.ifBlank { "${dir.absolutePath}/espeak-ng-data" },
@@ -92,6 +99,7 @@ object SherpaTtsEngine {
                                 lengthScale = 1.0f,
                             ),
                             numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4),
+                            provider = "cpu",
                         ),
                         ruleFsts = ruleFstParts,
                     )
