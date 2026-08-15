@@ -213,7 +213,7 @@ class VoiceRecorder {
         _amplitude.value = 0f
         _state.value = RecordingState.IDLE
         if (pcmBytes.size > 0) {
-            val file = File(mainHandler.looper.let { _ -> File.createTempFile("voice_record", ".wav") })
+            val file = File.createTempFile("voice_record", ".wav")
             writeWavFile(file, pcmBytes)
             mainHandler.post { onComplete?.invoke(file) }
         }
