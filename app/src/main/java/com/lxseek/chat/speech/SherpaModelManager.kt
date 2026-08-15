@@ -178,7 +178,7 @@ object SherpaModelManager {
     suspend fun downloadTtsKokoro(context: Context): Boolean {
         if (_isDownloading.value) return false
         _isDownloading.value = true
-        try {
+        return try {
             val dir = modelDir(context, ModelKind.TTS_KOKORO)
             dir.deleteRecursively()
             val tarball = File(context.cacheDir, "kokoro-multi-lang-v1_0.tar.bz2")
@@ -191,7 +191,7 @@ object SherpaModelManager {
             }
             tarball.delete()
             _downloadProgress.value = _downloadProgress.value + ("tts_tar" to 1f)
-            return isModelPresent(context, ModelKind.TTS_KOKORO)
+            isModelPresent(context, ModelKind.TTS_KOKORO)
         } catch (_: Throwable) {
             false
         } finally {
