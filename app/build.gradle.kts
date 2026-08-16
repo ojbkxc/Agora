@@ -27,8 +27,8 @@ android {
         applicationId = "com.lxseek.chat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 49
-        versionName = "1.0.48"
+        versionCode = 50
+        versionName = "1.0.49"
 
 
         ndk {

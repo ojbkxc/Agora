@@ -7,6 +7,7 @@ import android.media.MediaRecorder
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import com.k2fsa.sherpa.onnx.SileroVadModelConfig
 import com.k2fsa.sherpa.onnx.Vad
 import com.k2fsa.sherpa.onnx.VadModelConfig
@@ -18,6 +19,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
+private const val TAG = "VoiceRecorder"
 private const val SAMPLE_RATE = 16000
 private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
 private val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
@@ -75,8 +77,10 @@ class VoiceRecorder {
             )
             vad = Vad(config = config)
             useSileroVad = true
+            Log.i(TAG, "Silero VAD initialized: $modelPath")
             true
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            Log.e(TAG, "initSileroVad failed: ${e.javaClass.simpleName}: ${e.message}", e)
             vad = null
             useSileroVad = false
             false
@@ -88,9 +92,13 @@ class VoiceRecorder {
         onComplete: (File) -> Unit,
         onError: (String) -> Unit,
     ) {
-        if (isRecording) return
+        if (isRecording) {
+            Log.w(TAG, "start: already recording, ignoring")
+            return
+        }
         if (!useSileroVad) {
             val vadFile = File(SherpaModelManager.modelDir(context, SherpaModelManager.ModelKind.VAD), "silero_vad.onnx")
+            Log.d(TAG, "start: checking VAD model at ${vadFile.absolutePath}, exists=${vadFile.exists()}")
             if (vadFile.exists()) initSileroVad(vadFile.absolutePath)
         }
         this.onComplete = onComplete
@@ -106,6 +114,7 @@ class VoiceRecorder {
                 bufSize,
             )
             if (ar.state != AudioRecord.STATE_INITIALIZED) {
+                Log.e(TAG, "start: AudioRecord not initialized (state=${ar.state})")
                 ar.release()
                 onError("Failed to initialize AudioRecord")
                 return
@@ -115,8 +124,10 @@ class VoiceRecorder {
             startTimeMs = SystemClock.elapsedRealtime()
             _state.value = RecordingState.RECORDING
             ar.startRecording()
+            Log.i(TAG, "start: AudioRecord started, bufSize=$bufSize, useSileroVad=$useSileroVad")
             startRecordingLoop(ar, bufSize)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            Log.e(TAG, "start crashed: ${e.javaClass.simpleName}: ${e.message}", e)
             cleanup()
             onError("Failed to start recording: ${e.message}")
         }
@@ -165,8 +176,9 @@ class VoiceRecorder {
                     return
                 }
             }
-        } catch (_: Throwable) {
-            mainHandler.post { onError?.invoke("Silero VAD loop failed") }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Silero VAD loop failed: ${e.javaClass.simpleName}: ${e.message}", e)
+            mainHandler.post { onError?.invoke("Silero VAD loop failed: ${e.message}") }
             stopInternal(autoStop = false)
         }
     }
@@ -209,8 +221,9 @@ class VoiceRecorder {
                     return
                 }
             }
-        } catch (_: Throwable) {
-            mainHandler.post { onError?.invoke("RMS VAD loop failed") }
+        } catch (e: Throwable) {
+            Log.e(TAG, "RMS VAD loop failed: ${e.javaClass.simpleName}: ${e.message}", e)
+            mainHandler.post { onError?.invoke("RMS VAD loop failed: ${e.message}") }
             stopInternal(autoStop = false)
         }
     }
@@ -224,10 +237,14 @@ class VoiceRecorder {
         audioRecord = null
         _amplitude.value = 0f
         _state.value = RecordingState.IDLE
+        Log.i(TAG, "finishWithPcm: ${pcmBytes.size} bytes")
         if (pcmBytes.size > 0) {
             val file = File.createTempFile("voice_record", ".wav")
             writeWavFile(file, pcmBytes)
             mainHandler.post { onComplete?.invoke(file) }
+        } else {
+            Log.w(TAG, "finishWithPcm: empty PCM, calling onError")
+            mainHandler.post { onError?.invoke("No audio captured") }
         }
     }
 

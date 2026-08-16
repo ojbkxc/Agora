@@ -66,7 +66,14 @@ class VoiceConversationController(
         sttErrorCount = 0
         waitingForLlm = false
         llmWasLoading = false
-        beginListening()
+        try {
+            beginListening()
+        } catch (e: Throwable) {
+            Log.e(TAG, "start() beginListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            active = false
+            _state.value = State.IDLE
+            return
+        }
         observeJob?.cancel()
         observeJob = scope.launch { observeLlmAndTts() }
         if (ttsObserverJob == null) {
@@ -96,114 +103,165 @@ class VoiceConversationController(
         if (!active) return
         _state.value = State.LISTENING
         _partialTranscript.value = ""
-        val sherpaReady = SpeechRecognitionManager.sherpaEngine.let {
-            it.init(appContext)
-            it.isAvailable.value && it.isModelLoaded.value
-        }
-        val pref = asrEnginePref()
-        Log.i(TAG, "beginListening: pref=$pref, sherpaReady=$sherpaReady, useRemote=${useRemoteAsr()}, remoteKey=${remoteAsrApiKey().isNotBlank()}")
-        when {
-            useRemoteAsr() && remoteAsrApiKey().isNotBlank() -> beginRemoteListening()
-            (pref == "sherpa-onnx" || pref == "auto") && sherpaReady -> beginSherpaListening()
-            else -> {
-                if ((pref == "sherpa-onnx" || pref == "auto") && !sherpaReady) {
-                    Log.w(TAG, "Falling back to system ASR: sherpa pref=$pref but sherpaReady=false (native=${SpeechRecognitionManager.sherpaEngine.isAvailable.value}, model=${SpeechRecognitionManager.sherpaEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.sherpaEngine.lastError.value})")
-                }
-                beginSystemListening()
+        val sherpaReady = try {
+            SpeechRecognitionManager.sherpaEngine.let {
+                it.init(appContext)
+                it.isAvailable.value && it.isModelLoaded.value
             }
+        } catch (e: Throwable) {
+            Log.e(TAG, "beginListening: sherpa init crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            false
+        }
+        val pref = try { asrEnginePref() } catch (e: Throwable) { Log.e(TAG, "asrEnginePref crashed: ${e.message}", e); "auto" }
+        val useRemote = try { useRemoteAsr() } catch (e: Throwable) { Log.e(TAG, "useRemoteAsr crashed: ${e.message}", e); false }
+        val remoteKeyBlank = try { remoteAsrApiKey().isNotBlank() } catch (e: Throwable) { Log.e(TAG, "remoteAsrApiKey crashed: ${e.message}", e); false }
+        Log.i(TAG, "beginListening: pref=$pref, sherpaReady=$sherpaReady, useRemote=$useRemote, remoteKeyBlank=$remoteKeyBlank")
+        try {
+            when {
+                useRemote && remoteKeyBlank -> beginRemoteListening()
+                (pref == "sherpa-onnx" || pref == "auto") && sherpaReady -> beginSherpaListening()
+                else -> {
+                    if ((pref == "sherpa-onnx" || pref == "auto") && !sherpaReady) {
+                        Log.w(TAG, "Falling back to system ASR: sherpa pref=$pref but sherpaReady=false (native=${SpeechRecognitionManager.sherpaEngine.isAvailable.value}, model=${SpeechRecognitionManager.sherpaEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.sherpaEngine.lastError.value})")
+                    }
+                    beginSystemListening()
+                }
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "beginListening: dispatch crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            _state.value = State.IDLE
+            active = false
         }
     }
 
     private fun beginRemoteListening() {
-        recorder.start(
-            context = appContext,
-            onComplete = { file ->
-                if (!active) return@start
-                _state.value = State.TRANSCRIBING
-                scope.launch {
-                    val lang = languageProvider()
-                    val languageParam = when (lang) {
-                        "en" -> "en"
-                        "zh" -> "zh"
-                        else -> null
-                    }
-                    val text = RemoteTranscriber.transcribe(
-                        baseUrl = remoteAsrBaseUrl(),
-                        apiKey = remoteAsrApiKey(),
-                        audioFile = file,
-                        model = remoteAsrModel(),
-                        language = languageParam,
-                    )
-                    file.delete()
-                    if (!active) return@launch
-                    if (text != null) {
-                        sttErrorCount = 0
-                        _state.value = State.PROCESSING
-                        waitingForLlm = true
-                        llmWasLoading = false
-                        sendJob = scope.launch { sendMessage(text) }
-                    } else {
-                        sttErrorCount++
-                        if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                            _state.value = State.IDLE
-                            active = false
-                        } else if (active) {
-                            delay(500)
-                            beginListening()
+        Log.i(TAG, "beginRemoteListening: starting recorder")
+        try {
+            recorder.start(
+                context = appContext,
+                onComplete = { file ->
+                    if (!active) return@start
+                    Log.i(TAG, "Recorder onComplete: ${file.absolutePath} (${file.length()} bytes)")
+                    _state.value = State.TRANSCRIBING
+                    scope.launch {
+                        try {
+                            val lang = languageProvider()
+                            val languageParam = when (lang) {
+                                "en" -> "en"
+                                "zh" -> "zh"
+                                else -> null
+                            }
+                            val baseUrl = remoteAsrBaseUrl()
+                            val apiKey = remoteAsrApiKey()
+                            val model = remoteAsrModel()
+                            Log.i(TAG, "RemoteTranscriber: baseUrl=$baseUrl, model=$model, lang=$languageParam")
+                            val text = RemoteTranscriber.transcribe(
+                                baseUrl = baseUrl,
+                                apiKey = apiKey,
+                                audioFile = file,
+                                model = model,
+                                language = languageParam,
+                            )
+                            file.delete()
+                            if (!active) return@launch
+                            if (text != null) {
+                                Log.i(TAG, "RemoteTranscriber result: '$text'")
+                                sttErrorCount = 0
+                                _state.value = State.PROCESSING
+                                waitingForLlm = true
+                                llmWasLoading = false
+                                sendJob = scope.launch { sendMessage(text) }
+                            } else {
+                                Log.w(TAG, "RemoteTranscriber returned null (error or empty)")
+                                sttErrorCount++
+                                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
+                                    _state.value = State.IDLE
+                                    active = false
+                                } else if (active) {
+                                    delay(500)
+                                    beginListening()
+                                }
+                            }
+                        } catch (e: Throwable) {
+                            Log.e(TAG, "beginRemoteListening coroutine crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+                            file.delete()
+                            if (active) {
+                                sttErrorCount++
+                                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
+                                    _state.value = State.IDLE
+                                    active = false
+                                } else {
+                                    _state.value = State.IDLE
+                                }
+                            }
                         }
                     }
-                }
-            },
-            onError = { _ ->
-                if (!active) return@start
-                sttErrorCount++
-                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                    _state.value = State.IDLE
-                    active = false
-                    observeJob?.cancel()
-                    observeJob = null
-                } else if (active) {
-                    beginSystemListening()
-                }
-            },
-        )
+                },
+                onError = { err ->
+                    if (!active) return@start
+                    Log.e(TAG, "Recorder onError: $err")
+                    sttErrorCount++
+                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
+                        _state.value = State.IDLE
+                        active = false
+                        observeJob?.cancel()
+                        observeJob = null
+                    } else if (active) {
+                        beginSystemListening()
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "beginRemoteListening: recorder.start crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            _state.value = State.IDLE
+            active = false
+        }
     }
 
     private fun beginSystemListening() {
-        partialJob?.cancel()
-        partialJob = scope.launch {
-            SttManager.partialText.collect { _partialTranscript.value = it }
-        }
-        SttManager.init(appContext)
-        SttManager.startListening(
-            context = appContext,
-            language = languageProvider(),
-            onResult = { text ->
-                if (!active) return@startListening
-                SttManager.stopListening()
-                sttErrorCount = 0
-                _state.value = State.PROCESSING
-                waitingForLlm = true
-                llmWasLoading = false
-                sendJob = scope.launch { sendMessage(text) }
-            },
-            onError = { _ ->
-                if (!active) return@startListening
-                SttManager.stopListening()
-                sttErrorCount++
-                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                    _state.value = State.IDLE
-                    active = false
-                    observeJob?.cancel()
-                    observeJob = null
-                } else if (active) {
-                    scope.launch {
-                        delay(500)
-                        if (active) beginListening()
+        Log.i(TAG, "beginSystemListening: starting system ASR")
+        try {
+            partialJob?.cancel()
+            partialJob = scope.launch {
+                SttManager.partialText.collect { _partialTranscript.value = it }
+            }
+            SttManager.init(appContext)
+            SttManager.startListening(
+                context = appContext,
+                language = languageProvider(),
+                onResult = { text ->
+                    if (!active) return@startListening
+                    Log.i(TAG, "System ASR result: '$text'")
+                    SttManager.stopListening()
+                    sttErrorCount = 0
+                    _state.value = State.PROCESSING
+                    waitingForLlm = true
+                    llmWasLoading = false
+                    sendJob = scope.launch { sendMessage(text) }
+                },
+                onError = { err ->
+                    if (!active) return@startListening
+                    Log.w(TAG, "System ASR error: $err")
+                    SttManager.stopListening()
+                    sttErrorCount++
+                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
+                        _state.value = State.IDLE
+                        active = false
+                        observeJob?.cancel()
+                        observeJob = null
+                    } else if (active) {
+                        scope.launch {
+                            delay(500)
+                            if (active) beginListening()
+                        }
                     }
-                }
-            },
-        )
+                },
+            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "beginSystemListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            _state.value = State.IDLE
+            active = false
+        }
     }
 
     private fun beginSherpaListening() {
@@ -214,39 +272,46 @@ class VoiceConversationController(
             return
         }
         Log.i(TAG, "beginSherpaListening: starting sherpa ASR (offline=${engine.lastError.value == null})")
-        partialJob?.cancel()
-        partialJob = scope.launch {
-            engine.partialText.collect { _partialTranscript.value = it }
-        }
-        engine.startListening(
-            context = appContext,
-            language = languageProvider(),
-            onResult = { text ->
-                if (!active) return@startListening
-                engine.stopListening()
-                sttErrorCount = 0
-                _state.value = State.PROCESSING
-                waitingForLlm = true
-                llmWasLoading = false
-                sendJob = scope.launch { sendMessage(text) }
-            },
-            onError = { _ ->
-                if (!active) return@startListening
-                engine.stopListening()
-                sttErrorCount++
-                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                    _state.value = State.IDLE
-                    active = false
-                    observeJob?.cancel()
-                    observeJob = null
-                } else if (active) {
-                    scope.launch {
-                        delay(500)
-                        if (active) beginListening()
+        try {
+            partialJob?.cancel()
+            partialJob = scope.launch {
+                engine.partialText.collect { _partialTranscript.value = it }
+            }
+            engine.startListening(
+                context = appContext,
+                language = languageProvider(),
+                onResult = { text ->
+                    if (!active) return@startListening
+                    Log.i(TAG, "Sherpa ASR result: '$text'")
+                    engine.stopListening()
+                    sttErrorCount = 0
+                    _state.value = State.PROCESSING
+                    waitingForLlm = true
+                    llmWasLoading = false
+                    sendJob = scope.launch { sendMessage(text) }
+                },
+                onError = { err ->
+                    if (!active) return@startListening
+                    Log.w(TAG, "Sherpa ASR error: $err")
+                    engine.stopListening()
+                    sttErrorCount++
+                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
+                        _state.value = State.IDLE
+                        active = false
+                        observeJob?.cancel()
+                        observeJob = null
+                    } else if (active) {
+                        scope.launch {
+                            delay(500)
+                            if (active) beginListening()
+                        }
                     }
-                }
-            },
-        )
+                },
+            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "beginSherpaListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            beginSystemListening()
+        }
     }
 
     private suspend fun observeLlmAndTts() {
