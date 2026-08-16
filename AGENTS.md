@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.46` / versionCode `47` | `defaultConfig` |
+| 版本 | versionName `1.0.47` / versionCode `48` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.47 预设 ASR 模型选择 + 发版**：用户要求"asr还应该能选择供应商提供的支持asr功能的模型"。SettingsGenerationPage 远程 ASR 配置区新增 4 个预设模型一键选择:OpenAI Whisper (whisper-1)、Groq Whisper Large v3、Groq Distil Whisper、OpenRouter Whisper。点击"切换预设模型"按钮循环切换,自动设置 model + base URL。API Key 用当前 provider 的。保留手动输入字段供自定义。CI #31932661967 全绿,Build & Release #31932962663 全绿,Release `Agora-v1.0.47-android-arm64-v8a.apk` 已发布。
 - **v1.0.46 全局 AppLog — 导出包含所有模块日志 + 发版**：用户反馈"日志里应该包含软件内所有的日志,目前只能看见tts的日志"。新建 `AppLog.kt`（37 行）全局日志收集器（800 条环形缓冲区,d/i/w/e 方法同时输出到 logcat + 内存）。SherpaAsrEngine/SherpaTtsEngine/VoiceConversationController 通过 `import AppLog as Log` 自动接入（零代码改动）。导出按钮现在包含 AppLog(所有模块) + TTS log + ASR diagnostics + TTS diagnostics。CI #31931421043 全绿,Build & Release #31931699155 全绿,Release `Agora-v1.0.46-android-arm64-v8a.apk` 已发布。
 - **v1.0.45 SherpaTtsEngine 诊断日志 + TTS 错误状态显示 + 发版**：继续检查细节发现 SherpaTtsEngine 也有和 SherpaAsrEngine 同样的静默吞异常问题。3 文件修复：① **SherpaTtsEngine.kt**（218→279 行）添加 Log.d/i/e 到每个关键步骤,暴露 lastError StateFlow + getDiagnosticText() 方法；② **SettingsSherpaModelsSection.kt**（247→264 行）同时显示 ASR 和 TTS 的 native/model/error 状态；③ **SettingsGenerationPage.kt** 导出按钮现在包含 TTS 诊断信息。CI #31928228224 全绿,Build & Release #31929043424 全绿,Release `Agora-v1.0.45-android-arm64-v8a.apk` 已发布。
 - **v1.0.44 ASR 诊断信息接入设置页导出 + 发版**：用户指出设置里的"保存到下载"诊断日志不包含 ASR 功能的日志。修复：① **SherpaAsrEngine.kt** 新增 `getDiagnosticText(context)` 方法,返回引擎状态(nativeLoaded/isModelLoaded/useOfflineMode/lastError/recognizers) + 所有模型目录的文件列表(含文件大小) + VAD 参数;② **SettingsGenerationPage.kt** 导出按钮现在同时包含 TTS 日志 + ASR 诊断信息。CI #31921874717 全绿,Build & Release #31922417331 全绿,Release `Agora-v1.0.44-android-arm64-v8a.apk` 已发布。
@@ -394,6 +395,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-16 v1.0.47 预设 ASR 模型选择 + 发版成功（本次会话）：用户要求"asr还应该能选择供应商提供的支持asr功能的模型"。SettingsGenerationPage 远程 ASR 配置区新增 4 个预设模型一键选择:OpenAI Whisper (whisper-1)、Groq Whisper Large v3、Groq Distil Whisper、OpenRouter Whisper。点击"切换预设模型"按钮循环切换,自动设置 model + base URL。API Key 用当前 provider 的。保留手动输入字段供自定义。CI #31932661967 全绿,Build & Release #31932962663 全绿,Release `Agora-v1.0.47-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-16 v1.0.46 全局 AppLog — 导出包含所有模块日志 + 发版成功（本次会话）：用户反馈"日志里应该包含软件内所有的日志,目前只能看见tts的日志"。新建 `AppLog.kt`（37 行）全局日志收集器（800 条环形缓冲区,d/i/w/e 方法同时输出到 logcat + 内存）。SherpaAsrEngine/SherpaTtsEngine/VoiceConversationController 通过 `import AppLog as Log` 自动接入（零代码改动,所有 Log.d/i/w/e 调用自动走 AppLog）。导出按钮现在包含 `=== AppLog (all modules) ===` + TTS log + ASR diagnostics + TTS diagnostics。CI #31931421043 全绿,Build & Release #31931699155 全绿,Release `Agora-v1.0.46-android-arm64-v8a.apk` 已发布。
 
