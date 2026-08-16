@@ -530,7 +530,9 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     TextButton(onClick = {
                                         val name = CrashReporter.exportDiagnostics(
                                             ttsContext,
-                                            TtsManager.getLogText() + "\n\n" +
+                                            "=== AppLog (all modules) ===\n" +
+                                                com.lxseek.chat.util.AppLog.getText() + "\n\n" +
+                                                TtsManager.getLogText() + "\n\n" +
                                                 com.lxseek.chat.speech.SpeechRecognitionManager.sherpaEngine.getDiagnosticText(ttsContext) + "\n\n" +
                                                 com.lxseek.chat.speech.SherpaTtsEngine.getDiagnosticText(ttsContext)
                                         )

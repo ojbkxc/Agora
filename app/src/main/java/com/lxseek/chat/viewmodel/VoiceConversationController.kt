@@ -1,7 +1,7 @@
 package com.lxseek.chat.viewmodel
 
 import android.content.Context
-import android.util.Log
+import com.lxseek.chat.util.AppLog as Log
 import com.lxseek.chat.speech.RemoteTranscriber
 import com.lxseek.chat.speech.SpeechRecognitionManager
 import com.lxseek.chat.util.SttManager
