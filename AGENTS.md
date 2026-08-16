@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.50` / versionCode `51` | `defaultConfig` |
+| 版本 | versionName `1.0.51` / versionCode `52` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,7 +217,8 @@ Agora/
 ## 4. 当前进度（截至 2026-08-16）
 
 ### ✅ 已完成
-- **v1.0.50 修复离线 ASR 识别不出文字 + 发版**：用户反馈"离线ASR识别不出文字"。参照 sherpa-onnx 官方示例(SherpaOnnx/MainActivity.kt、SherpaOnnxVadAsr/MainActivity.kt、VadNonStreamingSenseVoice.java)发现 2 个关键 bug:① **在线循环:录音停止时不返回最终结果** — while 循环退出后未提取 getResult(stream).text,部分识别结果被静默丢弃;② **离线循环:缺少 vad.flush()** — 录音停止时 VAD 缓冲区未刷新,尾部语音丢失(官方 Java 示例有 vad.flush() + 处理剩余 segments)。修复:① startOnlineLoop — 循环退出后提取最终 result.text 并调 resultCallback;加 30s 超时返回 partial text;② startOfflineLoop — 循环退出后有 pending samples 时调 vadInstance.flush() 刷新 VAD,处理剩余 segments 后识别。CI #31944706155 全绿,Release `Agora-v1.0.50-android-arm64-v8a.apk` (22.7 MB) 已发布。
+- **v1.0.51 清空日志按钮 + AppLog 覆盖更多模块 + 发版**：用户要求"得有清空日志的按钮，日志最好包括全部软件的日志内容"。6 文件修复:① **SettingsGenerationPage.kt** — 导出按钮旁新增"清空日志"按钮,调 AppLog.clear()+TtsManager.clearLog()+Toast;② **TtsManager.kt** — log() 方法同时写入 AppLog(TTS 日志现在出现在 AppLog 全模块导出中);③ **VoiceRecorder.kt** — import android.util.Log → import AppLog as Log(录音器日志现在被 AppLog 捕获);④ **SttManager.kt** — 新增 AppLog 日志(init/startListening/onError/onResults,之前零日志);⑤ **SherpaModelManager.kt** — downloadFile 加 AppLog 日志(HTTP 状态/成功/失败+文件大小+错误);⑥ **strings.xml en+zh** — 新增 log_clear 字符串。CI 全绿,Release `Agora-v1.0.51-android-arm64-v8a.apk` 已发布。
+- **v1.0.50 修复离线 ASR 识别不出文字 + 发版**：用户反馈"离线ASR识别不出文字"。参照 sherpa-onnx 官方示例发现 2 个关键 bug:① 在线循环录音停止时不返回最终结果;② 离线循环缺少 vad.flush()。修复:startOnlineLoop 循环退出后提取最终 result.text + 30s 超时;startOfflineLoop 循环退出后调 vad.flush() 处理剩余 segments。CI 全绿,Release `Agora-v1.0.50-android-arm64-v8a.apk` 已发布。
 - **v1.0.49 修复 ASR 闪退 + 全量错误处理 + 发版**：用户反馈"填了远程模型信息，在对话里一按就闪退，离线 ASR功能也不能用"。根因分析:VoiceConversationController 中所有 lambda 调用和 beginXxxListening 均无 try-catch,任何异常直接传播到 Compose 点击处理器导致闪退;RemoteTranscriber catch(Exception) 不 catch Throwable;VoiceRecorder.start() 同样。3 文件修复:① **VoiceConversationController.kt**(287→352 行) — 全面包 try-catch(Throwable)+降级+日志;② **RemoteTranscriber.kt**(61→80 行) — catch(Throwable)+日志;③ **VoiceRecorder.kt**(319→336 行) — catch(Throwable)+日志+空 PCM 调 onError。CI #31940646117 全绿,Build & Release #31940658037 全绿,Release `Agora-v1.0.49-android-arm64-v8a.apk` (22.7 MB) 已发布。
 - **v1.0.48 修复 agent 功能 — ask_user UI + Plan 上下文注入 + 发版**：用户反馈"agent的很多功能9都没有实现"。explore agent 全面分析发现:ask_user 工具 UI 完全缺失(调用后挂起 120s 超时)、Plan 上下文未注入系统提示(buildPlanContext 死代码)。P0 修复:ChatViewModel 暴露 pendingQuestion/resolveAskUser/cancelAskUser,MainActivity collect pendingQuestion 显示 AlertDialog(问题+选项按钮)。P1 修复:GenerationApiPathBuilder 接受 planStateHolder 参数,buildPlanContext 结果拼接到 systemPrompt(模型现在能看到计划进度)。CI #31937062288 全绿,Build & Release #31937352705 全绿,Release `Agora-v1.0.48-android-arm64-v8a.apk` 已发布。
 - **v1.0.47 预设 ASR 模型选择 + 发版**：用户要求"asr还应该能选择供应商提供的支持asr功能的模型"。SettingsGenerationPage 远程 ASR 配置区新增 4 个预设模型一键选择:OpenAI Whisper (whisper-1)、Groq Whisper Large v3、Groq Distil Whisper、OpenRouter Whisper。点击"切换预设模型"按钮循环切换,自动设置 model + base URL。API Key 用当前 provider 的。保留手动输入字段供自定义。CI #31932661967 全绿,Build & Release #31932962663 全绿,Release `Agora-v1.0.47-android-arm64-v8a.apk` 已发布。
@@ -398,6 +399,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-16 v1.0.51 清空日志按钮 + AppLog 覆盖更多模块 + 发版成功（本次会话）：用户要求"得有清空日志的按钮，日志最好包括全部软件的日志内容"。6 文件修复:① SettingsGenerationPage 新增"清空日志"按钮;② TtsManager.log() 同时写入 AppLog;③ VoiceRecorder 改用 AppLog;④ SttManager 新增 AppLog 日志;⑤ SherpaModelManager downloadFile 加 AppLog 日志;⑥ strings en+zh 新增 log_clear。CI 全绿,Release `Agora-v1.0.51-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-16 v1.0.50 修复离线 ASR 识别不出文字 + 发版成功（本次会话）：用户反馈"离线ASR识别不出文字"。参照 sherpa-onnx 官方示例发现 2 个关键 bug:① 在线循环录音停止时不返回最终结果(while 退出后未提取 getResult.text);② 离线循环缺少 vad.flush()(尾部语音丢失)。修复:startOnlineLoop 循环退出后提取最终 result.text + 30s 超时;startOfflineLoop 循环退出后调 vad.flush() 处理剩余 segments。CI #31944706155 全绿,Release `Agora-v1.0.50-android-arm64-v8a.apk` 已发布。
 
