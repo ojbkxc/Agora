@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.52` / versionCode `53` | `defaultConfig` |
+| 版本 | versionName `1.0.53` / versionCode `54` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-16）
 
 ### ✅ 已完成
+- **v1.0.53 GrapheneOS AI ASR 移植 — Vosk 离线引擎集成 + 发版**：5 阶段移植完成。① 阶段1 分析:GrapheneOS AI 三引擎(Vosk/System/Whisper)架构分析,确定只移植 Vosk(其余 Agora 已有);② 阶段2 核心抽象:`VoskAsrEngine.kt` stub + `SpeechRecognitionManager` 扩展(sherpa→vosk→system 优先级)+ `VoiceConversationController` 新增 `beginVoskListening()` + 设置引擎选择新增 Vosk + Vosk Maven 依赖 `com.alphacephei:vosk-android:0.3.47`;③ 阶段3 引擎实现:`VoskAsrEngine` 完整实现(Model + Recognizer + AudioRecord 16kHz 循环 + 端点检测 + 30s 超时 + JSON 解析 + 语言回退 en↔zh) + `VoskModelManager.kt`(25 语言模型 + ZIP 下载/解压/删除/进度);④ 阶段4 UI 整合:`SettingsVoskModelsSection.kt`(模型下载/删除/进度 UI) + 设置页接入 + 导出诊断含 Vosk;⑤ 阶段5 集成测试:CI 首次失败(`ensureModelLoaded` 缺 return)→ 修复 → CI #31955792011 全绿。8 文件改动(3 新建 + 5 修改)。Release `Agora-v1.0.53-android-arm64-v8a.apk` 已发布。
 - **v1.0.52 修复录音没反应 + 硬编码版本号 + 发版**：用户反馈"录音没反应"。根因:`ChatApp.kt` 的 `onVoiceConversationToggle` 检查 `SttManager.isSupported()` 作为所有语音对话门控,设备无系统 SpeechRecognizer 时按钮直接拦截,阻止了离线 sherpa ASR 和远程 ASR 即使不需要系统 STT。修复:移除 `SttManager.isSupported()` 门控,语音按钮现在只要有 RECORD_AUDIO 权限就工作。同时修复 `TtsManager.kt` 硬编码 `v1.0.21` → `BuildConfig.VERSION_NAME`,toggle() 加日志。CI #31948927021 全绿,Build & Release #31948952214 全绿,Release `Agora-v1.0.52-android-arm64-v8a.apk` 已发布。
 - **v1.0.51 清空日志按钮 + AppLog 覆盖更多模块 + 发版**：用户要求"得有清空日志的按钮，日志最好包括全部软件的日志内容"。6 文件修复:① **SettingsGenerationPage.kt** — 导出按钮旁新增"清空日志"按钮,调 AppLog.clear()+TtsManager.clearLog()+Toast;② **TtsManager.kt** — log() 方法同时写入 AppLog(TTS 日志现在出现在 AppLog 全模块导出中);③ **VoiceRecorder.kt** — import android.util.Log → import AppLog as Log(录音器日志现在被 AppLog 捕获);④ **SttManager.kt** — 新增 AppLog 日志(init/startListening/onError/onResults,之前零日志);⑤ **SherpaModelManager.kt** — downloadFile 加 AppLog 日志(HTTP 状态/成功/失败+文件大小+错误);⑥ **strings.xml en+zh** — 新增 log_clear 字符串。CI 全绿,Release `Agora-v1.0.51-android-arm64-v8a.apk` 已发布。
 - **v1.0.50 修复离线 ASR 识别不出文字 + 发版**：用户反馈"离线ASR识别不出文字"。参照 sherpa-onnx 官方示例发现 2 个关键 bug:① 在线循环录音停止时不返回最终结果;② 离线循环缺少 vad.flush()。修复:startOnlineLoop 循环退出后提取最终 result.text + 30s 超时;startOfflineLoop 循环退出后调 vad.flush() 处理剩余 segments。CI 全绿,Release `Agora-v1.0.50-android-arm64-v8a.apk` 已发布。
@@ -400,6 +401,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-16 v1.0.53 GrapheneOS AI ASR 移植 — Vosk 离线引擎集成 + 发版成功（本次会话）：5 阶段移植完成。① 阶段1 分析:GrapheneOS AI 三引擎架构分析,确定只移植 Vosk;② 阶段2 核心抽象:VoskAsrEngine stub + SpeechRecognitionManager 扩展 + VoiceConversationController 新增 beginVoskListening + Vosk Maven 依赖 com.alphacephei:vosk-android:0.3.47;③ 阶段3 引擎实现:VoskAsrEngine 完整实现(Model+Recognizer+AudioRecord 16kHz 循环+端点检测+30s 超时+JSON 解析+语言回退) + VoskModelManager(25 语言模型+ZIP 下载/解压/删除);④ 阶段4 UI:SettingsVoskModelsSection(模型下载/删除/进度) + 设置页接入 + 导出诊断含 Vosk;⑤ 阶段5 CI 验证:首次失败(ensureModelLoaded 缺 return)→修复→CI #31955792011 全绿。8 文件改动(3 新建+5 修改)。Release `Agora-v1.0.53-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-16 v1.0.52 修复录音没反应 + 硬编码版本号 + 发版成功（本次会话）：用户反馈"录音没反应"。根因:`ChatApp.kt` `onVoiceConversationToggle` 检查 `SttManager.isSupported()` 作为所有语音对话门控,设备无系统 SpeechRecognizer 时按钮直接拦截,阻止了离线 sherpa ASR 和远程 ASR。修复:移除 `SttManager.isSupported()` 门控(只需 RECORD_AUDIO 权限);`TtsManager.kt` 硬编码 `v1.0.21` → `BuildConfig.VERSION_NAME`;`VoiceConversationController.toggle()` 加 Log.i。4 文件改动。CI #31948927021 全绿,Build & Release #31948952214 全绿,Release `Agora-v1.0.52-android-arm64-v8a.apk` 已发布。**下一步**:GrapheneOS AI ASR 移植(阶段1分析已完成,等待用户确认进入阶段2核心抽象接口)。
 
