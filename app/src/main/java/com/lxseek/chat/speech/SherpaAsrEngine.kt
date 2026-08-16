@@ -315,6 +315,7 @@ class SherpaAsrEngine : SpeechEngine {
             val buffer = ShortArray(bufSize)
             var totalRead = 0
             var endpointCount = 0
+            val startTime = SystemClock.elapsedRealtime()
             Log.d(TAG, "OnlineLoop started")
             try {
                 while (isRecording) {
@@ -340,13 +341,30 @@ class SherpaAsrEngine : SpeechEngine {
                                 break
                             }
                         }
+                        if (SystemClock.elapsedRealtime() - startTime > 30_000L) {
+                            val text = result.text.trim()
+                            Log.w(TAG, "OnlineLoop: 30s timeout, text='$text', totalRead=$totalRead")
+                            if (text.isNotEmpty()) {
+                                isRecording = false
+                                _isListening.value = false
+                                mainHandler.post { resultCallback?.invoke(text) }
+                                break
+                            }
+                        }
                     } else if (read < 0) {
                         Log.e(TAG, "OnlineLoop: AudioRecord read error=$read")
                         mainHandler.post { errorCallback?.invoke(SpeechError.AUDIO_CAPTURE) }; break
                     }
                 }
                 if (isRecording) {
-                    Log.w(TAG, "OnlineLoop exited while isRecording=true (totalRead=$totalRead, endpoints=$endpointCount)")
+                    val result = rec.getResult(stream)
+                    val text = result.text.trim()
+                    Log.w(TAG, "OnlineLoop exited while isRecording=true (totalRead=$totalRead, endpoints=$endpointCount, finalText='$text')")
+                    if (text.isNotEmpty()) {
+                        isRecording = false
+                        _isListening.value = false
+                        mainHandler.post { resultCallback?.invoke(text) }
+                    }
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "OnlineLoop exception: ${e.javaClass.simpleName}: ${e.message}", e)
@@ -420,6 +438,25 @@ class SherpaAsrEngine : SpeechEngine {
                     } else if (read < 0) {
                         Log.e(TAG, "OfflineLoop: AudioRecord read error=$read")
                         mainHandler.post { errorCallback?.invoke(SpeechError.AUDIO_CAPTURE) }; break
+                    }
+                }
+                if (isRecording && allSamples.isNotEmpty()) {
+                    Log.w(TAG, "OfflineLoop: recording stopped with ${allSamples.size} pending samples, flushing VAD")
+                    try { vadInstance.flush() } catch (e: Throwable) { Log.e(TAG, "VAD flush failed: ${e.message}", e) }
+                    while (!vadInstance.empty()) {
+                        val segment = vadInstance.front()
+                        segmentCount++
+                        allSamples.addAll(segment.samples.toList())
+                        vadInstance.pop()
+                    }
+                    if (allSamples.isNotEmpty()) {
+                        val text = recognizeOffline(rec, allSamples.toFloatArray())
+                        if (text.isNotEmpty()) {
+                            isRecording = false
+                            _isListening.value = false
+                            Log.i(TAG, "OfflineLoop result (flush): '$text'")
+                            mainHandler.post { resultCallback?.invoke(text) }
+                        }
                     }
                 }
             } catch (e: Throwable) {
