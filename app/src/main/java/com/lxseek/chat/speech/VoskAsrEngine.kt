@@ -106,7 +106,7 @@ class VoskAsrEngine : SpeechEngine {
         val code = resolveLanguageCode(language)
         if (model != null && currentModelLang == code) return true
 
-        try {
+        return try {
             model?.close()
             model = null
             currentModelLang = null
