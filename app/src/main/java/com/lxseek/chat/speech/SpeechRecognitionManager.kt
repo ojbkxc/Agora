@@ -10,8 +10,9 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Selection priority:
  * 1. If sherpa-onnx is available and model is loaded → use sherpa (offline, privacy-preserving)
- * 2. If system SpeechRecognizer is available → use system (online/cloud fallback)
- * 3. Otherwise → no engine available
+ * 2. If vosk is available and model is loaded → use vosk (offline, lightweight alternative)
+ * 3. If system SpeechRecognizer is available → use system (online/cloud fallback)
+ * 4. Otherwise → no engine available
  *
  * The user can force a specific engine via settings (ASR_ENGINE_PREF).
  */
@@ -19,6 +20,7 @@ object SpeechRecognitionManager {
 
     val systemEngine = SystemSpeechEngine()
     val sherpaEngine = SherpaAsrEngine()
+    val voskEngine = VoskAsrEngine()
 
     private val _activeEngine = MutableStateFlow<SpeechEngine?>(null)
     val activeEngine: StateFlow<SpeechEngine?> = _activeEngine.asStateFlow()
@@ -32,7 +34,7 @@ object SpeechRecognitionManager {
     private val _partialText = MutableStateFlow("")
     val partialText: StateFlow<String> = _partialText.asStateFlow()
 
-    /** User preference: "auto", "system", "sherpa-onnx". */
+    /** User preference: "auto", "system", "sherpa-onnx", "vosk". */
     @Volatile var preferredEngine: String = "auto"
 
     /**
@@ -42,6 +44,7 @@ object SpeechRecognitionManager {
     fun init(context: Context): SpeechEngine? {
         systemEngine.init(context)
         sherpaEngine.init(context)
+        voskEngine.init(context)
         return selectEngine()
     }
 
@@ -49,12 +52,19 @@ object SpeechRecognitionManager {
         val engine = when (preferredEngine) {
             "sherpa-onnx" -> {
                 if (sherpaEngine.isAvailable.value && sherpaEngine.isModelLoaded.value) sherpaEngine
+                else if (voskEngine.isAvailable.value && voskEngine.isModelLoaded.value) voskEngine
+                else systemEngine.takeIf { it.isAvailable.value }
+            }
+            "vosk" -> {
+                if (voskEngine.isAvailable.value && voskEngine.isModelLoaded.value) voskEngine
+                else if (sherpaEngine.isAvailable.value && sherpaEngine.isModelLoaded.value) sherpaEngine
                 else systemEngine.takeIf { it.isAvailable.value }
             }
             "system" -> systemEngine.takeIf { it.isAvailable.value }
             else -> {
-                // auto: prefer sherpa (offline) if available + model loaded, else system
+                // auto: prefer sherpa (offline) → vosk (offline) → system
                 if (sherpaEngine.isAvailable.value && sherpaEngine.isModelLoaded.value) sherpaEngine
+                else if (voskEngine.isAvailable.value && voskEngine.isModelLoaded.value) voskEngine
                 else systemEngine.takeIf { it.isAvailable.value }
             }
         }
@@ -87,6 +97,7 @@ object SpeechRecognitionManager {
     fun shutdown() {
         systemEngine.shutdown()
         sherpaEngine.shutdown()
+        voskEngine.shutdown()
         _activeEngine.value = null
         _isAvailable.value = false
         _isListening.value = false
@@ -96,6 +107,7 @@ object SpeechRecognitionManager {
     /** Returns a list of all engines with their availability status, for settings UI. */
     fun engineStatus(): List<EngineStatus> = listOf(
         EngineStatus(sherpaEngine.id, sherpaEngine.displayName, sherpaEngine.isAvailable.value, sherpaEngine.isModelLoaded.value),
+        EngineStatus(voskEngine.id, voskEngine.displayName, voskEngine.isAvailable.value, voskEngine.isModelLoaded.value),
         EngineStatus(systemEngine.id, systemEngine.displayName, systemEngine.isAvailable.value, systemEngine.isModelLoaded.value),
     )
 

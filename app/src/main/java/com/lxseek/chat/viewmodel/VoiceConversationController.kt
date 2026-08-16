@@ -95,6 +95,7 @@ class VoiceConversationController(
         recorder.stop()
         SttManager.stopListening()
         SpeechRecognitionManager.sherpaEngine.stopListening()
+        SpeechRecognitionManager.voskEngine.stopListening()
         TtsManager.stop()
         _state.value = State.IDLE
         _partialTranscript.value = ""
@@ -113,17 +114,31 @@ class VoiceConversationController(
             Log.e(TAG, "beginListening: sherpa init crashed: ${e.javaClass.simpleName}: ${e.message}", e)
             false
         }
+        val voskReady = try {
+            SpeechRecognitionManager.voskEngine.let {
+                it.init(appContext)
+                it.isAvailable.value && it.isModelLoaded.value
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "beginListening: vosk init crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            false
+        }
         val pref = try { asrEnginePref() } catch (e: Throwable) { Log.e(TAG, "asrEnginePref crashed: ${e.message}", e); "auto" }
         val useRemote = try { useRemoteAsr() } catch (e: Throwable) { Log.e(TAG, "useRemoteAsr crashed: ${e.message}", e); false }
         val remoteKeyBlank = try { remoteAsrApiKey().isNotBlank() } catch (e: Throwable) { Log.e(TAG, "remoteAsrApiKey crashed: ${e.message}", e); false }
-        Log.i(TAG, "beginListening: pref=$pref, sherpaReady=$sherpaReady, useRemote=$useRemote, remoteKeyBlank=$remoteKeyBlank")
+        Log.i(TAG, "beginListening: pref=$pref, sherpaReady=$sherpaReady, voskReady=$voskReady, useRemote=$useRemote, remoteKeyBlank=$remoteKeyBlank")
         try {
             when {
                 useRemote && remoteKeyBlank -> beginRemoteListening()
+                pref == "vosk" && voskReady -> beginVoskListening()
                 (pref == "sherpa-onnx" || pref == "auto") && sherpaReady -> beginSherpaListening()
+                pref == "auto" && voskReady -> beginVoskListening()
                 else -> {
                     if ((pref == "sherpa-onnx" || pref == "auto") && !sherpaReady) {
-                        Log.w(TAG, "Falling back to system ASR: sherpa pref=$pref but sherpaReady=false (native=${SpeechRecognitionManager.sherpaEngine.isAvailable.value}, model=${SpeechRecognitionManager.sherpaEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.sherpaEngine.lastError.value})")
+                        Log.w(TAG, "Falling back: sherpa pref=$pref but sherpaReady=false (native=${SpeechRecognitionManager.sherpaEngine.isAvailable.value}, model=${SpeechRecognitionManager.sherpaEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.sherpaEngine.lastError.value})")
+                    }
+                    if (pref == "vosk" && !voskReady) {
+                        Log.w(TAG, "Falling back: vosk pref=$pref but voskReady=false (available=${SpeechRecognitionManager.voskEngine.isAvailable.value}, model=${SpeechRecognitionManager.voskEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.voskEngine.lastError.value})")
                     }
                     beginSystemListening()
                 }
@@ -311,6 +326,56 @@ class VoiceConversationController(
             )
         } catch (e: Throwable) {
             Log.e(TAG, "beginSherpaListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            beginSystemListening()
+        }
+    }
+
+    private fun beginVoskListening() {
+        val engine = SpeechRecognitionManager.voskEngine
+        if (!engine.isAvailable.value || !engine.isModelLoaded.value) {
+            Log.w(TAG, "beginVoskListening: engine not ready (available=${engine.isAvailable.value}, model=${engine.isModelLoaded.value}), falling back to system")
+            beginSystemListening()
+            return
+        }
+        Log.i(TAG, "beginVoskListening: starting vosk ASR (offline)")
+        try {
+            partialJob?.cancel()
+            partialJob = scope.launch {
+                engine.partialText.collect { _partialTranscript.value = it }
+            }
+            engine.startListening(
+                context = appContext,
+                language = languageProvider(),
+                onResult = { text ->
+                    if (!active) return@startListening
+                    Log.i(TAG, "Vosk ASR result: '$text'")
+                    engine.stopListening()
+                    sttErrorCount = 0
+                    _state.value = State.PROCESSING
+                    waitingForLlm = true
+                    llmWasLoading = false
+                    sendJob = scope.launch { sendMessage(text) }
+                },
+                onError = { err ->
+                    if (!active) return@startListening
+                    Log.w(TAG, "Vosk ASR error: $err")
+                    engine.stopListening()
+                    sttErrorCount++
+                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
+                        _state.value = State.IDLE
+                        active = false
+                        observeJob?.cancel()
+                        observeJob = null
+                    } else if (active) {
+                        scope.launch {
+                            delay(500)
+                            if (active) beginListening()
+                        }
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "beginVoskListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
             beginSystemListening()
         }
     }

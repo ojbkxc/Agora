@@ -817,6 +817,7 @@
     <string name="asr_engine_auto">自动（优先离线）</string>
     <string name="asr_engine_system">系统（在线）</string>
     <string name="asr_engine_sherpa">Sherpa-ONNX（离线）</string>
+    <string name="asr_engine_vosk">Vosk（离线）</string>
     <string name="asr_no_engine_available">当前设备无可用 ASR 引擎</string>
     <string name="sherpa_models_title">Sherpa-ONNX 模型</string>
     <string name="sherpa_models_native_not_loaded">原生库未加载</string>

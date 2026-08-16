@@ -644,6 +644,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         when (asrEnginePref) {
                                             "system" -> stringResource(R.string.asr_engine_system)
                                             "sherpa-onnx" -> stringResource(R.string.asr_engine_sherpa)
+                                            "vosk" -> stringResource(R.string.asr_engine_vosk)
                                             else -> stringResource(R.string.asr_engine_auto)
                                         },
                                         style = MaterialTheme.typography.labelLarge,
@@ -654,6 +655,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     val next = when (asrEnginePref) {
                                         "auto" -> "system"
                                         "system" -> "sherpa-onnx"
+                                        "sherpa-onnx" -> "vosk"
                                         else -> "auto"
                                     }
                                     viewModel.settings.setAsrEnginePref(next)

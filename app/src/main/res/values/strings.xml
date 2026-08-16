@@ -145,6 +145,7 @@
     <string name="asr_engine_auto">Auto (Offline preferred)</string>
     <string name="asr_engine_system">System (Online)</string>
     <string name="asr_engine_sherpa">Sherpa-ONNX (Offline)</string>
+    <string name="asr_engine_vosk">Vosk (Offline)</string>
     <string name="asr_no_engine_available">No ASR engine available on this device</string>
     <string name="sherpa_models_title">Sherpa-ONNX Models</string>
     <string name="sherpa_models_native_not_loaded">Native library not loaded</string>
