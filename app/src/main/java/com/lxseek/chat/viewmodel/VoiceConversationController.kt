@@ -1,6 +1,7 @@
 package com.lxseek.chat.viewmodel
 
 import android.content.Context
+import android.util.Log
 import com.lxseek.chat.speech.RemoteTranscriber
 import com.lxseek.chat.speech.SpeechRecognitionManager
 import com.lxseek.chat.util.SttManager
@@ -20,6 +21,7 @@ import java.io.File
 
 private const val TTS_START_GRACE_MS = 5_000L
 private const val STT_ERROR_RETRY_MAX = 3
+private const val TAG = "VoiceConvCtrl"
 
 class VoiceConversationController(
     private val scope: CoroutineScope,
@@ -99,10 +101,16 @@ class VoiceConversationController(
             it.isAvailable.value && it.isModelLoaded.value
         }
         val pref = asrEnginePref()
+        Log.i(TAG, "beginListening: pref=$pref, sherpaReady=$sherpaReady, useRemote=${useRemoteAsr()}, remoteKey=${remoteAsrApiKey().isNotBlank()}")
         when {
             useRemoteAsr() && remoteAsrApiKey().isNotBlank() -> beginRemoteListening()
             (pref == "sherpa-onnx" || pref == "auto") && sherpaReady -> beginSherpaListening()
-            else -> beginSystemListening()
+            else -> {
+                if ((pref == "sherpa-onnx" || pref == "auto") && !sherpaReady) {
+                    Log.w(TAG, "Falling back to system ASR: sherpa pref=$pref but sherpaReady=false (native=${SpeechRecognitionManager.sherpaEngine.isAvailable.value}, model=${SpeechRecognitionManager.sherpaEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.sherpaEngine.lastError.value})")
+                }
+                beginSystemListening()
+            }
         }
     }
 
@@ -201,9 +209,11 @@ class VoiceConversationController(
     private fun beginSherpaListening() {
         val engine = SpeechRecognitionManager.sherpaEngine
         if (!engine.isAvailable.value || !engine.isModelLoaded.value) {
+            Log.w(TAG, "beginSherpaListening: engine not ready (available=${engine.isAvailable.value}, model=${engine.isModelLoaded.value}), falling back to system")
             beginSystemListening()
             return
         }
+        Log.i(TAG, "beginSherpaListening: starting sherpa ASR (offline=${engine.lastError.value == null})")
         partialJob?.cancel()
         partialJob = scope.launch {
             engine.partialText.collect { _partialTranscript.value = it }

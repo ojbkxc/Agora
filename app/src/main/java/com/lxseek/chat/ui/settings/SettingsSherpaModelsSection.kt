@@ -48,6 +48,7 @@ fun SettingsSherpaModelsSection(
     val isDownloading by SherpaModelManager.isDownloading.collectAsState()
     val sherpaAvailable by sherpaEngine.isAvailable.collectAsState()
     val asrModelLoaded by sherpaEngine.isModelLoaded.collectAsState()
+    val asrError by sherpaEngine.lastError.collectAsState()
     val ttsAvailable by SherpaTtsEngine.isAvailable.collectAsState()
     val ttsModelLoaded by SherpaTtsEngine.isModelLoaded.collectAsState()
 
@@ -71,6 +72,22 @@ fun SettingsSherpaModelsSection(
                 color = MaterialTheme.colorScheme.error,
             )
             Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (sherpaAvailable) {
+            Text(
+                text = "Native: OK | ASR model: ${if (asrModelLoaded) "loaded" else "not loaded"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (asrModelLoaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (asrError != null) {
+                Text(
+                    text = "Error: $asrError",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
         }
 
         for (category in SherpaModelManager.Category.entries) {
