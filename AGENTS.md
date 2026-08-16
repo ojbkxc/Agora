@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.44` / versionCode `45` | `defaultConfig` |
+| 版本 | versionName `1.0.45` / versionCode `46` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -217,6 +217,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-12）
 
 ### ✅ 已完成
+- **v1.0.45 SherpaTtsEngine 诊断日志 + TTS 错误状态显示 + 发版**：继续检查细节发现 SherpaTtsEngine 也有和 SherpaAsrEngine 同样的静默吞异常问题。3 文件修复：① **SherpaTtsEngine.kt**（218→279 行）添加 Log.d/i/e 到每个关键步骤,暴露 lastError StateFlow + getDiagnosticText() 方法；② **SettingsSherpaModelsSection.kt**（247→264 行）同时显示 ASR 和 TTS 的 native/model/error 状态；③ **SettingsGenerationPage.kt** 导出按钮现在包含 TTS 诊断信息。CI #31928228224 全绿,Build & Release #31929043424 全绿,Release `Agora-v1.0.45-android-arm64-v8a.apk` 已发布。
 - **v1.0.44 ASR 诊断信息接入设置页导出 + 发版**：用户指出设置里的"保存到下载"诊断日志不包含 ASR 功能的日志。修复：① **SherpaAsrEngine.kt** 新增 `getDiagnosticText(context)` 方法,返回引擎状态(nativeLoaded/isModelLoaded/useOfflineMode/lastError/recognizers) + 所有模型目录的文件列表(含文件大小) + VAD 参数;② **SettingsGenerationPage.kt** 导出按钮现在同时包含 TTS 日志 + ASR 诊断信息。CI #31921874717 全绿,Build & Release #31922417331 全绿,Release `Agora-v1.0.44-android-arm64-v8a.apk` 已发布。
 - **v1.0.43 ASR 诊断日志 — 暴露错误而非静默吞掉+回退 + 发版**：用户反馈"下载好了，也用不了，ASR功能一直都没被真正实现"。根因分析：SherpaAsrEngine 中所有异常都被 `catch (_: Throwable)` 吞掉，无任何日志，导致模型加载失败时无声无息，`_isModelLoaded` 静默设为 false，`sherpaReady` 为 false 时静默回退到系统 ASR，用户以为在用 sherpa 但实际不是，且无法诊断。3 文件修复：① **SherpaAsrEngine.kt** 添加 Log.d/i/w/e 到每个关键步骤（init/loadModel/loadSenseVoice/initVad/startListening/onlineLoop/offlineLoop/recognizeOffline），暴露 `lastError: StateFlow<String?>`，init 失败时列出 model dir 内容用于诊断；② **VoiceConversationController.kt** 记录引擎选择和回退原因（不再静默回退）；③ **SettingsSherpaModelsSection.kt** 显示 native/model/error 状态行。CI #31918928953 全绿，Build & Release #31919265463 全绿，Release `Agora-v1.0.43F43-android-arm64-v8a.apk` 已发布。
 - **v1.0.42 多模型 ASR/TTS 选择 + VAD 参数可调 + SenseVoice 离线 ASR + 发版**：参照 sherpa-onnx 官方、Half_duplex_speech、VoxSherpa-TTS 全部项目分析后实现 7 项改进。12 文件改动：① SherpaModelManager 增加 SenseVoice ASR（zh-en-ja-ko-yue int8 ~100MB）+ Kokoro v1.1 + Kokoro int8 v1.1 TTS 模型，Category 枚举分组，description 字段，通用 download() 调度；② SherpaAsrEngine 增加 OfflineRecognizer 支持 SenseVoice（VAD 分段+离线识别），自动检测已下载模型，provider 回退，动态线程数；③ SherpaTtsEngine 自动检测 v1.0/v1.1/int8 模型，int8 文件检测；④ 设置四层增加 VAD_THRESHOLD/MIN_SILENCE/MAX_SPEECH；⑤ SettingsSherpaModelsSection 重写——按类别分组显示所有模型+描述+大小提示+VAD 参数滑块；⑥ VoiceRecorder VAD 参数从 companion object 读取（设置页可调）。CI #31914655357 全绿，Build & Release #31914965731 全绿，Release `Agora-v1.0.42-android-arm64-v8a.apk` 已发布。
@@ -392,6 +393,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-16 v1.0.45 SherpaTtsEngine 诊断日志 + TTS 错误状态显示 + 发版成功（本次会话）：继续检查细节发现 SherpaTtsEngine 也有和 SherpaAsrEngine 同样的静默吞异常问题（所有 `catch (_: Throwable)` 无日志）。3 文件修复：① **SherpaTtsEngine.kt**（218→279 行）添加 Log.d/i/e 到每个关键步骤（init/loadModel/speak/ensureAudioTrack/stop/shutdown），暴露 `lastError: StateFlow<String?>` + `getDiagnosticText(context)` 方法；② **SettingsSherpaModelsSection.kt**（247→264 行）同时显示 ASR 和 TTS 的 native/model/error 状态行；③ **SettingsGenerationPage.kt** 导出按钮现在包含 TTS 诊断信息。同时验证了 SherpaModelManager 中所有 URL 和文件名（HuggingFace ASR + GitHub Releases TTS tarball）全部正确。CI #31928228224 全绿，Build & Release #31929043424 全绿，Release `Agora-v1.0.45-android-arm64-v8a.apk` 已发布。
 
 - 2026-08-16 v1.0.44 ASR 诊断信息接入设置页导出 + 发版成功（本次会话）：用户指出设置里的"保存到下载"诊断日志不包含 ASR 功能的日志。修复：① **SherpaAsrEngine.kt**（479→518 行）新增 `getDiagnosticText(context)` 方法,返回引擎状态(nativeLoaded/isModelLoaded/useOfflineMode/lastError/recognizers) + 所有模型目录的文件列表(含文件大小) + VAD 参数;② **SettingsGenerationPage.kt** 导出按钮现在同时包含 TTS 日志 + ASR 诊断信息。CI #31921874717 全绿,Build & Release #31922417331 全绿,Release `Agora-v1.0.44-android-arm64-v8a.apk` 已发布。
 
