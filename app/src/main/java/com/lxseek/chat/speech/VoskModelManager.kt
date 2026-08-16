@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileInputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.zip.ZipInputStream
@@ -141,6 +140,7 @@ object VoskModelManager {
             val totalBytes = conn.contentLengthLong.let { if (it > 0) it else langModel.sizeBytes }
             val zipFile = File(parentDir, "${langModel.modelName}.zip")
             var downloaded = 0L
+            var lastProgress = -1
 
             conn.inputStream.use { input ->
                 zipFile.outputStream().use { output ->
@@ -150,7 +150,10 @@ object VoskModelManager {
                         output.write(buffer, 0, bytesRead)
                         downloaded += bytesRead
                         val progress = ((downloaded * 100) / totalBytes).toInt().coerceIn(0, 100)
-                        _downloadProgress.value = _downloadProgress.value + (code to progress)
+                        if (progress != lastProgress) {
+                            lastProgress = progress
+                            _downloadProgress.value = _downloadProgress.value + (code to progress)
+                        }
                     }
                 }
             }
@@ -183,10 +186,17 @@ object VoskModelManager {
     }
 
     private fun extractZip(zipFile: File, destDir: File) {
+        val destCanonical = destDir.canonicalPath
         ZipInputStream(zipFile.inputStream()).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
                 val outFile = File(destDir, entry.name)
+                if (!outFile.canonicalPath.startsWith(destCanonical)) {
+                    Log.e(VOSK_MM_TAG, "ZIP Slip detected: ${entry.name} resolves outside $destCanonical — skipping")
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                    continue
+                }
                 try {
                     if (entry.isDirectory) outFile.mkdirs()
                     else {

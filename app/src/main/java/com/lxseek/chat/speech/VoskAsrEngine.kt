@@ -61,7 +61,7 @@ class VoskAsrEngine : SpeechEngine {
     @Volatile private var audioRecord: AudioRecord? = null
     @Volatile private var currentModelLang: String? = null
 
-    private val engineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var engineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var recognizeJob: Job? = null
 
     override fun init(context: Context): Boolean {
@@ -162,6 +162,7 @@ class VoskAsrEngine : SpeechEngine {
         try {
             recognizer?.close()
             recognizer = Recognizer(currentModel, SAMPLE_RATE.toFloat())
+            recognizer!!.setMaxAlternatives(0)
             recognizer!!.setWords(true)
 
             val minBuf = AudioRecord.getMinBufferSize(
@@ -189,17 +190,18 @@ class VoskAsrEngine : SpeechEngine {
             recognizeJob?.cancel()
             recognizeJob = engineScope.launch {
                 val shortBuffer = ShortArray(bufferSize / 2)
+                val byteBuffer = ByteBuffer.allocate(shortBuffer.size * 2).order(ByteOrder.LITTLE_ENDIAN)
                 val startTime = System.currentTimeMillis()
                 var lastResultText = ""
                 while (isActive && _isListening.value) {
                     val read = audioRecord?.read(shortBuffer, 0, shortBuffer.size) ?: -1
                     if (read <= 0) continue
-                    val byteBuffer = ByteBuffer.allocate(read * 2).order(ByteOrder.LITTLE_ENDIAN)
+                    byteBuffer.clear()
                     for (i in 0 until read) byteBuffer.putShort(shortBuffer[i])
                     val bytes = byteBuffer.array()
                     val rec = recognizer ?: break
                     try {
-                        val isEndpoint = rec.acceptWaveForm(bytes, bytes.size)
+                        val isEndpoint = rec.acceptWaveForm(bytes, read * 2)
                         val partialJson = rec.partialResult
                         val partial = JSONObject(partialJson).optString("partial", "")
                         if (partial.isNotBlank()) _partialText.value = partial
@@ -278,6 +280,7 @@ class VoskAsrEngine : SpeechEngine {
         _isModelLoaded.value = false
         _lastError.value = null
         engineScope.cancel()
+        engineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
     fun getDiagnosticText(context: Context): String = buildString {

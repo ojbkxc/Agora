@@ -133,6 +133,8 @@ class VoiceConversationController(
                 pref == "vosk" && voskReady -> beginVoskListening()
                 (pref == "sherpa-onnx" || pref == "auto") && sherpaReady -> beginSherpaListening()
                 pref == "auto" && voskReady -> beginVoskListening()
+                pref == "vosk" && sherpaReady -> beginSherpaListening()
+                pref == "sherpa-onnx" && voskReady -> beginVoskListening()
                 else -> {
                     if ((pref == "sherpa-onnx" || pref == "auto") && !sherpaReady) {
                         Log.w(TAG, "Falling back: sherpa pref=$pref but sherpaReady=false (native=${SpeechRecognitionManager.sherpaEngine.isAvailable.value}, model=${SpeechRecognitionManager.sherpaEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.sherpaEngine.lastError.value})")
