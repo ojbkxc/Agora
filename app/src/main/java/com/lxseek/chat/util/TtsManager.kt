@@ -75,6 +75,12 @@ object TtsManager {
         val ts = logTimeFormat.format(Date())
         val entry = "$ts $level/$TAG: $msg"
         if (level == "E") Log.e(TAG, msg) else Log.d(TAG, msg)
+        when (level) {
+            "E" -> com.lxseek.chat.util.AppLog.e(TAG, msg)
+            "W" -> com.lxseek.chat.util.AppLog.w(TAG, msg)
+            "I" -> com.lxseek.chat.util.AppLog.i(TAG, msg)
+            else -> com.lxseek.chat.util.AppLog.d(TAG, msg)
+        }
         synchronized(logBuffer) {
             logBuffer.add(entry)
             if (logBuffer.size > MAX_LOG) logBuffer.removeAt(0)

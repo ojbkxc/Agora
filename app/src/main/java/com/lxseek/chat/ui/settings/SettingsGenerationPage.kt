@@ -542,6 +542,11 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             android.widget.Toast.makeText(ttsContext, "Failed to save", android.widget.Toast.LENGTH_SHORT).show()
                                         }
                                     }) { Text(stringResource(R.string.tts_save_to_downloads)) }
+                                    TextButton(onClick = {
+                                        com.lxseek.chat.util.AppLog.clear()
+                                        TtsManager.clearLog()
+                                        android.widget.Toast.makeText(ttsContext, "Logs cleared", android.widget.Toast.LENGTH_SHORT).show()
+                                    }) { Text(stringResource(R.string.log_clear)) }
                                 }
                             }
                         },

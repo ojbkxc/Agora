@@ -8,9 +8,12 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import com.lxseek.chat.util.AppLog as Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
+private const val TAG = "SttManager"
 
 /**
  * Process-scoped singleton wrapping Android [SpeechRecognizer] for continuous voice conversation.
@@ -42,6 +45,7 @@ object SttManager {
 
     fun init(context: Context) {
         if (initialized || initializing) return
+        Log.d(TAG, "init: creating SpeechRecognizer")
         if (recognizer != null && !initialized) {
             try {
                 recognizer?.stopListening()
@@ -57,7 +61,9 @@ object SttManager {
                 initialized = true
                 initializing = false
                 _isAvailable.value = true
-            } catch (_: Throwable) {
+                Log.i(TAG, "init: SUCCESS")
+            } catch (e: Throwable) {
+                Log.e(TAG, "init: FAILED: ${e.javaClass.simpleName}: ${e.message}")
                 initialized = false
                 initializing = false
                 _isAvailable.value = false
@@ -71,6 +77,7 @@ object SttManager {
         onResult: (String) -> Unit,
         onError: (Int) -> Unit,
     ) {
+        Log.i(TAG, "startListening: language=$language, initialized=$initialized")
         resultCallback = onResult
         errorCallback = onError
         if (!initialized || recognizer == null) {
@@ -104,6 +111,7 @@ object SttManager {
             override fun onError(error: Int) {
                 _isListening.value = false
                 _partialText.value = ""
+                Log.w(TAG, "onError: $error")
                 errorCallback?.invoke(error)
             }
             override fun onResults(results: Bundle?) {
@@ -111,6 +119,7 @@ object SttManager {
                 _partialText.value = ""
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val text = matches?.firstOrNull()?.takeIf { it.isNotBlank() }
+                Log.i(TAG, "onResults: '${text?.take(50)}'")
                 if (text != null) resultCallback?.invoke(text) else errorCallback?.invoke(SpeechRecognizer.ERROR_NO_MATCH)
             }
             override fun onPartialResults(partialResults: Bundle?) {

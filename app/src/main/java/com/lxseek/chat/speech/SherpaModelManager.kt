@@ -2,6 +2,7 @@ package com.lxseek.chat.speech
 
 import android.content.Context
 import com.lxseek.chat.api.HttpClient
+import com.lxseek.chat.util.AppLog as Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,8 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+
+private const val TAG = "SherpaModelMgr"
 
 /**
  * Downloads and manages sherpa-onnx model files on the device.
@@ -80,11 +83,15 @@ object SherpaModelManager {
 
     private suspend fun downloadFile(url: String, target: File, progressKey: String): Boolean = withContext(Dispatchers.IO) {
         val tmp = File(target.parentFile, "${target.name}.tmp")
+        Log.i(TAG, "downloadFile: $url -> ${target.name}")
         try {
             target.parentFile?.mkdirs()
             val request = Request.Builder().url(url).build()
             HttpClient.client.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) return@withContext false
+                if (!resp.isSuccessful) {
+                    Log.e(TAG, "downloadFile: HTTP ${resp.code} for $url")
+                    return@withContext false
+                }
                 val body = resp.body ?: return@withContext false
                 val total = body.contentLength()
                 FileOutputStream(tmp).use { out ->
@@ -108,8 +115,10 @@ object SherpaModelManager {
                 return@withContext false
             }
             _downloadProgress.value = _downloadProgress.value + (progressKey to 1f)
+            Log.i(TAG, "downloadFile: SUCCESS ${target.name} (${target.length()} bytes)")
             true
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            Log.e(TAG, "downloadFile: FAILED ${target.name}: ${e.javaClass.simpleName}: ${e.message}")
             tmp.delete()
             false
         }
