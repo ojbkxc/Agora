@@ -363,9 +363,12 @@ class ChatViewModel(
         shellConfirmation.resolve(allow, alwaysAllowServer)
 
     fun setShellConfirmEnabled(enabled: Boolean) = shellConfirmation.setEnabled(enabled)
+    val pendingQuestion get() = generationManager.askUserController.pendingQuestion
+    fun resolveAskUser(answers: List<String>) = generationManager.askUserController.resolve(answers)
+    fun cancelAskUser() = generationManager.askUserController.cancel()
+    val planState get() = generationManager.planStateHolder.plans
 
     // ── Tasks (automation) ────────────────────────────────────
-    /** Saved automation tasks; CRUD + run-now delegate to the app-scoped [taskManager]. */
     val tasks: StateFlow<List<com.lxseek.chat.data.local.TaskEntity>> get() = taskManager.tasks
     val runningTaskIds: StateFlow<Set<String>> get() = taskManager.runningTaskIds
 
@@ -881,7 +884,6 @@ class ChatViewModel(
     }
 
     fun setActiveModel(model: String) = selectionController.setActiveModel(model)
-
     fun deleteConversation(id: String) = conversationLifecycleController.delete(id)
 
     /**
@@ -912,7 +914,6 @@ class ChatViewModel(
     val isStopping: StateFlow<Boolean> get() = currentRuntimeFacade.isStopping
 
     fun removeQueuedSend(id: String) = currentRuntimeFacade.removeQueuedSend(id)
-
     fun stopGeneration() = generationStopAdapter.stopVisibleConversation()
 
     fun toggleTtsForMessage(message: ChatMessage) {
@@ -962,7 +963,6 @@ class ChatViewModel(
 
     suspend fun editMessage(messageId: String, newText: String): Boolean =
         generationController.editMessage(messageId, newText)
-
     suspend fun sendMessage(
         text: String,
         images: List<String> = emptyList(),

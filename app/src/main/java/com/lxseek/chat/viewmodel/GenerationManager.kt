@@ -87,7 +87,7 @@ class GenerationManager(
     private val toolBatchEffects = GenerationToolBatchEffectExecutor(toolExecutor)
     private val toolRoundBuilder = GenerationToolRoundBuilder()
     private val runFinalizationExecutor = GenerationRunFinalizationExecutor(conversations)
-    private val apiPathBuilder = GenerationApiPathBuilder(conversations, toolExecutor)
+    private val apiPathBuilder = GenerationApiPathBuilder(conversations, toolExecutor, planStateHolder)
     private val completionEffects = GenerationCompletionEffectsExecutor(
         isAppInForeground = { AppForegroundTracker.isInForeground },
         releaseForegroundLease = AgoraForegroundService::release,

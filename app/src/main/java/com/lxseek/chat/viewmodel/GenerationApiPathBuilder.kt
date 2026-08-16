@@ -43,6 +43,7 @@ internal fun interface GenerationToolDefinitionSource {
 internal class GenerationApiPathBuilder(
     private val conversations: ConversationRepository,
     private val toolDefinitions: GenerationToolDefinitionSource,
+    private val planStateHolder: com.lxseek.chat.tool.PlanStateHolder? = null,
 ) {
     suspend fun build(request: GenerationApiPathRequest): GenerationApiPath =
         withContext(Dispatchers.Default) {
@@ -163,7 +164,11 @@ internal class GenerationApiPathBuilder(
                 providerConfig = ProviderConfig(
                     apiKey = config.apiKey,
                     modelId = config.modelId,
-                    systemPrompt = config.effectiveSystemPrompt,
+                    systemPrompt = config.effectiveSystemPrompt +
+                        (planStateHolder?.let { psh ->
+                            com.lxseek.chat.tool.PlanHandler.buildPlanContext(psh, request.conversationId)
+                                .takeIf { it.isNotBlank() }?.let { "\n\n$it" }
+                        } ?: ""),
                     maxContextWindow = config.maxContextWindow,
                     codeExecutionEnabled = config.codeExecutionEnabled,
                     googleSearchEnabled = config.googleSearchEnabled,

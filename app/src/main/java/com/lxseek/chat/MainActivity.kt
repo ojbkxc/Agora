@@ -487,6 +487,43 @@ fun MainNavigation(
         )
     }
 
+    // ask_user tool dialog — agent asks user a question
+    val pendingQuestion by viewModel.pendingQuestion.collectAsState()
+    pendingQuestion?.let { pending ->
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            onDismissRequest = { viewModel.cancelAskUser() },
+            icon = { Icon(Icons.Default.Terminal, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Agent 提问", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text(pending.question, style = MaterialTheme.typography.bodyMedium)
+                    if (pending.choices.isNotEmpty()) {
+                        Spacer(Modifier.height(12.dp))
+                        pending.choices.forEach { choice ->
+                            TextButton(onClick = { viewModel.resolveAskUser(listOf(choice)) }) {
+                                Text(choice)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (pending.choices.isEmpty()) {
+                    TextButton(onClick = { viewModel.resolveAskUser(listOf("")) }) {
+                        Text("确认")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.cancelAskUser() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("取消") }
+            }
+        )
+    }
+
     // Crash report — opt-in, shown once on the first launch after an unexpected exit
     val crashContext = LocalContext.current
     var pendingCrash by remember { mutableStateOf<Pair<String, String>?>(null) }
