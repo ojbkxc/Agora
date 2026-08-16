@@ -57,6 +57,7 @@ class VoiceConversationController(
     @Volatile private var sttErrorCount = 0
 
     fun toggle() {
+        Log.i(TAG, "toggle: active=$active → ${!active}")
         if (active) stop() else start()
     }
 

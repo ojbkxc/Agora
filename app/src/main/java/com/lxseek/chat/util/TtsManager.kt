@@ -91,7 +91,7 @@ object TtsManager {
         val sb = StringBuilder()
         sb.append("=== TTS Diagnostic Log ===\n")
         sb.append("Date: ").append(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())).append('\n')
-        sb.append("App: Agora v1.0.21\n")
+        sb.append("App: Agora v${com.lxseek.chat.BuildConfig.VERSION_NAME}\n")
         val info = getDiagnosticInfo()
         sb.append("Initialized: ${info.initialized}\n")
         sb.append("Available: ${info.available}\n")

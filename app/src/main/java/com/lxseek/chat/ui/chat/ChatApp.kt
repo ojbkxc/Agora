@@ -804,18 +804,14 @@ fun ChatApp(
                 voiceConversationAmplitude = voiceConversationAmplitude,
                 voiceConversationEnabled = voiceConversationEnabled,
                 onVoiceConversationToggle = {
-                    if (!com.lxseek.chat.util.SttManager.isSupported(context)) {
-                        viewModel.emitSnackbar(context.getString(R.string.voice_conversation_not_available))
+                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.RECORD_AUDIO,
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (hasPermission) {
+                        viewModel.toggleVoiceConversation()
                     } else {
-                        val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
-                            context,
-                            android.Manifest.permission.RECORD_AUDIO,
-                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        if (hasPermission) {
-                            viewModel.toggleVoiceConversation()
-                        } else {
-                            micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                        }
+                        micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                     }
                 },
 
