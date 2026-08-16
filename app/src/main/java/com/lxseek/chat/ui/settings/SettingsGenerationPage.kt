@@ -668,6 +668,29 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         if (asrUseRemote) {
                             add {
                                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    val asrPresets = remember {
+                                        listOf(
+                                            Triple("OpenAI Whisper", "whisper-1", "https://api.openai.com/v1"),
+                                            Triple("Groq Whisper Large v3", "whisper-large-v3", "https://api.groq.com/openai/v1"),
+                                            Triple("Groq Distil Whisper", "distil-whisper-large-v3", "https://api.groq.com/openai/v1"),
+                                            Triple("OpenRouter Whisper", "openai/whisper-1", "https://openrouter.ai/api/v1"),
+                                        )
+                                    }
+                                    val presetIdx = asrPresets.indexOfFirst { it.second == asrRemoteModel && it.third == asrRemoteBaseUrl }
+                                    Text(
+                                        text = if (presetIdx >= 0) "模型: ${asrPresets[presetIdx].first}" else "自定义模型",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    TextButton(onClick = {
+                                        val nextIdx = if (presetIdx < 0) 0 else (presetIdx + 1) % asrPresets.size
+                                        val p = asrPresets[nextIdx]
+                                        viewModel.settings.setAsrRemoteModel(p.second)
+                                        viewModel.settings.setAsrRemoteBaseUrl(p.third)
+                                    }) {
+                                        Text(if (presetIdx >= 0) "切换预设模型" else "选择预设模型")
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     OutlinedTextField(
                                         value = asrRemoteBaseUrl,
                                         onValueChange = { viewModel.settings.setAsrRemoteBaseUrl(it) },
