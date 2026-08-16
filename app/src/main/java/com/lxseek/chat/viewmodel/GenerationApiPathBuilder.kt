@@ -164,7 +164,7 @@ internal class GenerationApiPathBuilder(
                 providerConfig = ProviderConfig(
                     apiKey = config.apiKey,
                     modelId = config.modelId,
-                    systemPrompt = config.effectiveSystemPrompt +
+                    systemPrompt = (config.effectiveSystemPrompt ?: "") +
                         (planStateHolder?.let { psh ->
                             com.lxseek.chat.tool.PlanHandler.buildPlanContext(psh, request.conversationId)
                                 .takeIf { it.isNotBlank() }?.let { "\n\n$it" }
