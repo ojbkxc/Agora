@@ -476,4 +476,43 @@ class SherpaAsrEngine : SpeechEngine {
         _isModelLoaded.value = false
         nativeLoaded = false
     }
+
+    fun getDiagnosticText(context: Context): String {
+        val sb = StringBuilder()
+        sb.append("=== SherpaAsrEngine Diagnostics ===\n")
+        sb.append("nativeLoaded: $nativeLoaded\n")
+        sb.append("isAvailable: ${_isAvailable.value}\n")
+        sb.append("isModelLoaded: ${_isModelLoaded.value}\n")
+        sb.append("useOfflineMode: $useOfflineMode\n")
+        sb.append("lastError: ${_lastError.value}\n")
+        sb.append("isListening: ${_isListening.value}\n")
+        sb.append("partialText: '${_partialText.value}'\n")
+        sb.append("onlineRecognizer: ${onlineRecognizer != null}\n")
+        sb.append("offlineRecognizer: ${offlineRecognizer != null}\n")
+        sb.append("vad: ${vad != null}\n")
+        sb.append("threads: ${dynamicThreads()}\n")
+        sb.append("\n=== Model Status ===\n")
+        val base = context.getExternalFilesDir("sherpa_models") ?: File(context.filesDir, "sherpa_models")
+        sb.append("baseDir: ${base.absolutePath}\n")
+        sb.append("baseDir exists: ${base.isDirectory}\n")
+        for (kind in SherpaModelManager.ModelKind.entries) {
+            val dir = SherpaModelManager.modelDir(context, kind)
+            val present = SherpaModelManager.isModelPresent(context, kind)
+            sb.append("\n[${kind.name}] present=$present\n")
+            sb.append("  dir: ${dir.absolutePath}\n")
+            if (dir.isDirectory) {
+                val files = dir.listFiles()?.sortedBy { it.name } ?: emptyList()
+                for (f in files) {
+                    sb.append("  ${f.name} (${f.length()} bytes)\n")
+                }
+            } else {
+                sb.append("  (dir not found)\n")
+            }
+        }
+        sb.append("\n=== VAD Params ===\n")
+        sb.append("threshold: ${com.lxseek.chat.util.VoiceRecorder.vadThreshold}\n")
+        sb.append("minSilence: ${com.lxseek.chat.util.VoiceRecorder.vadMinSilence}\n")
+        sb.append("maxSpeech: ${com.lxseek.chat.util.VoiceRecorder.vadMaxSpeech}\n")
+        return sb.toString()
+    }
 }

@@ -528,7 +528,11 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("TTS Log", TtsManager.getLogText()))
                                     }) { Text(stringResource(R.string.tts_copy_log)) }
                                     TextButton(onClick = {
-                                        val name = CrashReporter.exportDiagnostics(ttsContext, TtsManager.getLogText())
+                                        val name = CrashReporter.exportDiagnostics(
+                                            ttsContext,
+                                            TtsManager.getLogText() + "\n\n" +
+                                                com.lxseek.chat.speech.SpeechRecognitionManager.sherpaEngine.getDiagnosticText(ttsContext)
+                                        )
                                         if (name != null) {
                                             android.widget.Toast.makeText(ttsContext, "Saved to Downloads/Agora/$name", android.widget.Toast.LENGTH_SHORT).show()
                                         } else {
