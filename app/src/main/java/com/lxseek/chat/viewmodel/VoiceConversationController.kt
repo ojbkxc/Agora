@@ -2,11 +2,11 @@ package com.lxseek.chat.viewmodel
 
 import android.content.Context
 import com.lxseek.chat.util.AppLog as Log
-import com.lxseek.chat.speech.RemoteTranscriber
-import com.lxseek.chat.speech.SpeechRecognitionManager
-import com.lxseek.chat.util.SttManager
+import com.lxseek.chat.speech.AudioCaptureManager
+import com.lxseek.chat.speech.SpeechRecognizerManager
+import com.lxseek.chat.speech.VoskTranscriber
+import com.lxseek.chat.speech.WhisperTranscriber
 import com.lxseek.chat.util.TtsManager
-import com.lxseek.chat.util.VoiceRecorder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,7 +20,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 private const val TTS_START_GRACE_MS = 5_000L
-private const val STT_ERROR_RETRY_MAX = 3
 private const val TAG = "VoiceConvCtrl"
 
 class VoiceConversationController(
@@ -30,11 +29,10 @@ class VoiceConversationController(
     private val ttsAutoPlayOn: () -> Boolean,
     private val isLoading: StateFlow<Boolean>,
     private val sendMessage: suspend (String) -> Unit,
-    private val useRemoteAsr: () -> Boolean,
-    private val remoteAsrBaseUrl: () -> String,
-    private val remoteAsrApiKey: () -> String,
-    private val remoteAsrModel: () -> String,
     private val asrEnginePref: () -> String,
+    private val whisperApiKey: () -> String?,
+    private val whisperBaseUrl: () -> String,
+    private val whisperModel: () -> String,
 ) {
     enum class State { IDLE, LISTENING, TRANSCRIBING, PROCESSING, SPEAKING }
 
@@ -44,33 +42,46 @@ class VoiceConversationController(
     private val _partialTranscript = MutableStateFlow("")
     val partialTranscript: StateFlow<String> = _partialTranscript.asStateFlow()
 
-    private val recorder = VoiceRecorder()
-    val amplitude: StateFlow<Float> = recorder.amplitude
+    private val _amplitude = MutableStateFlow(0f)
+    val amplitude: StateFlow<Float> = _amplitude.asStateFlow()
+
+    private val audioCaptureManager = AudioCaptureManager(appContext)
+    private val voskTranscriber = VoskTranscriber(appContext)
+    private val speechRecognizerManager = SpeechRecognizerManager(appContext)
+    private val whisperTranscriber = WhisperTranscriber(
+        apiKeyProvider = { whisperApiKey() },
+        baseUrlProvider = { whisperBaseUrl() },
+        modelProvider = { whisperModel() },
+    )
 
     @Volatile private var active = false
+    @Volatile private var currentEngine: String = "auto"
+    private var captureJob: Job? = null
     private var observeJob: Job? = null
     private var ttsObserverJob: Job? = null
     private var sendJob: Job? = null
     private var partialJob: Job? = null
     @Volatile private var waitingForLlm = false
     @Volatile private var llmWasLoading = false
-    @Volatile private var sttErrorCount = 0
 
     fun toggle() {
-        Log.i(TAG, "toggle: active=$active → ${!active}")
-        if (active) stop() else start()
+        Log.i(TAG, "toggle: state=${_state.value}")
+        when (_state.value) {
+            State.IDLE, State.SPEAKING -> start()
+            State.LISTENING -> stopCaptureAndTranscribe()
+            else -> stop()
+        }
     }
 
     fun start() {
         if (active) return
         active = true
-        sttErrorCount = 0
         waitingForLlm = false
         llmWasLoading = false
         try {
             beginListening()
         } catch (e: Throwable) {
-            Log.e(TAG, "start() beginListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            Log.e(TAG, "start() crashed: ${e.javaClass.simpleName}: ${e.message}", e)
             active = false
             _state.value = State.IDLE
             return
@@ -83,6 +94,7 @@ class VoiceConversationController(
     }
 
     fun stop() {
+        Log.i(TAG, "stop()")
         active = false
         waitingForLlm = false
         llmWasLoading = false
@@ -92,189 +104,224 @@ class VoiceConversationController(
         sendJob = null
         partialJob?.cancel()
         partialJob = null
-        recorder.stop()
-        SttManager.stopListening()
-        SpeechRecognitionManager.sherpaEngine.stopListening()
-        SpeechRecognitionManager.voskEngine.stopListening()
+        captureJob?.cancel()
+        captureJob = null
+        try { audioCaptureManager.cancelCapture() } catch (e: Throwable) { Log.e(TAG, "cancelCapture failed", e) }
+        try { speechRecognizerManager.stopListening() } catch (e: Throwable) { Log.e(TAG, "stopListening failed", e) }
         TtsManager.stop()
         _state.value = State.IDLE
         _partialTranscript.value = ""
+        _amplitude.value = 0f
     }
 
     private fun beginListening() {
         if (!active) return
         _state.value = State.LISTENING
         _partialTranscript.value = ""
-        val sherpaReady = try {
-            SpeechRecognitionManager.sherpaEngine.let {
-                it.init(appContext)
-                it.isAvailable.value && it.isModelLoaded.value
-            }
-        } catch (e: Throwable) {
-            Log.e(TAG, "beginListening: sherpa init crashed: ${e.javaClass.simpleName}: ${e.message}", e)
-            false
-        }
-        val voskReady = try {
-            SpeechRecognitionManager.voskEngine.let {
-                it.init(appContext)
-                it.isAvailable.value && it.isModelLoaded.value
-            }
-        } catch (e: Throwable) {
-            Log.e(TAG, "beginListening: vosk init crashed: ${e.javaClass.simpleName}: ${e.message}", e)
-            false
-        }
+        _amplitude.value = 0f
+
         val pref = try { asrEnginePref() } catch (e: Throwable) { Log.e(TAG, "asrEnginePref crashed: ${e.message}", e); "auto" }
-        val useRemote = try { useRemoteAsr() } catch (e: Throwable) { Log.e(TAG, "useRemoteAsr crashed: ${e.message}", e); false }
-        val remoteKeyBlank = try { remoteAsrApiKey().isNotBlank() } catch (e: Throwable) { Log.e(TAG, "remoteAsrApiKey crashed: ${e.message}", e); false }
-        Log.i(TAG, "beginListening: pref=$pref, sherpaReady=$sherpaReady, voskReady=$voskReady, useRemote=$useRemote, remoteKeyBlank=$remoteKeyBlank")
+        currentEngine = pref
+        Log.i(TAG, "beginListening: pref=$pref")
+
         try {
-            when {
-                useRemote && remoteKeyBlank -> beginRemoteListening()
-                pref == "vosk" && voskReady -> beginVoskListening()
-                (pref == "sherpa-onnx" || pref == "auto") && sherpaReady -> beginSherpaListening()
-                pref == "auto" && voskReady -> beginVoskListening()
-                pref == "vosk" && sherpaReady -> beginSherpaListening()
-                pref == "sherpa-onnx" && voskReady -> beginVoskListening()
-                else -> {
-                    if ((pref == "sherpa-onnx" || pref == "auto") && !sherpaReady) {
-                        Log.w(TAG, "Falling back: sherpa pref=$pref but sherpaReady=false (native=${SpeechRecognitionManager.sherpaEngine.isAvailable.value}, model=${SpeechRecognitionManager.sherpaEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.sherpaEngine.lastError.value})")
-                    }
-                    if (pref == "vosk" && !voskReady) {
-                        Log.w(TAG, "Falling back: vosk pref=$pref but voskReady=false (available=${SpeechRecognitionManager.voskEngine.isAvailable.value}, model=${SpeechRecognitionManager.voskEngine.isModelLoaded.value}, error=${SpeechRecognitionManager.voskEngine.lastError.value})")
-                    }
-                    beginSystemListening()
-                }
+            when (pref) {
+                "vosk" -> beginVoskCapture()
+                "whisper" -> beginWhisperCapture()
+                "system" -> beginSystemListening()
+                else -> beginAutoListening()
             }
         } catch (e: Throwable) {
-            Log.e(TAG, "beginListening: dispatch crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            Log.e(TAG, "beginListening dispatch crashed: ${e.javaClass.simpleName}: ${e.message}", e)
             _state.value = State.IDLE
             active = false
         }
     }
 
-    private fun beginRemoteListening() {
-        Log.i(TAG, "beginRemoteListening: starting recorder")
-        try {
-            recorder.start(
-                context = appContext,
-                onComplete = { file ->
-                    if (!active) return@start
-                    Log.i(TAG, "Recorder onComplete: ${file.absolutePath} (${file.length()} bytes)")
-                    _state.value = State.TRANSCRIBING
-                    scope.launch {
-                        try {
-                            val lang = languageProvider()
-                            val languageParam = when (lang) {
-                                "en" -> "en"
-                                "zh" -> "zh"
-                                else -> null
-                            }
-                            val baseUrl = remoteAsrBaseUrl()
-                            val apiKey = remoteAsrApiKey()
-                            val model = remoteAsrModel()
-                            Log.i(TAG, "RemoteTranscriber: baseUrl=$baseUrl, model=$model, lang=$languageParam")
-                            val text = RemoteTranscriber.transcribe(
-                                baseUrl = baseUrl,
-                                apiKey = apiKey,
-                                audioFile = file,
-                                model = model,
-                                language = languageParam,
-                            )
-                            file.delete()
-                            if (!active) return@launch
-                            if (text != null) {
-                                Log.i(TAG, "RemoteTranscriber result: '$text'")
-                                sttErrorCount = 0
-                                _state.value = State.PROCESSING
-                                waitingForLlm = true
-                                llmWasLoading = false
-                                sendJob = scope.launch { sendMessage(text) }
-                            } else {
-                                Log.w(TAG, "RemoteTranscriber returned null (error or empty)")
-                                sttErrorCount++
-                                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                                    _state.value = State.IDLE
-                                    active = false
-                                } else if (active) {
-                                    delay(500)
-                                    beginListening()
-                                }
-                            }
-                        } catch (e: Throwable) {
-                            Log.e(TAG, "beginRemoteListening coroutine crashed: ${e.javaClass.simpleName}: ${e.message}", e)
-                            file.delete()
-                            if (active) {
-                                sttErrorCount++
-                                if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                                    _state.value = State.IDLE
-                                    active = false
-                                } else {
-                                    _state.value = State.IDLE
-                                }
-                            }
-                        }
-                    }
-                },
-                onError = { err ->
-                    if (!active) return@start
-                    Log.e(TAG, "Recorder onError: $err")
-                    sttErrorCount++
-                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                        _state.value = State.IDLE
-                        active = false
-                        observeJob?.cancel()
-                        observeJob = null
-                    } else if (active) {
+    private fun beginAutoListening() {
+        val voskReady = try {
+            scope.launch {
+                val ready = voskTranscriber.initialize(languageProvider().let { if (it == "en") "en" else if (it == "zh") "zh" else "en" })
+                if (ready && active) {
+                    Log.i(TAG, "auto: vosk ready, starting vosk capture")
+                    beginVoskCapture()
+                } else if (active) {
+                    val hasKey = !whisperApiKey().isNullOrBlank()
+                    if (hasKey) {
+                        Log.i(TAG, "auto: vosk not ready, whisper key available, starting whisper capture")
+                        beginWhisperCapture()
+                    } else {
+                        Log.i(TAG, "auto: vosk not ready, no whisper key, falling back to system")
                         beginSystemListening()
                     }
-                },
-            )
+                }
+            }
         } catch (e: Throwable) {
-            Log.e(TAG, "beginRemoteListening: recorder.start crashed: ${e.javaClass.simpleName}: ${e.message}", e)
-            _state.value = State.IDLE
-            active = false
+            Log.e(TAG, "beginAutoListening crashed: ${e.message}", e)
+            beginSystemListening()
+        }
+    }
+
+    private fun beginVoskCapture() {
+        Log.i(TAG, "beginVoskCapture: starting audio capture for vosk")
+        currentEngine = "vosk"
+        startAudioCapture { wavFile ->
+            transcribeWithVosk(wavFile)
+        }
+    }
+
+    private fun beginWhisperCapture() {
+        Log.i(TAG, "beginWhisperCapture: starting audio capture for whisper")
+        currentEngine = "whisper"
+        startAudioCapture { wavFile ->
+            transcribeWithWhisper(wavFile)
+        }
+    }
+
+    private fun startAudioCapture(onComplete: (File) -> Unit) {
+        captureJob?.cancel()
+        captureJob = scope.launch {
+            try {
+                val captureFlow = audioCaptureManager.startCapture()
+                captureFlow.collect { chunk ->
+                    if (!active) return@collect
+                    var max = 0
+                    for (b in chunk) {
+                        val v = if (b < 0) -b.toInt() else b.toInt()
+                        if (v > max) max = v
+                    }
+                    _amplitude.value = (max / 128f).coerceIn(0f, 1f)
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Audio capture flow crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+                if (active) {
+                    _state.value = State.IDLE
+                    active = false
+                }
+            }
+        }
+    }
+
+    private fun stopCaptureAndTranscribe() {
+        Log.i(TAG, "stopCaptureAndTranscribe: engine=$currentEngine")
+        if (currentEngine == "system") {
+            try { speechRecognizerManager.stopListening() } catch (e: Throwable) { Log.e(TAG, "stopListening failed", e) }
+            return
+        }
+        if (currentEngine == "vosk" || currentEngine == "whisper" || currentEngine == "auto") {
+            _state.value = State.TRANSCRIBING
+            captureJob?.cancel()
+            captureJob = null
+            scope.launch {
+                try {
+                    val wavFile = audioCaptureManager.stopCapture()
+                    Log.i(TAG, "WAV file: ${wavFile.absolutePath} (${wavFile.length()} bytes)")
+                    _amplitude.value = 0f
+                    when (currentEngine) {
+                        "whisper" -> transcribeWithWhisper(wavFile)
+                        "auto" -> {
+                            if (voskTranscriber.isReady()) transcribeWithVosk(wavFile)
+                            else if (!whisperApiKey().isNullOrBlank()) transcribeWithWhisper(wavFile)
+                            else {
+                                Log.w(TAG, "auto: no engine ready for transcription")
+                                wavFile.delete()
+                                if (active) beginSystemListening()
+                            }
+                        }
+                        else -> transcribeWithVosk(wavFile)
+                    }
+                } catch (e: Throwable) {
+                    Log.e(TAG, "stopCaptureAndTranscribe crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+                    if (active) {
+                        _state.value = State.IDLE
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun transcribeWithVosk(wavFile: File) {
+        _state.value = State.TRANSCRIBING
+        try {
+            val lang = languageProvider()
+            val langCode = when (lang) { "zh" -> "zh"; "en" -> "en"; else -> "en" }
+            if (!voskTranscriber.isReady()) {
+                val initialized = voskTranscriber.initialize(langCode)
+                if (!initialized) {
+                    Log.w(TAG, "Vosk model not available for $langCode, trying en")
+                    voskTranscriber.initialize("en")
+                }
+            }
+            Log.i(TAG, "Vosk transcribing ${wavFile.name}...")
+            val text = voskTranscriber.transcribe(wavFile)
+            wavFile.delete()
+            handleTranscriptionResult(text)
+        } catch (e: Throwable) {
+            Log.e(TAG, "transcribeWithVosk crashed: ${e.message}", e)
+            wavFile.delete()
+            if (active) {
+                _state.value = State.IDLE
+            }
+        }
+    }
+
+    private suspend fun transcribeWithWhisper(wavFile: File) {
+        _state.value = State.TRANSCRIBING
+        try {
+            val lang = languageProvider()
+            val languageParam = when (lang) { "en" -> "en"; "zh" -> "zh"; else -> null }
+            Log.i(TAG, "Whisper transcribing ${wavFile.name}...")
+            val result = whisperTranscriber.transcribe(wavFile, languageParam)
+            wavFile.delete()
+            if (result.isSuccess) {
+                handleTranscriptionResult(result.getOrDefault(""))
+            } else {
+                Log.w(TAG, "Whisper failed: ${result.exceptionOrNull()?.message}")
+                if (active && voskTranscriber.isReady()) {
+                    Log.i(TAG, "Falling back to vosk")
+                    val wavFile2 = audioCaptureManager.stopCapture()
+                    transcribeWithVosk(wavFile2)
+                } else if (active) {
+                    _state.value = State.IDLE
+                }
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "transcribeWithWhisper crashed: ${e.message}", e)
+            wavFile.delete()
+            if (active) {
+                _state.value = State.IDLE
+            }
         }
     }
 
     private fun beginSystemListening() {
         Log.i(TAG, "beginSystemListening: starting system ASR")
+        currentEngine = "system"
         try {
             partialJob?.cancel()
             partialJob = scope.launch {
-                SttManager.partialText.collect { _partialTranscript.value = it }
-            }
-            SttManager.init(appContext)
-            SttManager.startListening(
-                context = appContext,
-                language = languageProvider(),
-                onResult = { text ->
-                    if (!active) return@startListening
-                    Log.i(TAG, "System ASR result: '$text'")
-                    SttManager.stopListening()
-                    sttErrorCount = 0
-                    _state.value = State.PROCESSING
-                    waitingForLlm = true
-                    llmWasLoading = false
-                    sendJob = scope.launch { sendMessage(text) }
-                },
-                onError = { err ->
-                    if (!active) return@startListening
-                    Log.w(TAG, "System ASR error: $err")
-                    SttManager.stopListening()
-                    sttErrorCount++
-                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                        _state.value = State.IDLE
-                        active = false
-                        observeJob?.cancel()
-                        observeJob = null
-                    } else if (active) {
-                        scope.launch {
-                            delay(500)
-                            if (active) beginListening()
+                speechRecognizerManager.startListening().collect { result ->
+                    if (!active) return@collect
+                    when (result) {
+                        is SpeechRecognizerManager.RecognitionResult.Partial -> {
+                            _partialTranscript.value = result.text
                         }
+                        is SpeechRecognizerManager.RecognitionResult.Final -> {
+                            Log.i(TAG, "System ASR final: '${result.text}'")
+                            speechRecognizerManager.stopListening()
+                            handleTranscriptionResult(result.text)
+                        }
+                        is SpeechRecognizerManager.RecognitionResult.Error -> {
+                            Log.w(TAG, "System ASR error: ${result.message}")
+                            if (active) {
+                                _state.value = State.IDLE
+                                active = false
+                            }
+                        }
+                        else -> {}
                     }
-                },
-            )
+                }
+            }
         } catch (e: Throwable) {
             Log.e(TAG, "beginSystemListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
             _state.value = State.IDLE
@@ -282,104 +329,22 @@ class VoiceConversationController(
         }
     }
 
-    private fun beginSherpaListening() {
-        val engine = SpeechRecognitionManager.sherpaEngine
-        if (!engine.isAvailable.value || !engine.isModelLoaded.value) {
-            Log.w(TAG, "beginSherpaListening: engine not ready (available=${engine.isAvailable.value}, model=${engine.isModelLoaded.value}), falling back to system")
-            beginSystemListening()
+    private fun handleTranscriptionResult(text: String) {
+        if (!active) return
+        val cleanText = text.trim()
+        if (cleanText.isBlank() || cleanText.startsWith("[")) {
+            Log.w(TAG, "Transcription empty or error: '$cleanText'")
+            if (active) {
+                _state.value = State.IDLE
+                active = false
+            }
             return
         }
-        Log.i(TAG, "beginSherpaListening: starting sherpa ASR (offline=${engine.lastError.value == null})")
-        try {
-            partialJob?.cancel()
-            partialJob = scope.launch {
-                engine.partialText.collect { _partialTranscript.value = it }
-            }
-            engine.startListening(
-                context = appContext,
-                language = languageProvider(),
-                onResult = { text ->
-                    if (!active) return@startListening
-                    Log.i(TAG, "Sherpa ASR result: '$text'")
-                    engine.stopListening()
-                    sttErrorCount = 0
-                    _state.value = State.PROCESSING
-                    waitingForLlm = true
-                    llmWasLoading = false
-                    sendJob = scope.launch { sendMessage(text) }
-                },
-                onError = { err ->
-                    if (!active) return@startListening
-                    Log.w(TAG, "Sherpa ASR error: $err")
-                    engine.stopListening()
-                    sttErrorCount++
-                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                        _state.value = State.IDLE
-                        active = false
-                        observeJob?.cancel()
-                        observeJob = null
-                    } else if (active) {
-                        scope.launch {
-                            delay(500)
-                            if (active) beginListening()
-                        }
-                    }
-                },
-            )
-        } catch (e: Throwable) {
-            Log.e(TAG, "beginSherpaListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
-            beginSystemListening()
-        }
-    }
-
-    private fun beginVoskListening() {
-        val engine = SpeechRecognitionManager.voskEngine
-        if (!engine.isAvailable.value || !engine.isModelLoaded.value) {
-            Log.w(TAG, "beginVoskListening: engine not ready (available=${engine.isAvailable.value}, model=${engine.isModelLoaded.value}), falling back to system")
-            beginSystemListening()
-            return
-        }
-        Log.i(TAG, "beginVoskListening: starting vosk ASR (offline)")
-        try {
-            partialJob?.cancel()
-            partialJob = scope.launch {
-                engine.partialText.collect { _partialTranscript.value = it }
-            }
-            engine.startListening(
-                context = appContext,
-                language = languageProvider(),
-                onResult = { text ->
-                    if (!active) return@startListening
-                    Log.i(TAG, "Vosk ASR result: '$text'")
-                    engine.stopListening()
-                    sttErrorCount = 0
-                    _state.value = State.PROCESSING
-                    waitingForLlm = true
-                    llmWasLoading = false
-                    sendJob = scope.launch { sendMessage(text) }
-                },
-                onError = { err ->
-                    if (!active) return@startListening
-                    Log.w(TAG, "Vosk ASR error: $err")
-                    engine.stopListening()
-                    sttErrorCount++
-                    if (sttErrorCount >= STT_ERROR_RETRY_MAX) {
-                        _state.value = State.IDLE
-                        active = false
-                        observeJob?.cancel()
-                        observeJob = null
-                    } else if (active) {
-                        scope.launch {
-                            delay(500)
-                            if (active) beginListening()
-                        }
-                    }
-                },
-            )
-        } catch (e: Throwable) {
-            Log.e(TAG, "beginVoskListening crashed: ${e.javaClass.simpleName}: ${e.message}", e)
-            beginSystemListening()
-        }
+        Log.i(TAG, "Transcription result: '$cleanText'")
+        _state.value = State.PROCESSING
+        waitingForLlm = true
+        llmWasLoading = false
+        sendJob = scope.launch { sendMessage(cleanText) }
     }
 
     private suspend fun observeLlmAndTts() {
@@ -417,4 +382,6 @@ class VoiceConversationController(
             }
         }
     }
+
+    fun getVoskTranscriber(): VoskTranscriber = voskTranscriber
 }

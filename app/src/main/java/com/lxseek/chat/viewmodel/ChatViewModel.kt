@@ -940,18 +940,17 @@ class ChatViewModel(
         ttsAutoPlayOn = { settings.ttsEnabled.value && settings.ttsAutoPlay.value },
         isLoading = isLoading,
         sendMessage = { text -> sendMessage(text) },
-        useRemoteAsr = { settings.asrUseRemote.value },
-        remoteAsrBaseUrl = {
-            val p = providerRegistry.providerForModel(settings.selectedModel.value)
-            settings.asrRemoteBaseUrl.value.takeIf { it.isNotBlank() && it != "https://api.openai.com/v1" }
-                ?: providerRegistry.getEffectiveBaseUrl(p) ?: "https://api.openai.com/v1"
-        },
-        remoteAsrApiKey = {
+        asrEnginePref = { settings.asrEnginePref.value },
+        whisperApiKey = {
             val p = providerRegistry.providerForModel(settings.selectedModel.value)
             settings.asrRemoteApiKey.value.takeIf { it.isNotBlank() } ?: settings.resolveActiveKey(p) ?: ""
         },
-        remoteAsrModel = { settings.asrRemoteModel.value },
-        asrEnginePref = { settings.asrEnginePref.value },
+        whisperBaseUrl = {
+            val p = providerRegistry.providerForModel(settings.selectedModel.value)
+            settings.asrRemoteBaseUrl.value.takeIf { it.isNotBlank() && it != "https://api.openai.com/v1" }
+                ?: providerRegistry.getEffectiveBaseUrl(p) ?: "https://api.groq.com/openai/v1/audio/transcriptions"
+        },
+        whisperModel = { settings.asrRemoteModel.value.takeIf { it.isNotBlank() } ?: "whisper-large-v3" },
     )
     fun toggleVoiceConversation() = voiceConversation.toggle()
     fun stopVoiceConversation() = voiceConversation.stop()

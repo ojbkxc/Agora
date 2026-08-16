@@ -146,6 +146,7 @@
     <string name="asr_engine_system">System (Online)</string>
     <string name="asr_engine_sherpa">Sherpa-ONNX (Offline)</string>
     <string name="asr_engine_vosk">Vosk (Offline)</string>
+    <string name="asr_engine_whisper">Whisper (Cloud)</string>
     <string name="vosk_models_title">Vosk Models</string>
     <string name="vosk_model_download">Download</string>
     <string name="vosk_model_delete">Delete</string>

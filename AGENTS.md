@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.53` / versionCode `54` | `defaultConfig` |
+| 版本 | versionName `1.0.54` / versionCode `55` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -401,6 +401,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-17 v1.0.54 ASR 破坏性重做 — 照搬 GrapheneOS AI（本次会话）：用户反馈 v1.0.53 ASR 运行时不工作（"ASR使用后连日志都没有"），要求"ASR功能去掉一切之前的逻辑,照搬GrapheneOS AI"。**破坏性操作**：删除 9 个旧 ASR 文件（SpeechEngine/SherpaAsrEngine/SystemSpeechEngine/RemoteTranscriber/VoskAsrEngine/VoskModelManager/SpeechRecognitionManager/SttManager/VoiceRecorder），复制 GrapheneOS AI 的 4 个文件到 `speech/` 包（AudioCaptureManager 226行 + VoskTranscriber 675行 + SpeechRecognizerManager 175行 + WhisperTranscriber 130行），改包名 `com.lxseek.chat.speech` + 接入 AppLog。**重写 VoiceConversationController**（420→388行）：录完再转录模式（AudioCaptureManager 录音 → 停止 → VoskTranscriber/WhisperTranscriber 转录 WAV → sendMessage），引擎选择 auto/vosk/whisper/system，auto 模式 vosk > whisper > system 优先级。**修复 WhisperTranscriber** connection 作用域 bug（原版 connection 在 try 内定义但 finally 引用）。**更新 ChatViewModel** 构造参数（useRemoteAsr/remoteAsr* → whisperApiKey/whisperBaseUrl/whisperModel）。**重写 SettingsVoskModelsSection**（用 VoskTranscriber 替代 VoskModelManager）。**重写 SettingsSherpaModelsSection**（移除 ASR/VAD 部分，只保留 TTS）。**更新 SettingsGenerationPage**（移除 SpeechRecognitionManager 引用，引擎选择改为 auto/system/vosk/whisper）。**修复 UI 挤压**：ChatBottomBar VoiceMicButton 加固定宽度 120dp 防止波形指示器挤压发送按钮。**新增字符串** asr_engine_whisper（en+zh）。bump versionCode 54→55 / versionName 1.0.53→1.0.54。待 CI 验证。
 
 - 2026-08-16 v1.0.53 GrapheneOS AI ASR 移植 — Vosk 离线引擎集成 + 发版成功（本次会话）：5 阶段移植完成。① 阶段1 分析:GrapheneOS AI 三引擎架构分析,确定只移植 Vosk;② 阶段2 核心抽象:VoskAsrEngine stub + SpeechRecognitionManager 扩展 + VoiceConversationController 新增 beginVoskListening + Vosk Maven 依赖 com.alphacephei:vosk-android:0.3.47;③ 阶段3 引擎实现:VoskAsrEngine 完整实现(Model+Recognizer+AudioRecord 16kHz 循环+端点检测+30s 超时+JSON 解析+语言回退) + VoskModelManager(25 语言模型+ZIP 下载/解压/删除);④ 阶段4 UI:SettingsVoskModelsSection(模型下载/删除/进度) + 设置页接入 + 导出诊断含 Vosk;⑤ 阶段5 CI 验证:首次失败(ensureModelLoaded 缺 return)→修复→CI #31955792011 全绿。8 文件改动(3 新建+5 修改)。Release `Agora-v1.0.53-android-arm64-v8a.apk` 已发布。
 

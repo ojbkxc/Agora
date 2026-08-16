@@ -46,7 +46,6 @@ import com.lxseek.chat.ui.common.openAiServiceTierShortLabel
 import com.lxseek.chat.ui.common.thinkingControlShortLabel
 import com.lxseek.chat.util.CrashReporter
 import com.lxseek.chat.util.TtsManager
-import com.lxseek.chat.speech.SpeechRecognitionManager
 import com.lxseek.chat.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -90,7 +89,6 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val vadThreshold by viewModel.settings.vadThreshold.collectAsState()
     val vadMinSilence by viewModel.settings.vadMinSilence.collectAsState()
     val vadMaxSpeech by viewModel.settings.vadMaxSpeech.collectAsState()
-    val asrIsAvailable by SpeechRecognitionManager.isAvailable.collectAsState()
 
     CollapsingSettingsScaffold(
         title = stringResource(R.string.generation_title),
@@ -533,9 +531,8 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             "=== AppLog (all modules) ===\n" +
                                                 com.lxseek.chat.util.AppLog.getText() + "\n\n" +
                                                 TtsManager.getLogText() + "\n\n" +
-                                                com.lxseek.chat.speech.SpeechRecognitionManager.sherpaEngine.getDiagnosticText(ttsContext) + "\n\n" +
                                                 com.lxseek.chat.speech.SherpaTtsEngine.getDiagnosticText(ttsContext) + "\n\n" +
-                                                com.lxseek.chat.speech.SpeechRecognitionManager.voskEngine.getDiagnosticText(ttsContext)
+                                                viewModel.voiceConversation.getVoskTranscriber().getDiagnosticText()
                                         )
                                         if (name != null) {
                                             android.widget.Toast.makeText(ttsContext, "Saved to Downloads/Agora/$name", android.widget.Toast.LENGTH_SHORT).show()
@@ -644,8 +641,8 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     Text(
                                         when (asrEnginePref) {
                                             "system" -> stringResource(R.string.asr_engine_system)
-                                            "sherpa-onnx" -> stringResource(R.string.asr_engine_sherpa)
                                             "vosk" -> stringResource(R.string.asr_engine_vosk)
+                                            "whisper" -> stringResource(R.string.asr_engine_whisper)
                                             else -> stringResource(R.string.asr_engine_auto)
                                         },
                                         style = MaterialTheme.typography.labelLarge,
@@ -655,13 +652,11 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 modifier = Modifier.clickable {
                                     val next = when (asrEnginePref) {
                                         "auto" -> "system"
-                                        "system" -> "sherpa-onnx"
-                                        "sherpa-onnx" -> "vosk"
+                                        "system" -> "vosk"
+                                        "vosk" -> "whisper"
                                         else -> "auto"
                                     }
                                     viewModel.settings.setAsrEnginePref(next)
-                                    SpeechRecognitionManager.preferredEngine = next
-                                    SpeechRecognitionManager.init(ttsContext)
                                 },
                             )
                         }
@@ -741,17 +736,13 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         add {
                             SettingsSherpaModelsSection(
                                 context = ttsContext,
-                                sherpaEngine = SpeechRecognitionManager.sherpaEngine,
-                                vadThreshold = vadThreshold,
-                                vadMinSilence = vadMinSilence,
-                                vadMaxSpeech = vadMaxSpeech,
-                                onVadThresholdChange = { viewModel.settings.setVadThreshold(it) },
-                                onVadMinSilenceChange = { viewModel.settings.setVadMinSilence(it) },
-                                onVadMaxSpeechChange = { viewModel.settings.setVadMaxSpeech(it) },
                             )
                         }
                         add {
-                            SettingsVoskModelsSection(context = ttsContext)
+                            SettingsVoskModelsSection(
+                                context = ttsContext,
+                                voskTranscriber = viewModel.voiceConversation.getVoskTranscriber(),
+                            )
                         }
                     },
                 )

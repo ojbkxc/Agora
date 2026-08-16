@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -23,21 +24,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lxseek.chat.R
-import com.lxseek.chat.speech.SpeechRecognitionManager
-import com.lxseek.chat.speech.VoskModelManager
+import com.lxseek.chat.speech.VoskTranscriber
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsVoskModelsSection(
     context: android.content.Context,
+    voskTranscriber: VoskTranscriber,
 ) {
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
-    val voskEngine = SpeechRecognitionManager.voskEngine
-    val voskAvailable by voskEngine.isAvailable.collectAsState()
-    val modelLoaded by voskEngine.isModelLoaded.collectAsState()
-    val lastError by voskEngine.lastError.collectAsState()
-    val progressMap by VoskModelManager.downloadProgress.collectAsState()
+    val downloadProgress by voskTranscriber.downloadProgress.collectAsState()
+    val downloadingFor = remember { mutableStateMapOf<String, String>() }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
@@ -47,47 +45,50 @@ fun SettingsVoskModelsSection(
         )
         Spacer(modifier = Modifier.height(4.dp))
 
-        if (voskAvailable) {
-            Text(
-                text = "Native: OK | Model: ${if (modelLoaded) "loaded" else "not loaded"}",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (modelLoaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (lastError != null) {
-                Text(
-                    text = "Error: $lastError",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-        } else {
-            Text(
-                text = "Native: not loaded",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
+        Text(
+            text = "Ready: ${voskTranscriber.isReady()} | Lang: ${voskTranscriber.getCurrentLanguage()}",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (voskTranscriber.isReady()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(modifier = Modifier.height(8.dp))
 
-        val downloaded = run { refresh; VoskModelManager.getDownloadedModels(context) }
-        for (model in VoskModelManager.AVAILABLE_MODELS) {
+        val downloaded = run { refresh; voskTranscriber.getDownloadedLanguages() }
+        for (model in VoskTranscriber.AVAILABLE_LANGUAGES) {
             Spacer(modifier = Modifier.height(4.dp))
+            val isDownloaded = downloaded.contains(model.code)
+            val isDownloading = downloadingFor.containsKey(model.code)
             VoskModelRow(
                 label = model.displayName,
                 sizeHint = "${model.sizeBytes / 1_000_000}MB",
-                isDownloaded = downloaded.contains(model.code),
-                progress = progressMap[model.code],
+                isDownloaded = isDownloaded,
+                isDownloading = isDownloading,
+                progress = if (isDownloading) downloadProgress else null,
                 onDownload = {
                     scope.launch {
-                        if (VoskModelManager.downloadModel(context, model.code)) {
-                            voskEngine.init(context)
-                            refresh++
+                        downloadingFor[model.code] = "downloading"
+                        voskTranscriber.downloadModel(model.code).collect { state ->
+                            when (state) {
+                                is VoskTranscriber.DownloadState.Downloading -> {
+                                    downloadingFor[model.code] = "downloading"
+                                }
+                                is VoskTranscriber.DownloadState.Extracting -> {
+                                    downloadingFor[model.code] = "extracting"
+                                }
+                                is VoskTranscriber.DownloadState.Complete -> {
+                                    downloadingFor.remove(model.code)
+                                    refresh++
+                                }
+                                is VoskTranscriber.DownloadState.Error -> {
+                                    downloadingFor.remove(model.code)
+                                    refresh++
+                                }
+                                else -> {}
+                            }
                         }
                     }
                 },
                 onDelete = {
-                    VoskModelManager.deleteModel(context, model.code)
-                    voskEngine.init(context)
+                    voskTranscriber.deleteModel(model.code)
                     refresh++
                 },
             )
@@ -100,6 +101,7 @@ private fun VoskModelRow(
     label: String,
     sizeHint: String,
     isDownloaded: Boolean,
+    isDownloading: Boolean,
     progress: Int?,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
@@ -115,7 +117,7 @@ private fun VoskModelRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (progress != null && progress in 1..99) {
+            if (isDownloading && progress != null && progress in 1..99) {
                 LinearProgressIndicator(
                     progress = { progress / 100f },
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -124,15 +126,18 @@ private fun VoskModelRow(
         }
         Spacer(modifier = Modifier.width(8.dp))
         if (isDownloaded) {
-            OutlinedButton(onClick = onDelete) {
+            OutlinedButton(onClick = onDelete, enabled = !isDownloading) {
                 Text(stringResource(R.string.vosk_model_delete))
             }
         } else {
-            OutlinedButton(onClick = onDownload, enabled = progress == null) {
+            OutlinedButton(onClick = onDownload, enabled = !isDownloading) {
                 Text(
-                    if (progress != null && progress == -1) stringResource(R.string.vosk_model_extracting)
-                    else if (progress != null && progress in 1..99) stringResource(R.string.vosk_model_downloading, progress)
-                    else stringResource(R.string.vosk_model_download)
+                    if (isDownloading && progress != null && progress in 1..99)
+                        stringResource(R.string.vosk_model_downloading, progress)
+                    else if (isDownloading)
+                        stringResource(R.string.vosk_model_extracting)
+                    else
+                        stringResource(R.string.vosk_model_download)
                 )
             }
         }

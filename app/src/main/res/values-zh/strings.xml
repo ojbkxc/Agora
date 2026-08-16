@@ -818,6 +818,7 @@
     <string name="asr_engine_system">系统（在线）</string>
     <string name="asr_engine_sherpa">Sherpa-ONNX（离线）</string>
     <string name="asr_engine_vosk">Vosk（离线）</string>
+    <string name="asr_engine_whisper">Whisper（云端）</string>
     <string name="vosk_models_title">Vosk 模型</string>
     <string name="vosk_model_download">下载</string>
     <string name="vosk_model_delete">删除</string>
