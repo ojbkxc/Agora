@@ -167,7 +167,7 @@ internal class GenerationApiPathBuilder(
                     systemPrompt = (config.effectiveSystemPrompt ?: "") +
                         (planStateHolder?.let { psh ->
                             com.lxseek.chat.tool.PlanHandler.buildPlanContext(psh, request.conversationId)
-                                .takeIf { it.isNotBlank() }?.let { "\n\n$it" }
+                                ?.takeIf { it.isNotBlank() }?.let { "\n\n$it" }
                         } ?: ""),
                     maxContextWindow = config.maxContextWindow,
                     codeExecutionEnabled = config.codeExecutionEnabled,
