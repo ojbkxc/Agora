@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.util.Log
 import com.k2fsa.sherpa.onnx.OfflineTts
 import com.k2fsa.sherpa.onnx.OfflineTtsConfig
 import com.k2fsa.sherpa.onnx.OfflineTtsKokoroModelConfig
@@ -15,11 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 
-/**
- * On-device TTS engine backed by sherpa-onnx (Kokoro or Piper/VITS).
- * Bypasses the system TextToSpeech engine entirely, avoiding ROM-specific
- * limitations (MIUI/EMUI bindService restrictions).
- */
+private const val TAG = "SherpaTtsEngine"
+
 object SherpaTtsEngine {
 
     enum class ModelType { KOKORO, VITS }
@@ -33,21 +31,29 @@ object SherpaTtsEngine {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    private val _lastError = MutableStateFlow<String?>(null)
+    val lastError: StateFlow<String?> = _lastError.asStateFlow()
+
     @Volatile private var nativeLoaded = false
     @Volatile private var tts: OfflineTts? = null
     @Volatile private var audioTrack: AudioTrack? = null
     @Volatile private var stopped = false
     @Volatile private var speakThread: Thread? = null
+    @Volatile private var currentModelType: ModelType? = null
 
     fun init(context: Context): Boolean {
+        Log.d(TAG, "init() called, nativeLoaded=$nativeLoaded, modelLoaded=${_isModelLoaded.value}")
         if (nativeLoaded && _isModelLoaded.value) return true
         if (!nativeLoaded) {
             nativeLoaded = try {
                 System.loadLibrary("sherpa-onnx-jni")
+                Log.i(TAG, "loadLibrary SUCCESS")
                 true
-            } catch (_: UnsatisfiedLinkError) {
+            } catch (e: UnsatisfiedLinkError) {
+                Log.e(TAG, "loadLibrary FAILED (UnsatisfiedLinkError): ${e.message}")
                 false
-            } catch (_: Throwable) {
+            } catch (e: Throwable) {
+                Log.e(TAG, "loadLibrary FAILED: ${e.javaClass.simpleName}: ${e.message}")
                 false
             }
             _isAvailable.value = nativeLoaded
@@ -58,25 +64,31 @@ object SherpaTtsEngine {
                 SherpaModelManager.ModelKind.TTS_KOKORO_V1_1,
                 SherpaModelManager.ModelKind.TTS_KOKORO_INT8_V1_1,
             )) {
-                if (SherpaModelManager.isModelPresent(context, kind)) {
-                    loadModel(SherpaModelManager.modelDir(context, kind).absolutePath, ModelType.KOKORO)
+                val present = SherpaModelManager.isModelPresent(context, kind)
+                Log.d(TAG, "TTS model check: ${kind.name} present=$present")
+                if (present) {
+                    val dir = SherpaModelManager.modelDir(context, kind)
+                    Log.i(TAG, "Loading TTS model ${kind.name} from ${dir.absolutePath}")
+                    loadModel(dir.absolutePath, ModelType.KOKORO)
                     break
                 }
             }
         }
+        Log.d(TAG, "init() result: nativeLoaded=$nativeLoaded, modelLoaded=${_isModelLoaded.value}")
         return nativeLoaded
     }
 
-    /**
-     * Loads a TTS model from [modelDir].
-     * For KOKORO: expects model.onnx, voices.bin, tokens.txt, dataDir (espeak-ng-data).
-     * For VITS (Piper): expects model.onnx, tokens.txt, espeak-ng-data dir.
-     * Returns true on success.
-     */
     fun loadModel(modelDir: String, modelType: ModelType, dataDir: String = ""): Boolean {
-        if (!nativeLoaded) return false
+        if (!nativeLoaded) {
+            Log.e(TAG, "loadModel: nativeLoaded=false")
+            return false
+        }
         val dir = File(modelDir)
-        if (!dir.isDirectory) return false
+        if (!dir.isDirectory) {
+            Log.e(TAG, "loadModel: dir not found: $modelDir")
+            return false
+        }
+        Log.d(TAG, "loadModel: modelDir=$modelDir, type=$modelType")
         return try {
             tts?.release()
             val config = when (modelType) {
@@ -88,6 +100,7 @@ object SherpaTtsEngine {
                     val ruleFstParts = listOf("phone-zh.fst", "date-zh.fst", "number-zh.fst")
                         .filter { File(dir, it).exists() }
                         .joinToString(",") { "${dir.absolutePath}/$it" }
+                    Log.d(TAG, "Kokoro config: model=$modelFile, lexicon=$lexiconParts, ruleFsts=$ruleFstParts")
                     OfflineTtsConfig(
                         model = OfflineTtsModelConfig(
                             kokoro = OfflineTtsKokoroModelConfig(
@@ -117,21 +130,26 @@ object SherpaTtsEngine {
                 )
             }
             tts = OfflineTts(config = config)
+            currentModelType = modelType
             _isModelLoaded.value = true
+            _lastError.value = null
+            Log.i(TAG, "TTS model loaded SUCCESS (type=$modelType, sampleRate=${tts?.sampleRate()})")
             true
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            Log.e(TAG, "loadModel FAILED: ${e.javaClass.simpleName}: ${e.message}", e)
+            _lastError.value = "TTS loadModel failed: ${e.message}"
             _isModelLoaded.value = false
             false
         }
     }
 
-    /**
-     * Synthesizes [text] to speech and plays it via AudioTrack.
-     * Returns true if synthesis started successfully.
-     */
     fun speak(text: String, sid: Int = 0, speed: Float = 1.0f): Boolean {
         val ttsInstance = tts
-        if (ttsInstance == null || !_isModelLoaded.value) return false
+        if (ttsInstance == null || !_isModelLoaded.value) {
+            Log.e(TAG, "speak: tts=null or model not loaded")
+            return false
+        }
+        Log.d(TAG, "speak: text='${text.take(50)}', sid=$sid, speed=$speed")
         stop()
         stopped = false
         _isPlaying.value = true
@@ -139,8 +157,12 @@ object SherpaTtsEngine {
             try {
                 val sampleRate = ttsInstance.sampleRate()
                 ensureAudioTrack(sampleRate)
-                val track = audioTrack ?: run { _isPlaying.value = false; return@Thread }
+                val track = audioTrack ?: run {
+                    Log.e(TAG, "speak: audioTrack null after ensureAudioTrack")
+                    _isPlaying.value = false; return@Thread
+                }
                 track.play()
+                Log.d(TAG, "speak: AudioTrack playing, sampleRate=$sampleRate")
                 ttsInstance.generateWithCallback(
                     text = text,
                     sid = sid,
@@ -152,12 +174,16 @@ object SherpaTtsEngine {
                         try {
                             track.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
                             1
-                        } catch (_: Throwable) {
+                        } catch (e: Throwable) {
+                            Log.e(TAG, "AudioTrack.write failed: ${e.message}")
                             0
                         }
                     }
                 }
-            } catch (_: Throwable) {
+                Log.d(TAG, "speak: generation completed")
+            } catch (e: Throwable) {
+                Log.e(TAG, "speak exception: ${e.javaClass.simpleName}: ${e.message}", e)
+                _lastError.value = "TTS speak failed: ${e.message}"
             } finally {
                 try { audioTrack?.stop() } catch (_: Throwable) {}
                 _isPlaying.value = false
@@ -196,6 +222,7 @@ object SherpaTtsEngine {
     }
 
     fun stop() {
+        Log.d(TAG, "stop")
         stopped = true
         try { audioTrack?.stop() } catch (_: Throwable) {}
         _isPlaying.value = false
@@ -206,6 +233,7 @@ object SherpaTtsEngine {
     }
 
     fun shutdown() {
+        Log.d(TAG, "shutdown")
         stop()
         try { audioTrack?.release() } catch (_: Throwable) {}
         audioTrack = null
@@ -214,5 +242,38 @@ object SherpaTtsEngine {
         _isAvailable.value = false
         _isModelLoaded.value = false
         nativeLoaded = false
+    }
+
+    fun getDiagnosticText(context: Context): String {
+        val sb = StringBuilder()
+        sb.append("=== SherpaTtsEngine Diagnostics ===\n")
+        sb.append("nativeLoaded: $nativeLoaded\n")
+        sb.append("isAvailable: ${_isAvailable.value}\n")
+        sb.append("isModelLoaded: ${_isModelLoaded.value}\n")
+        sb.append("isPlaying: ${_isPlaying.value}\n")
+        sb.append("currentModelType: $currentModelType\n")
+        sb.append("lastError: ${_lastError.value}\n")
+        sb.append("tts: ${tts != null}\n")
+        sb.append("audioTrack: ${audioTrack != null}\n")
+        sb.append("\n=== TTS Model Status ===\n")
+        for (kind in listOf(
+            SherpaModelManager.ModelKind.TTS_KOKORO,
+            SherpaModelManager.ModelKind.TTS_KOKORO_V1_1,
+            SherpaModelManager.ModelKind.TTS_KOKORO_INT8_V1_1,
+        )) {
+            val dir = SherpaModelManager.modelDir(context, kind)
+            val present = SherpaModelManager.isModelPresent(context, kind)
+            sb.append("\n[${kind.name}] present=$present\n")
+            if (dir.isDirectory) {
+                val files = dir.listFiles()?.sortedBy { it.name } ?: emptyList()
+                for (f in files.take(20)) {
+                    sb.append("  ${f.name} (${f.length()} bytes)\n")
+                }
+                if (files.size > 20) sb.append("  ... and ${files.size - 20} more files\n")
+            } else {
+                sb.append("  (dir not found)\n")
+            }
+        }
+        return sb.toString()
     }
 }

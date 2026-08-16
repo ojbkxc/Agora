@@ -531,7 +531,8 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         val name = CrashReporter.exportDiagnostics(
                                             ttsContext,
                                             TtsManager.getLogText() + "\n\n" +
-                                                com.lxseek.chat.speech.SpeechRecognitionManager.sherpaEngine.getDiagnosticText(ttsContext)
+                                                com.lxseek.chat.speech.SpeechRecognitionManager.sherpaEngine.getDiagnosticText(ttsContext) + "\n\n" +
+                                                com.lxseek.chat.speech.SherpaTtsEngine.getDiagnosticText(ttsContext)
                                         )
                                         if (name != null) {
                                             android.widget.Toast.makeText(ttsContext, "Saved to Downloads/Agora/$name", android.widget.Toast.LENGTH_SHORT).show()

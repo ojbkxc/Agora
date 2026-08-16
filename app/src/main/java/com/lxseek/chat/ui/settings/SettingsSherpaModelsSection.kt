@@ -82,7 +82,24 @@ fun SettingsSherpaModelsSection(
             )
             if (asrError != null) {
                 Text(
-                    text = "Error: $asrError",
+                    text = "ASR Error: $asrError",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+
+        if (ttsAvailable) {
+            Text(
+                text = "TTS model: ${if (ttsModelLoaded) "loaded" else "not loaded"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (ttsModelLoaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val ttsError = SherpaTtsEngine.lastError.collectAsState().value
+            if (ttsError != null) {
+                Text(
+                    text = "TTS Error: $ttsError",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                 )
