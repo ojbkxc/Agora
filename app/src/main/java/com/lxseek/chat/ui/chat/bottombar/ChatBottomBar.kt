@@ -68,7 +68,7 @@ import com.lxseek.chat.util.noOpBringIntoView
 import com.lxseek.chat.viewmodel.SendAcceptance
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -286,12 +286,19 @@ fun ChatBottomBar(
             )
         }
 
-        Box(modifier = Modifier.fillMaxWidth().then(if (isExpanded) Modifier.weight(1f) else Modifier).noOpBringIntoView()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (isExpanded) Modifier.weight(1f) else Modifier)
+                .noOpBringIntoView()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             TextField(
                 state = textFieldState,
                 scrollState = scrollState,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .then(if (isExpanded) Modifier.fillMaxHeight() else Modifier)
                     .focusRequester(focusRequester)
                     .onFocusChanged { focusState ->
@@ -327,12 +334,6 @@ fun ChatBottomBar(
                     }
                 },
             )
-
-        }
-        }
-
-        Row(modifier = Modifier.fillMaxWidth().background(composerOcclusionColor).padding(start = 8.dp, end = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(40.dp).padding(horizontal = 4.dp)) {
                 var showAddMenu by remember { mutableStateOf(false) }
                 var lastAddDismissTime by remember { mutableLongStateOf(0L) }
                 ExposedDropdownMenuBox(
@@ -449,41 +450,25 @@ fun ChatBottomBar(
                 var lastContextDismissTime by remember { mutableLongStateOf(0L) }
                 var lastToolsDismissTime by remember { mutableLongStateOf(0L) }
 
-                val parsed = com.lxseek.chat.model.ModelId.parse(selectedModel)
-                val modelId = parsed.apiModelName
-                val provider = parsed.providerName
+                val provider = com.lxseek.chat.model.ModelId.parse(selectedModel).providerName
 
-                val displayText = when {
-                    isModelValid -> modelAliases[selectedModel] ?: ("$modelId ($provider)")
+                val currentModelLabel = when {
+                    isModelValid -> modelAliases[selectedModel] ?: selectedModel
                     enabledModels.isNotEmpty() -> stringResource(R.string.select_model)
                     else -> stringResource(R.string.no_model_selected)
                 }
-                
+
                 ExposedDropdownMenuBox(
                     expanded = activeMenu == "model",
                     onExpandedChange = { }
                 ) {
-                    TextButton(
-                        onClick = {
-                            val now = System.currentTimeMillis()
-                            if (activeMenu == "model") {
-                                activeMenu = null
-                            } else if (now - lastModelDismissTime > 200) {
-                                activeMenu = "model"
-                            }
-                        },
-                        modifier = Modifier.height(38.dp).widthIn(max = 160.dp).menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
-                        contentPadding = PaddingValues(8.dp)
-                    ) {
-                        Text(
-                            displayText,
-                            style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = if (isModelValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    }
-                    
+                    // The model picker is opened from the tools menu; this invisible anchor lets the
+                    // dropdown position itself without consuming any layout width in the single row.
+                    Box(
+                        modifier = Modifier
+                            .size(0.dp)
+                            .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                    )
                     ExposedDropdownMenu(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
                         expanded = activeMenu == "model", 
@@ -651,6 +636,24 @@ fun ChatBottomBar(
                         matchTextFieldWidth = false,
                         shape = RoundedCornerShape(16.dp)
                     ) {
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(stringResource(R.string.select_model))
+                                    Text(
+                                        text = currentModelLabel,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            onClick = {
+                                activeMenu = null
+                                lastToolsDismissTime = System.currentTimeMillis()
+                                activeMenu = "model"
+                            }
+                        )
+                        HorizontalDivider()
                         val isGemini = provider.equals("google", ignoreCase = true) && isModelValid
                         if (isGemini) {
                             DropdownMenuItem(
@@ -822,8 +825,6 @@ fun ChatBottomBar(
                         )
                     }
                 }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
                 if (!isExpanded) {
                     IconButton(onClick = { if (!isExpandAnimating) onExpand() }, modifier = Modifier.size(28.dp)) {
                         Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.expand_all_24px), contentDescription = stringResource(R.string.expand), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
@@ -847,7 +848,7 @@ fun ChatBottomBar(
                     onVoiceConversationToggle = onVoiceConversationToggle,
                     onStopSingleAsr = onStopSingleAsr,
                 )
-            }
+        }
         }
         }
         AnimatedVisibility(
