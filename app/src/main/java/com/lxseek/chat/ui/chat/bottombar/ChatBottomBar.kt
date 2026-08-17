@@ -6,18 +6,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import com.lxseek.chat.model.apiModelName
 import com.lxseek.chat.model.ContextBudget
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.material3.Icon
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -38,6 +32,9 @@ import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -68,6 +65,7 @@ import com.lxseek.chat.util.noOpBringIntoView
 import com.lxseek.chat.viewmodel.SendAcceptance
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -159,7 +157,6 @@ fun ChatBottomBar(
 ) {
     val allowSpatialTransitions = LocalAgoraMotionPolicy.current.allowSpatialTransitions
     val scrollState = rememberScrollState()
-    BackHandler(enabled = isExpanded) { onCollapse() }
     val isModelValid = selectedModel.isNotBlank() && enabledModels.contains(selectedModel)
 
     // No-op bring-into-view to prevent auto-scrolling on text field focus
@@ -238,20 +235,8 @@ fun ChatBottomBar(
         }
     }
 
-    Box(modifier = modifier.fillMaxWidth().then(if (isExpanded) Modifier.fillMaxHeight() else Modifier).padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 10.dp)) {
-        Column(modifier = Modifier.fillMaxWidth().then(if (isExpanded) Modifier.fillMaxHeight() else Modifier)) {
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = EnterTransition.None,
-                exit = if (allowSpatialTransitions) {
-                    shrinkVertically(tween(250)) + fadeOut(tween(250))
-                } else {
-                    fadeOut(tween(250))
-                },
-            ) {
-                Spacer(modifier = Modifier.height(44.dp))
-            }
-
+    Box(modifier = modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 10.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             ComposerStatusColumn(
                 queuedSends = queuedSends,
                 onRemoveQueuedSend = onRemoveQueuedSend,
@@ -261,7 +246,6 @@ fun ChatBottomBar(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .then(if (isExpanded) Modifier.weight(1f) else Modifier)
                     .then(
                         if (allowSpatialTransitions) {
                             Modifier.animateContentSize(
@@ -286,54 +270,44 @@ fun ChatBottomBar(
             )
         }
 
+        TextField(
+            state = textFieldState,
+            scrollState = scrollState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState ->
+                    onInputFocusChanged(focusState.isFocused)
+                }
+                .verticalScrollbar(scrollState, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+            placeholder = {
+                Text(
+                    stringResource(R.string.ask_agora),
+                    style = ChatType.input,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            },
+            enabled = true,
+            lineLimits = TextFieldLineLimits.MultiLine(1, 6),
+            contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                cursorColor = MaterialTheme.colorScheme.primary
+            ),
+            textStyle = ChatType.input.copy(color = MaterialTheme.colorScheme.onSurface),
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (isExpanded) Modifier.weight(1f) else Modifier)
                 .noOpBringIntoView()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextField(
-                state = textFieldState,
-                scrollState = scrollState,
-                modifier = Modifier
-                    .weight(1f)
-                    .then(if (isExpanded) Modifier.fillMaxHeight() else Modifier)
-                    .focusRequester(focusRequester)
-                    .onFocusChanged { focusState ->
-                        onInputFocusChanged(focusState.isFocused)
-                    }
-                    .verticalScrollbar(scrollState, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                placeholder = {
-                    Text(
-                        stringResource(R.string.ask_agora),
-                        style = ChatType.input,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                },
-                enabled = true,
-                lineLimits = TextFieldLineLimits.MultiLine(1, if (isExpanded) Int.MAX_VALUE else 6),
-                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                ),
-                textStyle = ChatType.input.copy(color = MaterialTheme.colorScheme.onSurface),
-                trailingIcon = {
-                    if (voiceConversationEnabled) {
-                        SingleAsrMicIcon(
-                            isRecording = singleAsrRecording,
-                            onClick = onSingleAsrToggle,
-                        )
-                    }
-                },
-            )
                 var showAddMenu by remember { mutableStateOf(false) }
                 var lastAddDismissTime by remember { mutableLongStateOf(0L) }
                 ExposedDropdownMenuBox(
@@ -462,12 +436,18 @@ fun ChatBottomBar(
                     expanded = activeMenu == "model",
                     onExpandedChange = { }
                 ) {
-                    // The model picker is opened from the tools menu; this invisible anchor lets the
-                    // dropdown position itself without consuming any layout width in the single row.
-                    Box(
-                        modifier = Modifier
-                            .size(0.dp)
-                            .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                    FilterChip(
+                        selected = activeMenu == "model",
+                        onClick = {
+                            val now = System.currentTimeMillis()
+                            if (activeMenu == "model") {
+                                activeMenu = null
+                            } else if (now - lastModelDismissTime > 200) {
+                                activeMenu = "model"
+                            }
+                        },
+                        label = { Text(currentModelLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                     )
                     ExposedDropdownMenu(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -502,21 +482,33 @@ fun ChatBottomBar(
                                     )
                                 )
                             }
-                            sortedModels.forEach { model ->
-                                DropdownMenuItem(
-                                    text = {
-                                        val parsed = com.lxseek.chat.model.ModelId.parse(model)
-                                        val modelId = parsed.apiModelName
-                                        val provider = parsed.providerName
-                                        Text(modelAliases[model] ?: ("$modelId ($provider)"))
-                                    },
-                                    onClick = {
-                                        haptics.selection()
-                                        onModelSelect(model)
-                                        activeMenu = null
-                                        lastModelDismissTime = 0L
-                                    }
-                                )
+                            var modelSearchQuery by remember { mutableStateOf("") }
+                            OutlinedTextField(
+                                value = modelSearchQuery,
+                                onValueChange = { modelSearchQuery = it },
+                                placeholder = { Text(stringResource(R.string.models_search_hint)) },
+                                singleLine = true,
+                                leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp)) },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            val filteredModels = if (modelSearchQuery.isBlank()) sortedModels else sortedModels.filter { model ->
+                                model.contains(modelSearchQuery, ignoreCase = true) ||
+                                    (modelAliases[model]?.contains(modelSearchQuery, ignoreCase = true) == true) ||
+                                    com.lxseek.chat.model.ModelId.parse(model).providerName.contains(modelSearchQuery, ignoreCase = true)
+                            }
+                            if (filteredModels.isEmpty()) {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.models_search_empty)) }, onClick = {}, enabled = false)
+                            } else {
+                                filteredModels.forEach { model ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            val parsed = com.lxseek.chat.model.ModelId.parse(model)
+                                            Text(modelAliases[model] ?: ("${parsed.apiModelName} (${parsed.providerName})"))
+                                        },
+                                        onClick = { haptics.selection(); onModelSelect(model); activeMenu = null; lastModelDismissTime = 0L }
+                                    )
+                                }
                             }
                         }
                     }
@@ -825,9 +817,21 @@ fun ChatBottomBar(
                         )
                     }
                 }
-                if (!isExpanded) {
-                    IconButton(onClick = { if (!isExpandAnimating) onExpand() }, modifier = Modifier.size(28.dp)) {
-                        Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.expand_all_24px), contentDescription = stringResource(R.string.expand), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+                Spacer(modifier = Modifier.weight(1f))
+                if (voiceConversationEnabled) {
+                    IconButton(
+                        onClick = onVoiceConversationToggle,
+                        modifier = Modifier.size(44.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (voiceConversationActive) Icons.Default.Stop else Icons.Default.Mic,
+                            contentDescription = stringResource(
+                                if (voiceConversationActive) R.string.voice_conversation_tap_to_stop
+                                else R.string.voice_conversation_tap_to_speak
+                            ),
+                            tint = if (voiceConversationActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
+                        )
                     }
                 }
                 ComposerSendButton(
@@ -850,14 +854,6 @@ fun ChatBottomBar(
                 )
         }
         }
-        }
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = fadeIn(tween(250)),
-            exit = fadeOut(tween(250)),
-            modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp, top = 4.dp)
-        ) {
-            IconButton(onClick = { if (!isExpandAnimating) onCollapse() }, modifier = Modifier.size(40.dp)) { Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.collapse_all_24px), contentDescription = stringResource(R.string.collapse), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)) }
         }
     }
 

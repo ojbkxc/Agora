@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Stop
 import com.lxseek.chat.ui.motion.MotionAwareCircularProgressIndicator as CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -39,8 +39,7 @@ private enum class ComposerActionIcon {
     PENDING,
     STOP,
     SEND,
-    MIC,
-    VOICE_STOP,
+    IDLE,
 }
 
 /**
@@ -124,16 +123,15 @@ internal fun ComposerSendButton(
         isStopping || isCompacting || isSubmitting -> ComposerActionIcon.STOPPING
         composer.pendingSend -> ComposerActionIcon.PENDING
         showStop -> ComposerActionIcon.STOP
-        voiceConversationActive -> ComposerActionIcon.VOICE_STOP
         singleAsrRecording -> ComposerActionIcon.SEND
         canSend -> ComposerActionIcon.SEND
-        else -> ComposerActionIcon.MIC
+        else -> ComposerActionIcon.IDLE
     }
 
     val containerColor by animateColorAsState(
         targetValue = when (fabIcon) {
-            ComposerActionIcon.MIC -> MaterialTheme.colorScheme.surfaceVariant
-            ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING -> MaterialTheme.colorScheme.surfaceVariant
+            ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING, ComposerActionIcon.IDLE -> MaterialTheme.colorScheme.surfaceVariant
+            ComposerActionIcon.SEND -> if (canSend) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
             else -> MaterialTheme.colorScheme.primary
         },
         animationSpec = tween(durationMillis = 400),
@@ -141,8 +139,8 @@ internal fun ComposerSendButton(
     )
     val contentColor by animateColorAsState(
         targetValue = when (fabIcon) {
-            ComposerActionIcon.MIC -> MaterialTheme.colorScheme.onSurfaceVariant
-            ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
+            ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING, ComposerActionIcon.IDLE -> MaterialTheme.colorScheme.onSurfaceVariant
+            ComposerActionIcon.SEND -> if (canSend) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
             else -> MaterialTheme.colorScheme.onPrimary
         },
         animationSpec = tween(durationMillis = 400),
@@ -152,10 +150,8 @@ internal fun ComposerSendButton(
         onClick = {
             if (isSwitching || isStopping) return@FloatingActionButton
             when (fabIcon) {
-                ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING -> {}
+                ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING, ComposerActionIcon.IDLE -> {}
                 ComposerActionIcon.STOP -> onStopGeneration()
-                ComposerActionIcon.VOICE_STOP -> onVoiceConversationToggle()
-                ComposerActionIcon.MIC -> onVoiceConversationToggle()
                 ComposerActionIcon.SEND -> {
                     if (singleAsrRecording) {
                         onStopSingleAsr()
@@ -185,7 +181,7 @@ internal fun ComposerSendButton(
         modifier = Modifier.size(48.dp),
         shape = CircleShape,
         elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = if (fabIcon == ComposerActionIcon.MIC) 0.dp else 2.dp,
+            defaultElevation = if (canSend) 2.dp else 0.dp,
             pressedElevation = 2.dp,
             focusedElevation = 2.dp,
             hoveredElevation = 2.dp,
@@ -215,19 +211,14 @@ internal fun ComposerSendButton(
                     stringResource(R.string.action),
                     modifier = Modifier.size(24.dp),
                 )
-                ComposerActionIcon.VOICE_STOP -> Icon(
-                    Icons.Default.Stop,
-                    stringResource(R.string.voice_conversation_tap_to_stop),
-                    modifier = Modifier.size(24.dp),
-                )
                 ComposerActionIcon.SEND -> Icon(
                     Icons.Default.ArrowUpward,
                     stringResource(R.string.action),
                     modifier = Modifier.size(24.dp),
                 )
-                ComposerActionIcon.MIC -> Icon(
-                    Icons.Default.Mic,
-                    stringResource(R.string.voice_conversation_tap_to_speak),
+                ComposerActionIcon.IDLE -> Icon(
+                    Icons.Default.GraphicEq,
+                    stringResource(R.string.action),
                     modifier = Modifier.size(24.dp),
                 )
             }

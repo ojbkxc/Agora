@@ -293,12 +293,17 @@ class ShellToolProvider(
                 command = command,
             )).coerceIn(1000, Constants.TOOL_EXECUTION_TIMEOUT_MS.toInt())
         val workdir = arg(args, "workdir")
-        val serverNames = (args["servers"] as? JsonArray)
+        val requestedServers = (args["servers"] as? JsonArray)
             ?.mapNotNull { (it as? JsonPrimitive)?.content?.ifBlank { null } }
             ?: emptyList()
+        val serverNames = if (requestedServers.isEmpty()) {
+            ctx.shellDevices.map { it.name }
+        } else {
+            requestedServers
+        }
         if (serverNames.isEmpty()) return jsonError(
             "execute_shell_batch",
-            "servers is required and must be a non-empty array of server names",
+            "no servers specified and no shell servers are configured. Use list_shells to see available servers.",
             command = command,
         )
         if (serverNames.any { it.equals("Local Sandbox", ignoreCase = true) }) return jsonError(
