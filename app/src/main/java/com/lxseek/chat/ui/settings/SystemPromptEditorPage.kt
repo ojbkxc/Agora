@@ -308,7 +308,7 @@ fun SystemPromptEditorPage(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 8.dp,
+                tonalElevation = 2.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(
@@ -469,7 +469,7 @@ private fun TemplateItemRow(
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 8.dp,
+                    tonalElevation = 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(

@@ -504,7 +504,7 @@ fun SettingsSandboxPage(
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = MaterialTheme.colorScheme.surface,
-                                        tonalElevation = 4.dp,
+                                        tonalElevation = 2.dp,
                                         modifier = Modifier.padding(top = 16.dp).fillMaxWidth().height(260.dp)
                                     ) {
                                         SelectionContainer {
@@ -559,7 +559,7 @@ fun SettingsSandboxPage(
                         Text(
                             text = stringResource(R.string.sandbox_installed_fmt, pkgCount),
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                         )
                     }
@@ -573,9 +573,9 @@ fun SettingsSandboxPage(
                         }
                         backendPackages.isEmpty() -> item(key = "empty") {
                             Surface(
-                                shape = RoundedCornerShape(24.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 color = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 1.dp,
+                                tonalElevation = 0.dp,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 SettingsItem(
@@ -601,7 +601,7 @@ fun SettingsSandboxPage(
                             Surface(
                                 shape = shape,
                                 color = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 1.dp,
+                                tonalElevation = 0.dp,
                                 modifier = Modifier.fillMaxWidth().then(if (idx > 0) Modifier.padding(top = 2.dp) else Modifier)
                             ) {
                                 SettingsItem(

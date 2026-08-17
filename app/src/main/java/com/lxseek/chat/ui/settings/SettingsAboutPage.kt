@@ -209,13 +209,13 @@ fun SettingsAboutPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 Text(
                     text = stringResource(R.string.rating_category),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
+                    tonalElevation = 0.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(

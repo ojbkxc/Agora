@@ -21,7 +21,7 @@ internal fun SectionLabel(text: String, firstInPage: Boolean) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 32.dp, end = 16.dp, top = topPadding, bottom = 12.dp)
     )
 }
@@ -39,7 +39,7 @@ internal fun CardSurface(
     Surface(
         shape = shape,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = 0.dp,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
