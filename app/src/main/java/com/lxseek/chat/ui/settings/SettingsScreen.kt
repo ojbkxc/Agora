@@ -78,23 +78,8 @@ fun SettingsGroup(
         )
         Column(modifier = Modifier.fillMaxWidth()) {
             items.forEachIndexed { index, item ->
-                val isFirst = index == 0
-                val isLast = index == items.lastIndex
-                val shape = when {
-                    items.size == 1 -> RoundedCornerShape(20.dp)
-                    isFirst -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
-                    isLast -> RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
-                    else -> RoundedCornerShape(2.dp)
-                }
-                Surface(
-                    shape = shape,
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    item()
-                }
-                if (!isLast) {
+                item()
+                if (index != items.lastIndex) {
                     HorizontalDivider(
                         thickness = 0.5.dp,
                         color = MaterialTheme.colorScheme.outlineVariant,
@@ -342,71 +327,59 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     Text(
                                         text = stringResource(group.titleRes),
                                         style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                                     )
                                 }
                                 group.items.forEachIndexed { index, cat ->
-                                    if (index > 0) {
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                    }
-                                    val isFirst = index == 0
-                                    val isLast = index == group.items.lastIndex
-                                    val shape = when {
-                                        group.items.size == 1 -> RoundedCornerShape(24.dp)
-                                        isFirst -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-                                        isLast -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                                        else -> RoundedCornerShape(5.dp)
-                                    }
-                                    Surface(
-                                        shape = shape,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        tonalElevation = 1.dp,
+                                    val isLastItem = index == group.items.lastIndex
+                                    Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clip(shape)
                                             .clickable { selectedCategory = cat.key }
+                                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 16.dp, vertical = 16.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            if (cat.iconRes != null) {
-                                                Icon(
-                                                    painter = painterResource(cat.iconRes),
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(24.dp),
-                                                )
-                                            } else {
-                                                Icon(
-                                                    imageVector = checkNotNull(cat.icon),
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(24.dp),
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(16.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = stringResource(cat.titleRes),
-                                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
-                                                )
-                                                Spacer(modifier = Modifier.height(3.dp))
-                                                Text(
-                                                    text = stringResource(cat.descriptionRes),
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
+                                        if (cat.iconRes != null) {
                                             Icon(
-                                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                painter = painterResource(cat.iconRes),
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = checkNotNull(cat.icon),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp),
                                             )
                                         }
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = stringResource(cat.titleRes),
+                                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+                                            )
+                                            Spacer(modifier = Modifier.height(3.dp))
+                                            Text(
+                                                text = stringResource(cat.descriptionRes),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                    if (!isLastItem) {
+                                        HorizontalDivider(
+                                            thickness = 0.5.dp,
+                                            color = MaterialTheme.colorScheme.outlineVariant,
+                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                        )
                                     }
                                 }
                             }
