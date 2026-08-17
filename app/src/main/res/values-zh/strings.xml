@@ -589,6 +589,10 @@
     <string name="dynamic_color">动态颜色</string>
     <string name="dynamic_color_desc">根据壁纸使用系统生成的颜色（Android 12+）</string>
     <string name="appearance_interface">界面</string>
+    <string name="settings_app_name">软件名称</string>
+    <string name="settings_app_name_desc">自定义顶部栏显示的名称</string>
+    <string name="settings_app_name_hint">输入软件名称</string>
+    <string name="settings_app_name_reset">恢复默认</string>
     <string name="blur_effects">模糊效果</string>
     <string name="blur_effects_desc">对聊天列表顶部工具栏下方应用模糊。关闭可节省性能。</string>
     <string name="reduce_motion">减少动态效果</string>

@@ -619,6 +619,10 @@
     <string name="settings_appearance_desc">Theme, color scheme, and dynamic color</string>
     <string name="appearance_title">Appearance</string>
     <string name="appearance_interface">Interface</string>
+    <string name="settings_app_name">App name</string>
+    <string name="settings_app_name_desc">Customize the name displayed in the top bar</string>
+    <string name="settings_app_name_hint">Enter app name</string>
+    <string name="settings_app_name_reset">Reset to default</string>
     <string name="theme_mode">Theme Mode</string>
     <string name="theme_mode_light">Light</string>
     <string name="theme_mode_dark">Dark</string>

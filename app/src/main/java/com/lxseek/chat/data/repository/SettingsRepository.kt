@@ -149,6 +149,7 @@ class SettingsRepository(
     val embeddingModels: StateFlow<List<EmbeddingModelConfig>> = hot(settingsManager.embeddingModels, emptyList())
     val activeEmbeddingModelId: StateFlow<String> = hot(settingsManager.activeEmbeddingModelId, "")
     val appLanguage: StateFlow<String> = hot(settingsManager.appLanguage, "system")
+    val appName: StateFlow<String> = hot(settingsManager.appName, "Agora")
     val webSearchEnabled: StateFlow<Boolean> = hot(settingsManager.webSearchEnabled, false)
     val webSearchProvider: StateFlow<String> = hot(settingsManager.webSearchProvider, "duckduckgo")
     val webSearchApiKeys: StateFlow<Map<String, String>> = hot(settingsManager.webSearchApiKeys, emptyMap())
@@ -465,6 +466,7 @@ class SettingsRepository(
     fun setModelSearchMethod(method: String) = scope.launch { settingsManager.saveModelSearchMethod(method) }
     fun setManualSearchMethod(method: String) = scope.launch { settingsManager.saveManualSearchMethod(method) }
     fun setAppLanguage(language: String) = scope.launch { settingsManager.saveAppLanguage(language) }
+    fun setAppName(name: String) = scope.launch { settingsManager.saveAppName(name) }
     fun setWebSearchEnabled(enabled: Boolean) = scope.launch { settingsManager.saveWebSearchEnabled(enabled) }
     fun setWebSearchProvider(provider: String) = scope.launch { settingsManager.saveWebSearchProvider(provider) }
     fun setWebSearchApiKey(provider: String, apiKey: String) = scope.launch { settingsManager.saveWebSearchApiKey(provider, apiKey) }

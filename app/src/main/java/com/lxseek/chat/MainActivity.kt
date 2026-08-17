@@ -166,6 +166,11 @@ class MainActivity : ComponentActivity() {
             val fontPreference by settingsManager.fontPreference.collectAsState(initial = "app_default")
             val customFontPath by settingsManager.customFontPath.collectAsState(initial = "")
             val appReduceMotion by settingsManager.reduceMotion.collectAsState(initial = false)
+            val appName by settingsManager.appName.collectAsState(initial = "Agora")
+
+            LaunchedEffect(appName) {
+                title = appName
+            }
 
             val themeModeEnum = try { com.lxseek.chat.ui.theme.ThemeMode.valueOf(themeMode) } catch (_: Exception) { com.lxseek.chat.ui.theme.ThemeMode.FOLLOW_DEVICE }
             val colorSchemePreset = try { com.lxseek.chat.ui.theme.ColorSchemePreset.valueOf(colorSchemeName) } catch (_: Exception) { com.lxseek.chat.ui.theme.ColorSchemePreset.MIDNIGHT }

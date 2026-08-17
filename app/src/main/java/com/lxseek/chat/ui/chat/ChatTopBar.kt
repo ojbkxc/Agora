@@ -63,6 +63,7 @@ internal fun ChatTopBar(
     currentConversationId: String?,
     currentConversationTitle: String? = null,
     totalTokens: Int,
+    appName: String = stringResource(R.string.app_name),
     searchActive: Boolean = false,
     searchQuery: String = "",
     searchMatchIndex: Int = -1,
@@ -291,7 +292,7 @@ internal fun ChatTopBar(
                         Spacer(modifier = Modifier.width(5.dp))
                         if (showBrandTitle) {
                             Text(
-                                text = stringResource(R.string.app_name),
+                                text = appName,
                                 style = ChatType.brandTitle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material3.*
@@ -23,9 +24,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import com.lxseek.chat.R
 import com.lxseek.chat.model.ToolCallDisplayModes
 import com.lxseek.chat.model.ThinkingSegmentDisplayModes
@@ -57,6 +60,9 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val customFontPath by viewModel.settings.customFontPath.collectAsState()
     val customFontName by viewModel.settings.customFontName.collectAsState()
     val showDocFab by viewModel.settings.showDocumentationFab.collectAsState()
+    val appName by viewModel.settings.appName.collectAsState()
+    var appNameDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var appNameDraft by rememberSaveable { mutableStateOf("") }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val invalidFontMessage = stringResource(R.string.font_invalid_file)
@@ -125,6 +131,29 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
         floatingActionButton = { if (showDocFab) DocumentationFab("appearance.md") }
     ) {
             SettingsGroupColumn {
+                // ── App Name ──
+                SettingsGroup(
+                    title = stringResource(R.string.settings_app_name),
+                    items = listOf {
+                        SettingsItem(
+                            headlineContent = { Text(stringResource(R.string.settings_app_name)) },
+                            supportingContent = { Text(appName) },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Default.DriveFileRenameOutline,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                appNameDraft = appName
+                                appNameDialogOpen = true
+                            },
+                        )
+                    }
+                )
+
                 // ── Theme Mode ──
                 SettingsGroup(
                     title = stringResource(R.string.theme_mode),
@@ -624,6 +653,46 @@ fun SettingsAppearancePage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 )
             }
             if (showDocFab) { Spacer(modifier = Modifier.height(80.dp)) }
+    }
+
+    if (appNameDialogOpen) {
+        val resetLabel = stringResource(R.string.settings_app_name_reset)
+        val confirmLabel = stringResource(android.R.string.ok)
+        val dismissLabel = stringResource(android.R.string.cancel)
+        val hintLabel = stringResource(R.string.settings_app_name_hint)
+        AlertDialog(
+            onDismissRequest = { appNameDialogOpen = false },
+            title = { Text(stringResource(R.string.settings_app_name)) },
+            text = {
+                OutlinedTextField(
+                    value = appNameDraft,
+                    onValueChange = { appNameDraft = it },
+                    singleLine = true,
+                    placeholder = { Text(hintLabel) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { appNameDialogOpen = false }) { Text(dismissLabel) }
+            },
+            confirmButton = {
+                Row {
+                    TextButton(onClick = {
+                        viewModel.settings.setAppName("Agora")
+                        appNameDialogOpen = false
+                    }) { Text(resetLabel) }
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(onClick = {
+                        val trimmed = appNameDraft.trim()
+                        if (trimmed.isNotEmpty()) {
+                            viewModel.settings.setAppName(trimmed)
+                        }
+                        appNameDialogOpen = false
+                    }) { Text(confirmLabel) }
+                }
+            },
+        )
     }
 }
 

@@ -199,6 +199,7 @@ fun ChatApp(
     val blurEffectsEnabled by viewModel.settings.blurEffectsEnabled.collectAsState()
     val reduceMotion = motionPolicy.reduceMotion
     val hapticsEnabled by viewModel.settings.hapticsEnabled.collectAsState()
+    val appName by viewModel.settings.appName.collectAsState()
     val haptics = rememberAgoraHaptics(hapticsEnabled)
     // The three send paths (manual Send, queue drain, loop cycle) converge in the Controller at
     // notifySendAccepted, the single choke point for Direct + Queued send acceptances. Wiring the
@@ -427,6 +428,7 @@ fun ChatApp(
                         currentConversationId = currentConversationId,
                         currentConversationTitle = currentConversation?.title,
                         totalTokens = totalTokens,
+                        appName = appName,
                         searchActive = conversationSearchActive,
                         searchQuery = conversationSearchQuery,
                         searchMatchIndex = conversationSearchMatchIndex,

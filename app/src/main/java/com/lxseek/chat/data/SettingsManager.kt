@@ -116,6 +116,9 @@ class SettingsManager(private val context: Context) {
     val activeEmbeddingModelId: Flow<String> = context.dataStore.data.map { it[ACTIVE_EMBEDDING_MODEL_ID] ?: "" }
 
     val appLanguage: Flow<String> = context.dataStore.data.map { it[APP_LANGUAGE] ?: "system" }
+    val appName: Flow<String> = context.dataStore.data.map { pref ->
+        pref[APP_NAME]?.takeIf { it.isNotBlank() } ?: "Agora"
+    }
     val webSearchEnabled: Flow<Boolean> = context.dataStore.data.map { it[WEB_SEARCH_ENABLED] ?: true }
     val webSearchProvider: Flow<String> = context.dataStore.data.map { it[WEB_SEARCH_PROVIDER] ?: "duckduckgo" }
     val webSearchApiKeys: Flow<Map<String, String>> = context.dataStore.data.map { pref ->
@@ -519,6 +522,10 @@ class SettingsManager(private val context: Context) {
     }
     suspend fun saveAppLanguage(language: String) {
         context.dataStore.edit { it[APP_LANGUAGE] = language }
+    }
+
+    suspend fun saveAppName(name: String) {
+        context.dataStore.edit { it[APP_NAME] = name.trim() }
     }
 
     suspend fun saveWebSearchEnabled(enabled: Boolean) {
