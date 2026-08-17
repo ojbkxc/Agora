@@ -166,7 +166,7 @@ Agora/
 │       │   │   │   ├── onboarding/    # 欢迎引导
 │       │   │   │   └── components/    # 通用组件
 │       │   │   ├── tool/              # 工具提供者（13 文件）
-│       │   │   ├── shell/             # 内嵌 Conch 管理（ConchServiceManager）
+
 │       │   │   ├── service/           # 前台服务 + WorkManager（8 文件）
 │       │   │   ├── mcp/               # MCP 协议客户端（4 文件）
 │       │   │   ├── sandbox/           # 沙盒接口
@@ -185,13 +185,7 @@ Agora/
 │       └── test/                      # 单元测试
 ├── server/                            # 服务端代码
 │   ├── rating/                        # 评分提交 API（Python/SQLite, port 8091）
-│   ├── crash/                         # 崩溃报告接收（Python/JSONL, port 8092）
-│   └── conch/                         # 内嵌 Conch shell 服务器（Go 源码 + gomobile 绑定）
-│       ├── mobile/mobile.go           # gomobile 绑定包（导出 Start/Stop/PublicKey/IsRunning）
-│       ├── build-android.sh           # gomobile bind → app/libs/conch.aar
-│       ├── main.go                    # 独立 conch 服务器入口（非 Android 用）
-│       ├── config/ crypto/ handler/ shell/ buildinfo/  # conch 核心包
-│       └── go.mod                     # Go module: github.com/newo-ether/conch
+│   └── crash/                         # 崩溃报告接收（Python/JSONL, port 8092）
 ├── thirdparty/                        # 第三方原生依赖
 │   ├── llama.cpp/                     # git submodule
 │   ├── proot/                         # git submodule
@@ -217,6 +211,7 @@ Agora/
 ## 4. 当前进度（截至 2026-08-17）
 
 ### ✅ 已完成
+- **任务5 移除 Conch 内嵌 shell 服务器（2026-08-17，本次会话）**：删除 `server/conch/` Go 源码树（51 文件，gomobile bind 目标）+ `app/src/main/java/com/lxseek/chat/shell/ConchServiceManager.kt`（反射调用 mobile.Mobile 的内嵌 Conch 管理器）。`AppContainer.kt` 移除 `startEmbeddedConch()` 方法及调用。`app/build.gradle.kts` 移除 `fileTree libs/*.aar` 依赖。`.github/workflows/build.yml` 移除 Go setup + build-android.sh step。`.gitignore` 移除 `/app/libs/` 条目。**保留**远程 Conch 服务器支持（ShellClient/ShellToolProvider/ShellToolBackends/ShellDurableJobExecutor/SettingsShellPage/SettingsContracts + `shell_type_conch` 字符串）+ SSH 工具（jsch 依赖）。56 文件变更，-7726 行。CI #31994452850 全绿验证通过（build 6m20s ✓）。估算 APK 体积下降 ~3-6MB（Go .aar + gomobile 运行时）。
 - **任务9 ChatGPT 风格发送区重设计（2026-08-17，本次会话）**：将 Agora 聊天发送区重构为 ChatGPT 极简风格，实现三状态交互（空闲=麦克风+语音对话圆圈、有文本=麦克风+发送、录音中=停止+发送），新增全屏语音实时对话覆盖层。新建 `VoiceConversationOverlay.kt`（212行）：深色背景+中央200dp大圆圈波形动画+顶部X退出按钮，复用 VoiceConversationController。重写 `VoiceMicButton.kt`（62行→SingleAsrMicIcon）+ `ComposerSendButton.kt`（228行，统一48dp圆圈FAB）+ `ChatBottomBar.kt`（968行，TextField trailingIcon+发送区重构）。`ChatAppBottomBarSection.kt`（254行）透传新参数。`ChatApp.kt`（841行）collect mode/singleAsrResult + LaunchedEffect→clearSingleAsrResult + 接线 VoiceConversationOverlay。`VoiceConversationController.kt`（436行）加 Mode enum + singleAsrResult StateFlow + startSingleAsr/stopSingleAsr/clearSingleAsrResult + handleTranscriptionResult 分流。`ChatViewModel.kt` 暴露 startSingleAsr/stopSingleAsr。strings.xml en+zh 加 voice_conversation_exit。ChatViewModel.kt 达 1000 行，通过 INITIAL_KOTLIN_SOURCE_BASELINE_CAPS 授权 cap 1897 + baseline 文件生效（commit 8e89827c）。CI #31993026634 全绿验证通过。
 - **任务3 精简 A1+A2+A3（2026-08-17，本次会话）**：三项独立精简。A1 移除 lottie-compose 死依赖（grep 确认零使用点，删 libs.versions.toml 版本+库定义 + build.gradle.kts implementation + proguard-rules.pro keep 规则）。A2 精简 res/raw 欢迎视频 8→2（保留最大一对 welcome_video_2/2_light 重命名为 welcome_video[_light].mp4，删 6 个，WelcomeScreen.kt 所有步骤复用同一对）。A3 build-proot.sh PRoot .so 只放 fdroid/jniLibs（删 JNILIBS main 变量，部署直接到 FDROID_JNILIBS，删 step 4 sync 块，步骤标签 [x/4]→[x/3]）。CI #31989975181 全绿验证通过。估算 fdroid APK 体积下降 ~700KB-1MB。
 - **任务2 修复语音对话打不开 + 发送按钮大小（2026-08-17，本次会话）**：VoiceConversationController.toggle/start 竞态修复（start() 不再静默 return，强制 stop+reset stale active 状态，beginAutoListening 包 scope.launch try-catch，stopCaptureAndTranscribe system 引擎补 partialJob 取消+状态重置）。ChatBottomBar VoiceMicButton 移除固定 Modifier.width(120.dp) 恢复发送按钮空间。CI 全绿验证通过。
@@ -407,6 +402,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-17 任务5 移除 Conch 内嵌 shell 服务器（本次会话）：删除 `server/conch/` Go 源码树（51 文件，gomobile bind 目的，含 config/crypto/handler/shell/mcp/mobile/buildinfo 子包 + build-android.sh + go.mod/go.sum + Makefile + LICENSE）+ `app/src/main/java/com/lxseek/chat/shell/ConchServiceManager.kt`（138 行，反射调用 mobile.Mobile 的内嵌 Conch 管理器，无 .aar 时安全降级）。`AppContainer.kt` 移除 `startEmbeddedConch()` 方法及 `startProcessServices()` 中的调用。`app/build.gradle.kts` 移除 `implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))` 依赖 + 注释。`.github/workflows/build.yml` 移除 `actions/setup-go@v5` + "Build embedded Conch .aar" 两个 step。`.gitignore` 移除 `/app/libs/` 条目 + 注释。**保留**远程 Conch 服务器支持（ShellClient/ShellToolProvider/ShellToolBackends/ShellDurableJobExecutor/SettingsShellPage/SettingsContracts + `shell_type_conch`/`shell_confirm_setting_desc` 字符串 en+zh）+ SSH 工具（jsch 依赖）。56 文件变更，-7726 行。commit `a1b4933f`。CI #31994452850 全绿验证通过（build 6m20s ✓）。估算 APK 体积下降 ~3-6MB（Go .aar + gomobile 运行时）。
 
 - 2026-08-17 任务9 ChatGPT 风格发送区重设计（本次会话）：将 Agora 聊天发送区重构为 ChatGPT 极简风格，实现三状态交互（空闲=麦克风+语音对话圆圈、有文本=麦克风+发送、录音中=停止+发送），新增全屏语音实时对话覆盖层。新建 `VoiceConversationOverlay.kt`（212行）：深色背景+中央200dp大圆圈波形动画+顶部X退出按钮，复用 VoiceConversationController。重写 `VoiceMicButton.kt`（62行→SingleAsrMicIcon）+ `ComposerSendButton.kt`（228行，统一48dp圆圈FAB）+ `ChatBottomBar.kt`（968行，TextField trailingIcon+发送区重构）。`ChatAppBottomBarSection.kt`（254行）透传新参数。`ChatApp.kt`（841行）collect mode/singleAsrResult + LaunchedEffect→clearSingleAsrResult + 接线 VoiceConversationOverlay。`VoiceConversationController.kt`（436行）加 Mode enum + singleAsrResult StateFlow + startSingleAsr/stopSingleAsr/clearSingleAsrResult + handleTranscriptionResult 分流。`ChatViewModel.kt` 暴露 startSingleAsr/stopSingleAsr。strings.xml en+zh 加 voice_conversation_exit。ChatViewModel.kt 达 1000 行，通过 INITIAL_KOTLIN_SOURCE_BASELINE_CAPS 授权 cap 1897 + baseline 文件生效（commit 8e89827c）。CI #31993026634 全绿验证通过（build 6m22s ✓）。
 
