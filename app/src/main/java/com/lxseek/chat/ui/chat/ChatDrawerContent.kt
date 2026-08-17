@@ -138,9 +138,9 @@ internal fun ChatDrawerContent(
     val generatingConversationIds by viewModel.generatingConversationIds.collectAsState()
 
     ModalDrawerSheet(
-        drawerShape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp),
+        drawerShape = RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerTonalElevation = 1.dp,
+        drawerTonalElevation = 0.dp,
         modifier = Modifier
             .width(drawerWidth)
             .onGloballyPositioned { coords ->
@@ -298,7 +298,7 @@ internal fun ChatDrawerContent(
                                     .fillMaxWidth()
                                     .height(44.dp)
                                     .padding(vertical = 2.dp)
-                                    .clip(CircleShape)
+                                    .clip(RoundedCornerShape(8.dp))
                                     .pointerInput(showMenu) {
                                         if (!showMenu) {
                                             awaitPointerEventScope {
@@ -328,7 +328,7 @@ internal fun ChatDrawerContent(
                                         }
                                     ),
                                 color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                                shape = CircleShape
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Row(
                                     modifier = Modifier

@@ -414,24 +414,14 @@ private fun ChatTopBarCapsule(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(16)
-    Box(
+    Surface(
         modifier = modifier,
-        propagateMinConstraints = true,
-    ) {
-        Surface(
-            modifier = Modifier.matchParentSize(),
-            shape = shape,
-            color = Color.Transparent,
-            shadowElevation = 0.dp,
-        ) {}
-        Surface(
-            shape = shape,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
-            shadowElevation = 0.dp,
-            content = content,
-        )
-    }
+        shape = shape,
+        color = Color.Transparent,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        content = content,
+    )
 }
 
 @Composable
