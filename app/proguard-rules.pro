@@ -37,9 +37,6 @@
 # Media3 / ExoPlayer
 -dontwarn androidx.media3.**
 
-# jlatexmath
--keep class jp.** { *; }
--dontwarn jp.**
 
 # TTS — prevent R8 from obfuscating UtteranceProgressListener callbacks
 -keep class com.lxseek.chat.util.TtsManager { *; }

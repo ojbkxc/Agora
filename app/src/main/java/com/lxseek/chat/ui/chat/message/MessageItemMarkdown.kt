@@ -148,6 +148,8 @@ import org.intellij.markdown.parser.MarkdownParser
 // Pure code-motion: these were `private` members of MessageItem.kt; entry points
 // used by MessageItem.kt / the timeline section are `internal`. Behavior unchanged.
 
+private object NoopImageTransformer : ImageTransformer
+
 @Stable
 internal class ChatMarkdownRenderContext(
     val colors: MarkdownColors,
@@ -155,7 +157,7 @@ internal class ChatMarkdownRenderContext(
     val padding: MarkdownPadding,
     val components: MarkdownComponents,
     val annotator: MarkdownAnnotator,
-    val imageTransformer: ImageTransformer,
+    val imageTransformer: ImageTransformer = NoopImageTransformer,
     val flavour: MarkdownFlavourDescriptor,
     val plainTextStyle: TextStyle,
 )
@@ -319,17 +321,6 @@ private fun LazyMarkdownSuccessWithSpacing(
     }
 }
 
-internal fun String.toRenderableMarkdownText(): String {
-    val spans = parseLatexSpans(this)
-    val markdown = if (spans.all { !it.isLatex }) {
-        this
-    } else {
-        spans.joinToString("") { span ->
-            if (span.isLatex) latexToMarkdown(span.content, span.display)
-            else span.content
-        }
-    }
-    return markdown.escapeForMarkdown()
-}
+internal fun String.toRenderableMarkdownText(): String = this
 
-internal fun String.escapeForMarkdown(): String = escapeDollarForMarkdown()
+internal fun String.escapeForMarkdown(): String = this

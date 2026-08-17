@@ -23,7 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.CollectionItemInfo
@@ -36,7 +36,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.lxseek.chat.ui.components.LatexImageTransformer
+
 import com.lxseek.chat.ui.chat.caseInsensitiveMatchRanges
 import com.lxseek.chat.ui.chat.visibleMarkdownMatchRanges
 import com.lxseek.chat.ui.theme.ChatType
@@ -319,19 +319,12 @@ internal fun rememberChatMarkdownAssets(
     // identical instead of sending thought/code tails through an unfaded fallback renderer.
     val thoughtMarkdownComponents = customMarkdownComponents
 
-    val latexImageTransformer = remember(textColor) {
-        LatexImageTransformer(
-            textSize = 56f,
-            color = textColor.toArgb(),
-        )
-    }
     val markdownFlavour = remember { GFMFlavourDescriptor() }
     val markdownRenderContext = remember(
         customMarkdownColors,
         customTypography,
         customMarkdownPadding,
         customMarkdownComponents,
-        latexImageTransformer,
         markdownFlavour,
     ) {
         ChatMarkdownRenderContext(
@@ -340,7 +333,6 @@ internal fun rememberChatMarkdownAssets(
             padding = customMarkdownPadding,
             components = customMarkdownComponents,
             annotator = literalHtmlMarkdownAnnotator,
-            imageTransformer = latexImageTransformer,
             flavour = markdownFlavour,
             plainTextStyle = ChatType.body,
         )
@@ -350,7 +342,6 @@ internal fun rememberChatMarkdownAssets(
         thoughtTypography,
         thoughtMarkdownPadding,
         thoughtMarkdownComponents,
-        latexImageTransformer,
         markdownFlavour,
     ) {
         ChatMarkdownRenderContext(
@@ -359,7 +350,6 @@ internal fun rememberChatMarkdownAssets(
             padding = thoughtMarkdownPadding,
             components = thoughtMarkdownComponents,
             annotator = literalHtmlMarkdownAnnotator,
-            imageTransformer = latexImageTransformer,
             flavour = markdownFlavour,
             plainTextStyle = ChatType.thoughtBody,
         )

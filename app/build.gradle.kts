@@ -176,7 +176,7 @@ dependencies {
     implementation(libs.compose.markdown)
     implementation(libs.jetbrains.markdown)
     implementation(libs.coil.compose)
-    implementation(libs.jlatexmath.android)
+
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
     implementation(libs.androidx.camera.camera2)
