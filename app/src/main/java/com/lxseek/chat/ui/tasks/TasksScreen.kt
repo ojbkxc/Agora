@@ -427,14 +427,14 @@ private fun NewAutomationRow(
 
 /**
  * Corner treatment for a vertically stacked list of cards — identical to what [SettingsGroup]
- * applies to its items (24dp on the outer edges, 5dp where two cards meet, 2dp between them),
+ * applies to its items (12dp on the outer edges, 4dp where two cards meet, 2dp between them),
  * so task rows and execution rows read as the same component as every settings card.
  */
 internal fun stackedShape(index: Int, count: Int): RoundedCornerShape = when {
-    count <= 1 -> RoundedCornerShape(24.dp)
-    index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-    index == count - 1 -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-    else -> RoundedCornerShape(5.dp)
+    count <= 1 -> RoundedCornerShape(12.dp)
+    index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+    index == count - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+    else -> RoundedCornerShape(4.dp)
 }
 
 internal val STACK_GAP = 2.dp

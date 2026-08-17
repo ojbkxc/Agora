@@ -122,7 +122,7 @@ fun SettingsWebSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                                         )
                                                     },
                                                     visualTransformation = PasswordVisualTransformation(),
-                                                    shape = RoundedCornerShape(16.dp),
+                                                    shape = RoundedCornerShape(12.dp),
                                                     modifier = Modifier.fillMaxWidth(),
                                                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                 )
@@ -163,7 +163,7 @@ fun SettingsWebSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                                 OutlinedTextField(
                                                     state = urlState,
                                                     placeholder = { Text(stringResource(R.string.web_search_searxng_url_hint)) },
-                                                    shape = RoundedCornerShape(16.dp),
+                                                    shape = RoundedCornerShape(12.dp),
                                                     modifier = Modifier.fillMaxWidth(),
                                                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                 )

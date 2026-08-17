@@ -384,7 +384,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 unfocusedBorderColor = Color.Transparent,
                                 disabledBorderColor = Color.Transparent,
                             ),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -553,7 +553,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                     expanded = customModelProviderMenuExpanded
                                 )
                             },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .menuAnchor(
                                     type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
@@ -567,7 +567,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 customModelProviderMenuExpanded = false
                             },
                             matchTextFieldWidth = false,
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                         ) {
                             providerChoices.forEach { providerName ->
                                 DropdownMenuItem(
@@ -610,7 +610,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             } else {
                                 null
                             },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -623,7 +623,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             onValueChange = { customModelAlias = it },
                             singleLine = true,
                             label = { Text(stringResource(R.string.models_alias_hint)) },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -755,7 +755,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                         OutlinedTextField(
                             state = aliasState,
                             label = { Text(stringResource(R.string.models_alias_hint)) },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text(parsed.apiModelName) }
                         )

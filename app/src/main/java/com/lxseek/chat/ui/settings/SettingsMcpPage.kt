@@ -672,7 +672,7 @@ private fun McpHeaderField(
             VisualTransformation.None
         },
         trailingIcon = trailingContent,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         textStyle = MaterialTheme.typography.bodyMedium.copy(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
@@ -793,7 +793,7 @@ private fun McpLabeledField(
                     VisualTransformation.None
                 },
                 trailingIcon = trailingContent,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),

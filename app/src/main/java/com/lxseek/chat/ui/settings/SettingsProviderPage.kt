@@ -260,7 +260,7 @@ private fun CustomProviderDialogContent(
             } else {
                 null
             },
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
@@ -274,7 +274,7 @@ private fun CustomProviderDialogContent(
             } else {
                 null
             },
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )

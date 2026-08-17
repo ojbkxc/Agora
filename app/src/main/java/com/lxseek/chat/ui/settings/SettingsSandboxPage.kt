@@ -430,7 +430,7 @@ fun SettingsSandboxPage(
                                         label = { Text(stringResource(R.string.sandbox_package_name)) },
                                         placeholder = { Text(stringResource(R.string.sandbox_package_placeholder)) },
                                         singleLine = true,
-                                        shape = RoundedCornerShape(16.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.weight(1f)
                                     )
                                     Spacer(Modifier.width(8.dp))
@@ -456,7 +456,7 @@ fun SettingsSandboxPage(
                                     Button(
                                         onClick = { if (installPkg.isNotBlank() && !isBusy && lastInstallResult == null) installPackage(installPkg.trim()) },
                                         enabled = true,
-                                        shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp, topEnd = 28.dp, bottomEnd = 28.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = btnBgColor,
                                             contentColor = btnContentColor,
@@ -573,7 +573,7 @@ fun SettingsSandboxPage(
                         }
                         backendPackages.isEmpty() -> item(key = "empty") {
                             Surface(
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 0.dp,
                                 modifier = Modifier.fillMaxWidth()
@@ -593,10 +593,10 @@ fun SettingsSandboxPage(
                             val isFirst = idx == 0
                             val isLast = idx == backendPackages.lastIndex
                             val shape = when {
-                                backendPackages.size == 1 -> RoundedCornerShape(24.dp)
-                                isFirst -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-                                isLast -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                                else -> RoundedCornerShape(5.dp)
+                                backendPackages.size == 1 -> RoundedCornerShape(12.dp)
+                                isFirst -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+                                isLast -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+                                else -> RoundedCornerShape(4.dp)
                             }
                             Surface(
                                 shape = shape,

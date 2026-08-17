@@ -74,7 +74,7 @@ fun PromptEditDialog(
                 value = draft,
                 onValueChange = { draft = it },
                 label = { Text(stringResource(R.string.prompt_content)) },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 minLines = 6,
                 maxLines = 12,
                 modifier = Modifier

@@ -110,7 +110,7 @@ internal fun ChatTopBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 140.dp)
+            .defaultMinSize(minHeight = 110.dp)
             .background(
                 Brush.verticalGradient(
                     0.0f to MaterialTheme.colorScheme.background.copy(alpha = 0.98f),

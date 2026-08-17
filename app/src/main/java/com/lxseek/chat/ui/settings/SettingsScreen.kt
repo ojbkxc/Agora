@@ -328,7 +328,7 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         text = stringResource(group.titleRes),
                                         style = MaterialTheme.typography.labelLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                                     )
                                 }
                                 group.items.forEachIndexed { index, cat ->
@@ -337,7 +337,7 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable { selectedCategory = cat.key }
-                                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         if (cat.iconRes != null) {
@@ -384,7 +384,7 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 }
                             }
                             if (groupIndex < settingsGroups.size - 1) {
-                                Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(24.dp))
                             }
                         }
                     }

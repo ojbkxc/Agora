@@ -150,7 +150,7 @@ fun SystemPromptEditorPage(
                 supportingText = if (titleError) {
                     { Text(stringResource(R.string.template_title_required)) }
                 } else null,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -306,7 +306,7 @@ fun SystemPromptEditorPage(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 tonalElevation = 0.dp,
                 modifier = Modifier
@@ -461,13 +461,13 @@ private fun TemplateItemRow(
                         onChange(item.copy(value = newValue))
                     },
                     label = { Text(stringResource(R.string.template_custom_text_label)) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
             PromptItemType.PREDEFINED -> {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     tonalElevation = 0.dp,
                     modifier = Modifier.fillMaxWidth()

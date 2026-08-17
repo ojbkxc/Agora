@@ -133,7 +133,7 @@ internal fun AddRemoteEmbeddingDialog(
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 )
                 Box(
                     Modifier
@@ -154,7 +154,7 @@ internal fun AddRemoteEmbeddingDialog(
                     placeholder = { Text(stringResource(R.string.embedding_api_key_hint)) },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -165,7 +165,7 @@ internal fun AddRemoteEmbeddingDialog(
                     readOnly = !state.isCustomModel,
                     label = { Text(stringResource(R.string.embedding_base_url_label)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -212,7 +212,7 @@ internal fun AddRemoteEmbeddingDialog(
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 )
                 Box(
                     Modifier
@@ -231,7 +231,7 @@ internal fun AddRemoteEmbeddingDialog(
                         placeholder = { Text("model-name") },
                         supportingText = { Text(stringResource(R.string.embedding_custom_model_desc)) },
                         singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -243,7 +243,7 @@ internal fun AddRemoteEmbeddingDialog(
                     label = { Text(stringResource(R.string.model_name_label)) },
                     placeholder = { Text(state.modelName) },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -254,7 +254,7 @@ internal fun AddRemoteEmbeddingDialog(
                     label = { Text(stringResource(R.string.embedding_batch_size)) },
                     supportingText = { Text(stringResource(R.string.embedding_batch_size_desc)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
                 state.testStatus?.let { status ->

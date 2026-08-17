@@ -97,7 +97,7 @@ fun RatingForm(
             onValueChange = { name = it },
             label = { Text(stringResource(R.string.rating_your_name)) },
             singleLine = true,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
         )
 
@@ -111,7 +111,7 @@ fun RatingForm(
             label = { Text(stringResource(R.string.rating_comment)) },
             minLines = 3,
             maxLines = 5,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
         )
         Text(
@@ -135,7 +135,7 @@ fun RatingForm(
         // Error message
         if (submitError) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.errorContainer,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {

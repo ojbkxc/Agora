@@ -168,7 +168,7 @@ fun SettingsImageGenPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             placeholder = { Text("1024") },
                                             lineLimits = TextFieldLineLimits.SingleLine,
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            shape = RoundedCornerShape(16.dp),
+                                            shape = RoundedCornerShape(12.dp),
                                             modifier = Modifier.weight(1f),
                                             textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         )
@@ -178,7 +178,7 @@ fun SettingsImageGenPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             placeholder = { Text("1024") },
                                             lineLimits = TextFieldLineLimits.SingleLine,
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            shape = RoundedCornerShape(16.dp),
+                                            shape = RoundedCornerShape(12.dp),
                                             modifier = Modifier.weight(1f),
                                             textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         )

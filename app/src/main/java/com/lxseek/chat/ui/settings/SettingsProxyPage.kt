@@ -180,7 +180,7 @@ private fun ProxyLabeledField(
                 singleLine = singleLine,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboard),
                 visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
                 modifier = Modifier.fillMaxWidth()
             )
