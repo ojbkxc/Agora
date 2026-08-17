@@ -6,11 +6,16 @@ import com.lxseek.chat.sandbox.SandboxManagerFactory
 import com.lxseek.chat.util.Constants
 import com.lxseek.chat.viewmodel.GenerationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -102,6 +107,7 @@ class ShellToolProvider(
         return when (name) {
             "list_shells" -> listShells(ctx)
             "execute_shell_command" -> executeShellCommand(arguments, ctx)
+            "execute_shell_batch" -> executeShellBatch(arguments, ctx)
             "list_shell_jobs" -> durableJobs.listShellJobs(arguments, ctx)
             "get_shell_job" -> durableJobs.getShellJob(arguments, ctx)
             "wait_for_job" -> durableJobs.waitForShellJob(arguments, ctx)
@@ -135,7 +141,7 @@ class ShellToolProvider(
     }
 
     override fun handles(name: String): Boolean = name in setOf(
-        "list_shells", "execute_shell_command",
+        "list_shells", "execute_shell_command", "execute_shell_batch",
         "list_shell_jobs", "get_shell_job", "wait_for_job", "stop_shell_job",
         "file_read", "file_write", "file_edit", "file_glob", "file_grep", "view_image",
         "list_processes", "kill_process", "system_stats", "tail_follow"
@@ -146,6 +152,7 @@ class ShellToolProvider(
         "file_read", "file_glob", "file_grep", "view_image" -> RiskLevel.ReadOnly
         "list_processes", "system_stats", "tail_follow" -> RiskLevel.ReadOnly
         "execute_shell_command" -> RiskLevel.Moderate
+        "execute_shell_batch" -> RiskLevel.Moderate
         "stop_shell_job", "file_write", "file_edit", "kill_process" -> RiskLevel.HighRisk
         else -> RiskLevel.ReadOnly
     }
@@ -266,6 +273,110 @@ class ShellToolProvider(
             }
         } finally {
             backend.close()
+        }
+    }
+
+    // ── Batch shell execution ──────────────────────────────
+
+    private suspend fun executeShellBatch(arguments: String, ctx: GenerationContext): String {
+        val args = parseToolArgs(arguments)
+        val command = arg(args, "command")
+        if (command.isBlank()) return jsonError("execute_shell_batch", "no_command")
+        val rawTimeout = arg(args, "timeout_ms")
+        if (rawTimeout.isBlank()) return jsonError(
+            "execute_shell_batch", "timeout_ms is required", command = command,
+        )
+        val timeoutMs = (rawTimeout.toIntOrNull()
+            ?: return jsonError(
+                "execute_shell_batch",
+                "timeout_ms must be an integer, got \"$rawTimeout\"",
+                command = command,
+            )).coerceIn(1000, Constants.TOOL_EXECUTION_TIMEOUT_MS.toInt())
+        val workdir = arg(args, "workdir")
+        val serverNames = (args["servers"] as? JsonArray)
+            ?.mapNotNull { (it as? JsonPrimitive)?.content?.ifBlank { null } }
+            ?: emptyList()
+        if (serverNames.isEmpty()) return jsonError(
+            "execute_shell_batch",
+            "servers is required and must be a non-empty array of server names",
+            command = command,
+        )
+        if (serverNames.any { it.equals("Local Sandbox", ignoreCase = true) }) return jsonError(
+            "execute_shell_batch",
+            "Local Sandbox is not allowed in batch execution",
+            command = command,
+        )
+        val missing = serverNames.filter { resolveShellDevice(it, ctx) == null }
+        if (missing.isNotEmpty()) return jsonError(
+            "execute_shell_batch",
+            "Unknown server(s): ${missing.joinToString(", ")}",
+            command = command,
+        )
+        val combinedTarget = serverNames.joinToString(", ")
+        val summary = "batch execute on $combinedTarget: $ $command"
+        if (confirm?.invoke(combinedTarget, summary) == false) return jsonError(
+            "execute_shell_batch",
+            "denied_by_user: the user declined to run this batch command",
+            command = command,
+        )
+        val results = coroutineScope {
+            serverNames.map { server ->
+                async {
+                    try {
+                        val backend = getBackend(server, ctx)
+                        if (backend == null) {
+                            buildJsonObject {
+                                put("server", server)
+                                put("error", "error")
+                                put("message", serverNotFoundMessage(server, ctx))
+                            }
+                        } else {
+                            try {
+                                parseBackendResult(server, backend.executeCommand(command, workdir, timeoutMs))
+                            } finally {
+                                backend.close()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        buildJsonObject {
+                            put("server", server)
+                            put("error", "error")
+                            put("message", e.message ?: "Unknown error")
+                        }
+                    }
+                }
+            }.awaitAll()
+        }
+        return buildJsonObject {
+            put("type", "execute_shell_batch")
+            put("command", command)
+            putJsonArray("results") { results.forEach { add(it) } }
+        }.toString()
+    }
+
+    private fun parseBackendResult(server: String, raw: String): JsonObject {
+        val parsed = try {
+            Json.parseToJsonElement(raw).jsonObject
+        } catch (_: Exception) {
+            null
+        }
+        if (parsed == null) return buildJsonObject {
+            put("server", server)
+            put("output", raw)
+        }
+        val exitCode = (parsed["exit_code"] as? JsonPrimitive)?.content?.toIntOrNull()
+        val output = (parsed["output"] as? JsonPrimitive)?.content
+        val errMsg = (parsed["message"] as? JsonPrimitive)?.content
+        val isError = (parsed["error"] as? JsonPrimitive)?.content == "error"
+        return buildJsonObject {
+            put("server", server)
+            if (isError && errMsg != null) {
+                put("error", "error")
+                put("message", errMsg)
+            } else {
+                put("exit_code", exitCode ?: -1)
+            }
+            if (output != null) put("output", output) else put("output", raw)
         }
     }
 

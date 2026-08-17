@@ -54,6 +54,19 @@ internal object ShellToolDefinitions {
                 )
             )))
             add(ToolDefinition(function = ToolFunction(
+                name = "execute_shell_batch",
+                description = "Execute the same shell command on multiple servers in parallel and return aggregated results. Use this instead of multiple execute_shell_command calls when you need to run the same command across several servers (e.g. checking disk space on all nodes, rolling out a config change). Each server is gated by the same confirmation policy as execute_shell_command.",
+                parameters = ToolParameters(
+                    properties = mapOf(
+                        "command" to ToolProperty("string", "The shell command to execute on all target servers."),
+                        "servers" to ToolProperty("array", "List of server names to execute the command on. Each must be a valid server from list_shells. Cannot include \"Local Sandbox\"."),
+                        "timeout_ms" to ToolProperty("integer", "Per-server wait budget in milliseconds (hard ceiling 295000ms)."),
+                        "workdir" to ToolProperty("string", "Working directory (optional, applied to all servers)."),
+                    ),
+                    required = listOf("command", "servers", "timeout_ms")
+                )
+            )))
+            add(ToolDefinition(function = ToolFunction(
                 name = "list_processes",
                 description = "List running processes on a shell server with structured output (pid, user, cpu%, mem%, command). More reliable than parsing raw ps output.",
                 parameters = ToolParameters(

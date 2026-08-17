@@ -8,6 +8,8 @@ import com.lxseek.chat.data.repository.ConversationRepository
 import com.lxseek.chat.model.RunEffectIdentity
 import com.lxseek.chat.model.ToolExecutionStates
 import com.lxseek.chat.sandbox.SandboxManagerFactory
+import com.lxseek.chat.tool.ActionTraceBus
+import com.lxseek.chat.tool.ActionTraceToolProvider
 import com.lxseek.chat.tool.AgentMode
 import com.lxseek.chat.tool.AskUserToolProvider
 import com.lxseek.chat.tool.ImageGenToolProvider
@@ -70,6 +72,7 @@ internal class GenerationToolExecutor private constructor(
     private val imageGenProvider: ImageGenToolProvider?,
     private val onToolApproval: suspend (ToolApprovalRequest) -> ToolApprovalResult?,
     private val planStateHolder: PlanStateHolder?,
+    private val actionTraceBus: ActionTraceBus? = null,
 ) : GenerationToolDefinitionSource, GenerationToolPresentationSource {
     companion object {
         private val FILE_TOOL_NAMES = setOf(
@@ -92,6 +95,7 @@ internal class GenerationToolExecutor private constructor(
             planToolProvider: PlanToolProvider? = null,
             askUserToolProvider: AskUserToolProvider? = null,
             planStateHolder: PlanStateHolder? = null,
+            actionTraceBus: ActionTraceBus? = null,
         ): GenerationToolExecutor {
             val imageGenProvider = ImageGenToolProvider(app)
             val shellProvider = ShellToolProvider(
@@ -111,16 +115,18 @@ internal class GenerationToolExecutor private constructor(
                 planToolProvider?.let { add(it) }
                 askUserToolProvider?.let { add(it) }
             }
+            val traceProvider = ActionTraceToolProvider()
             return GenerationToolExecutor(
-                providers = baseProviders + planProviders + additionalProviders,
+                providers = baseProviders + planProviders + additionalProviders + listOf(traceProvider),
                 imageGenProvider = imageGenProvider,
                 onToolApproval = onToolApproval,
                 planStateHolder = planStateHolder,
+                actionTraceBus = actionTraceBus,
             )
         }
 
         internal fun forTest(providers: List<ToolProvider>): GenerationToolExecutor =
-            GenerationToolExecutor(providers, imageGenProvider = null, onToolApproval = { null }, planStateHolder = null)
+            GenerationToolExecutor(providers, imageGenProvider = null, onToolApproval = { null }, planStateHolder = null, actionTraceBus = null)
     }
 
     override fun definitions(context: GenerationContext): List<ToolDefinition> =
@@ -269,6 +275,19 @@ internal class GenerationToolExecutor private constructor(
         }
 
         val finalResult = applyPlanReflection(result, call)
+        actionTraceBus?.record(
+            ActionTraceEntry(
+                toolName = call.name,
+                argumentsSummary = completeArguments.take(500),
+                resultSummary = finalResult.text.take(500),
+                isError = finalResult.isError,
+                server = null,
+                conversationId = call.context.conversationId,
+                runId = call.batchIdentity.runId,
+                timestampMs = System.currentTimeMillis(),
+                durationMs = 0,
+            )
+        )
         return call.result(finalResult)
     }
 

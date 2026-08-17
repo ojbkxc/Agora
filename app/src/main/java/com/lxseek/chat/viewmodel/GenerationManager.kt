@@ -20,6 +20,7 @@ import com.lxseek.chat.service.AgoraForegroundService
 import com.lxseek.chat.service.AppForegroundTracker
 import com.lxseek.chat.api.util.projectAssistantImagesToLatestUserMessage
 import com.lxseek.chat.api.util.projectToolResultImagesToUserMessage
+import com.lxseek.chat.tool.ActionTraceBus
 import com.lxseek.chat.tool.AskUserController
 import com.lxseek.chat.tool.AskUserToolProvider
 import com.lxseek.chat.tool.PlanHandler
@@ -82,6 +83,7 @@ class GenerationManager(
         planToolProvider = planToolProvider,
         askUserToolProvider = askUserToolProvider,
         planStateHolder = planStateHolder,
+        actionTraceBus = ActionTraceBus,
     )
     private val providerPassEffects = ProviderPassEffectExecutor()
     private val toolBatchEffects = GenerationToolBatchEffectExecutor(toolExecutor)
