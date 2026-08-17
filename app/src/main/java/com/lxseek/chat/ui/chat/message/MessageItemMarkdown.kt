@@ -126,6 +126,7 @@ import com.mikepenz.markdown.m3.markdownTypography
 import com.mikepenz.markdown.model.markdownAnimations
 import com.mikepenz.markdown.model.markdownPadding
 import com.mikepenz.markdown.model.ImageTransformer
+import com.mikepenz.markdown.model.ImageData
 import com.mikepenz.markdown.model.MarkdownColors
 import com.mikepenz.markdown.model.MarkdownAnnotator
 import com.mikepenz.markdown.model.MarkdownPadding
@@ -148,7 +149,10 @@ import org.intellij.markdown.parser.MarkdownParser
 // Pure code-motion: these were `private` members of MessageItem.kt; entry points
 // used by MessageItem.kt / the timeline section are `internal`. Behavior unchanged.
 
-private object NoopImageTransformer : ImageTransformer
+private object NoopImageTransformer : ImageTransformer {
+    @Composable
+    override fun transform(link: String): ImageData? = null
+}
 
 @Stable
 internal class ChatMarkdownRenderContext(
