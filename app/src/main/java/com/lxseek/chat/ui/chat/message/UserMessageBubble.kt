@@ -130,7 +130,7 @@ internal fun UserMessageBubble(
                 }
             } else {
                 Column(
-                    modifier = Modifier.padding(16.dp).noOpBringIntoView(),
+                    modifier = Modifier.padding(12.dp).noOpBringIntoView(),
                     horizontalAlignment = Alignment.Start
                 ) {
                     val hasMetaItems = message.attachmentMeta?.items?.isNotEmpty() == true

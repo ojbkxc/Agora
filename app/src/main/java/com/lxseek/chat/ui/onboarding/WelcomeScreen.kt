@@ -19,7 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,7 +36,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -55,7 +57,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,6 +76,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -84,13 +87,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
+
 import com.lxseek.chat.R
 import com.lxseek.chat.data.CustomEndpointProtocol
 import com.lxseek.chat.data.LocalChatModelConfig
@@ -113,12 +110,8 @@ import java.util.UUID
 data class WelcomePage(
     val title: String,
     val description: String,
-    val darkVideoResId: Int? = null,
-    val lightVideoResId: Int? = null
+    val icon: ImageVector? = null,
 )
-
-private fun resolveVideoRes(isDarkTheme: Boolean, darkResId: Int?, lightResId: Int?): Int? =
-    if (isDarkTheme) darkResId else lightResId ?: darkResId
 
 // Page indices
 private const val PAGE_PROVIDER = 2
@@ -264,39 +257,18 @@ fun WelcomeScreen(
     // ── Pages ──
     val pages = listOf(
         WelcomePage(stringResource(R.string.onboarding_welcome_title), stringResource(R.string.onboarding_welcome_desc),
-            R.raw.welcome_video, R.raw.welcome_video_light),
+            icon = Icons.Filled.AutoAwesome),
         WelcomePage(stringResource(R.string.onboarding_byok_title), stringResource(R.string.onboarding_byok_desc),
-            R.raw.welcome_video, R.raw.welcome_video_light),
+            icon = Icons.Filled.Lock),
         WelcomePage(stringResource(R.string.onboarding_provider_title), stringResource(R.string.onboarding_provider_desc)),
         WelcomePage(stringResource(R.string.onboarding_api_key_title), stringResource(R.string.onboarding_api_key_desc)),
         WelcomePage(stringResource(R.string.onboarding_model_video_title), stringResource(R.string.onboarding_model_video_desc),
-            R.raw.welcome_video, R.raw.welcome_video_light),
+            icon = Icons.Filled.Cloud),
         WelcomePage(stringResource(R.string.onboarding_model_select_title), stringResource(R.string.onboarding_model_select_desc)),
         WelcomePage(stringResource(R.string.onboarding_auto_backup_title), stringResource(R.string.onboarding_auto_backup_desc)),
         WelcomePage(stringResource(R.string.onboarding_done_title), stringResource(R.string.onboarding_done_desc),
-            R.raw.welcome_video, R.raw.welcome_video_light)
+            icon = Icons.Filled.CheckCircle)
     )
-
-    // ── Video players (null for config pages) ──
-    val players = remember(isDarkTheme) {
-        pages.map { page ->
-            val resId = resolveVideoRes(isDarkTheme, page.darkVideoResId, page.lightVideoResId)
-            resId?.let {
-                val uri = "android.resource://${context.packageName}/$it"
-                ExoPlayer.Builder(context).build().apply {
-                    repeatMode = Player.REPEAT_MODE_ALL; playWhenReady = false
-                    setMediaItem(MediaItem.fromUri(uri)); prepare()
-                }
-            }
-        }
-    }
-
-    DisposableEffect(players) { onDispose { players.forEach { it?.release() } } }
-    LaunchedEffect(motionPolicy.allowContinuousMotion, players) {
-        if (!motionPolicy.allowContinuousMotion) {
-            players.forEach { player -> player?.pause() }
-        }
-    }
 
     val visitedPages = remember { mutableSetOf<Int>() }
     val typedPages = remember { mutableSetOf<Int>() }
@@ -342,9 +314,7 @@ fun WelcomeScreen(
         fm.clearFocus()
         if (pagerState.currentPage !in visitedPages) {
             visitedPages.add(pagerState.currentPage)
-            if (motionPolicy.allowContinuousMotion) {
-                players[pagerState.currentPage]?.playWhenReady = true
-            }
+
         }
         // Models are fetched only while the Model Select page is visible. (Re)fetch
         // on every entry with the latest key; cancel on leave so an in-flight request
@@ -473,9 +443,16 @@ fun WelcomeScreen(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 36.dp).alpha(contentAlpha)
                                 )
                                 else -> {
-                                    Box(Modifier.fillMaxSize()) {
-                                        players[index]?.let { LoopVideo(it) }
-                                        if (index == 0) FirstVideoScrim(isDarkTheme)
+                                    val page = pages[index]
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        page.icon?.let { icon ->
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(72.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -584,19 +561,7 @@ fun WelcomeScreen(
 }
 
 // ═════════════════════════════════════════════════════════════
-//  Scrim
-// ═════════════════════════════════════════════════════════════
 
-@Composable
-private fun FirstVideoScrim(isDarkTheme: Boolean) {
-    var visible by remember { mutableStateOf(true) }
-    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(500))
-    LaunchedEffect(Unit) { kotlinx.coroutines.delay(200); visible = false }
-    val scrimColor = if (isDarkTheme) Color.Black else Color.White
-    Box(Modifier.fillMaxSize().background(scrimColor.copy(alpha = alpha)))
-}
-
-// ═════════════════════════════════════════════════════════════
 //  Config pages
 // ═════════════════════════════════════════════════════════════
 
@@ -812,24 +777,7 @@ private fun ModelPage(models: List<String>, modelAliases: Map<String, String>, s
 }
 
 @Composable
-@androidx.annotation.OptIn(UnstableApi::class)
-private fun LoopVideo(player: ExoPlayer) {
-    val context = LocalContext.current
-    var isReady by remember { mutableStateOf(false) }
-    val a by animateFloatAsState(if (isReady) 1f else 0f, tween(400))
 
-    DisposableEffect(player) {
-        if (player.playbackState == Player.STATE_READY) isReady = true
-        val l = object : Player.Listener { override fun onPlaybackStateChanged(s: Int) { if (s == Player.STATE_READY) isReady = true } }
-        player.addListener(l); onDispose { player.removeListener(l) }
-    }
-    AndroidView(
-        factory = { PlayerView(context).apply { this.player = player; useController = false; resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT } },
-        modifier = Modifier.fillMaxSize().aspectRatio(1f).alpha(a)
-    )
-}
-
-@Composable
 private fun AutoBackupPage(enabled: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier) {
     Surface(modifier, RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 2.dp) {
         Column(Modifier.padding(32.dp).fillMaxWidth()) {
