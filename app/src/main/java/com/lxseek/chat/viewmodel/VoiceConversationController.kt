@@ -131,6 +131,10 @@ class VoiceConversationController(
         }
     }
 
+    fun clearSingleAsrResult() {
+        _singleAsrResult.value = null
+    }
+
     /**
      * Stop single ASR recording and transcribe. Result lands in [singleAsrResult].
      */

@@ -291,7 +291,7 @@ fun ChatApp(
         val text = singleAsrResult
         if (!text.isNullOrEmpty()) {
             textFieldState.edit { replace(0, length, text) }
-            viewModel.voiceConversation.singleAsrResult.value = null
+            viewModel.voiceConversation.clearSingleAsrResult()
         }
     }
     val composer = com.lxseek.chat.ui.chat.bottombar.rememberChatComposerState()
