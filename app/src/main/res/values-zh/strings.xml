@@ -858,6 +858,7 @@
     <string name="voice_conversation_tap_to_stop">点击停止</string>
     <string name="voice_conversation_not_available">此设备不支持语音识别</string>
     <string name="voice_conversation_mic_permission">语音对话需要麦克风权限</string>
+    <string name="voice_conversation_exit">退出语音对话</string>
     <string name="edit">编辑</string>
     <string name="info">信息</string>
     <string name="more">更多</string>

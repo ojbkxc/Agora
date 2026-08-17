@@ -151,7 +151,11 @@ fun ChatBottomBar(
     voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
     voiceConversationAmplitude: Float = 0f,
     voiceConversationEnabled: Boolean = false,
+    voiceConversationActive: Boolean = false,
+    singleAsrRecording: Boolean = false,
     onVoiceConversationToggle: () -> Unit = {},
+    onSingleAsrToggle: () -> Unit = {},
+    onStopSingleAsr: () -> Unit = {},
 ) {
     val allowSpatialTransitions = LocalAgoraMotionPolicy.current.allowSpatialTransitions
     val scrollState = rememberScrollState()
@@ -313,7 +317,15 @@ fun ChatBottomBar(
                     disabledContainerColor = Color.Transparent,
                     cursorColor = MaterialTheme.colorScheme.primary
                 ),
-                textStyle = ChatType.input.copy(color = MaterialTheme.colorScheme.onSurface)
+                textStyle = ChatType.input.copy(color = MaterialTheme.colorScheme.onSurface),
+                trailingIcon = {
+                    if (voiceConversationEnabled) {
+                        SingleAsrMicIcon(
+                            isRecording = singleAsrRecording,
+                            onClick = onSingleAsrToggle,
+                        )
+                    }
+                },
             )
             androidx.compose.animation.AnimatedVisibility(
                 visible = !isExpanded,
@@ -819,14 +831,6 @@ fun ChatBottomBar(
                     }
                 }
             }
-            if (voiceConversationEnabled) {
-                VoiceMicButton(
-                    state = voiceConversationState,
-                    amplitude = voiceConversationAmplitude,
-                    onClick = onVoiceConversationToggle,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-            }
             ComposerSendButton(
                 textFieldState = textFieldState,
                 composer = composer,
@@ -835,9 +839,15 @@ fun ChatBottomBar(
                 isSwitching = isSwitching,
                 isStopping = isStopping,
                 isModelValid = isModelValid,
+                voiceConversationState = voiceConversationState,
+                voiceConversationEnabled = voiceConversationEnabled,
+                voiceConversationActive = voiceConversationActive,
+                singleAsrRecording = singleAsrRecording,
                 onSendMessage = onSendMessage,
                 onStopGeneration = onStopGeneration,
                 onCollapse = onCollapse,
+                onVoiceConversationToggle = onVoiceConversationToggle,
+                onStopSingleAsr = onStopSingleAsr,
             )
         }
         }

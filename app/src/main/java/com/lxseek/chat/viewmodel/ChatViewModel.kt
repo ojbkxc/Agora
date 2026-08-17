@@ -954,6 +954,8 @@ class ChatViewModel(
     )
     fun toggleVoiceConversation() = voiceConversation.toggle()
     fun stopVoiceConversation() = voiceConversation.stop()
+    fun startSingleAsr() = voiceConversation.startSingleAsr()
+    fun stopSingleAsr() = voiceConversation.stopSingleAsr()
 
     fun regenerate(messageId: String): Boolean = generationController.regenerate(messageId)
 

@@ -35,15 +35,22 @@ class VoiceConversationController(
     private val whisperModel: () -> String,
 ) {
     enum class State { IDLE, LISTENING, TRANSCRIBING, PROCESSING, SPEAKING }
+    enum class Mode { CONVERSATION, SINGLE_ASR }
 
     private val _state = MutableStateFlow(State.IDLE)
     val state: StateFlow<State> = _state.asStateFlow()
+
+    private val _mode = MutableStateFlow(Mode.CONVERSATION)
+    val mode: StateFlow<Mode> = _mode.asStateFlow()
 
     private val _partialTranscript = MutableStateFlow("")
     val partialTranscript: StateFlow<String> = _partialTranscript.asStateFlow()
 
     private val _amplitude = MutableStateFlow(0f)
     val amplitude: StateFlow<Float> = _amplitude.asStateFlow()
+
+    private val _singleAsrResult = MutableStateFlow<String?>(null)
+    val singleAsrResult: StateFlow<String?> = _singleAsrResult.asStateFlow()
 
     private val audioCaptureManager = AudioCaptureManager(appContext)
     private val voskTranscriber = VoskTranscriber(appContext)
@@ -79,6 +86,8 @@ class VoiceConversationController(
             stop()
         }
         Log.i(TAG, "start: beginning voice conversation")
+        _mode.value = Mode.CONVERSATION
+        _singleAsrResult.value = null
         active = true
         waitingForLlm = false
         llmWasLoading = false
@@ -95,6 +104,43 @@ class VoiceConversationController(
         if (ttsObserverJob == null) {
             ttsObserverJob = scope.launch { observeTtsPlaying() }
         }
+    }
+
+    /**
+     * Single-shot ASR: record once, transcribe, publish result via [singleAsrResult].
+     * Does NOT send the message or observe LLM/TTS — the UI inserts the text into the composer.
+     */
+    fun startSingleAsr() {
+        if (active) {
+            Log.w(TAG, "startSingleAsr: active=true, stopping previous")
+            stop()
+        }
+        Log.i(TAG, "startSingleAsr: beginning single ASR")
+        _mode.value = Mode.SINGLE_ASR
+        _singleAsrResult.value = null
+        active = true
+        waitingForLlm = false
+        llmWasLoading = false
+        try {
+            beginListening()
+        } catch (e: Throwable) {
+            Log.e(TAG, "startSingleAsr crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+            active = false
+            _state.value = State.IDLE
+            _mode.value = Mode.CONVERSATION
+        }
+    }
+
+    /**
+     * Stop single ASR recording and transcribe. Result lands in [singleAsrResult].
+     */
+    fun stopSingleAsr() {
+        if (_mode.value != Mode.SINGLE_ASR) {
+            Log.w(TAG, "stopSingleAsr: not in SINGLE_ASR mode, ignoring")
+            return
+        }
+        Log.i(TAG, "stopSingleAsr: engine=$currentEngine")
+        stopCaptureAndTranscribe()
     }
 
     fun stop() {
@@ -116,6 +162,8 @@ class VoiceConversationController(
         _state.value = State.IDLE
         _partialTranscript.value = ""
         _amplitude.value = 0f
+        _mode.value = Mode.CONVERSATION
+        _singleAsrResult.value = null
     }
 
     private fun beginListening() {
@@ -216,10 +264,15 @@ class VoiceConversationController(
             try { speechRecognizerManager.stopListening() } catch (e: Throwable) { Log.e(TAG, "stopListening failed", e) }
             partialJob?.cancel()
             partialJob = null
-            _state.value = State.IDLE
-            active = false
+            val partial = _partialTranscript.value
             _partialTranscript.value = ""
             _amplitude.value = 0f
+            if (partial.isNotBlank()) {
+                handleTranscriptionResult(partial)
+            } else {
+                _state.value = State.IDLE
+                active = false
+            }
             return
         }
         if (currentEngine == "vosk" || currentEngine == "whisper" || currentEngine == "auto") {
@@ -351,14 +404,26 @@ class VoiceConversationController(
             if (active) {
                 _state.value = State.IDLE
                 active = false
+                _mode.value = Mode.CONVERSATION
             }
             return
         }
-        Log.i(TAG, "Transcription result: '$cleanText'")
-        _state.value = State.PROCESSING
-        waitingForLlm = true
-        llmWasLoading = false
-        sendJob = scope.launch { sendMessage(cleanText) }
+        Log.i(TAG, "Transcription result: '$cleanText' (mode=${_mode.value})")
+        when (_mode.value) {
+            Mode.SINGLE_ASR -> {
+                _singleAsrResult.value = cleanText
+                _state.value = State.IDLE
+                active = false
+                _partialTranscript.value = ""
+                _amplitude.value = 0f
+            }
+            Mode.CONVERSATION -> {
+                _state.value = State.PROCESSING
+                waitingForLlm = true
+                llmWasLoading = false
+                sendJob = scope.launch { sendMessage(cleanText) }
+            }
+        }
     }
 
     private suspend fun observeLlmAndTts() {

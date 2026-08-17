@@ -79,7 +79,11 @@ internal fun ChatAppBottomBarSection(
     voiceConversationState: com.lxseek.chat.viewmodel.VoiceConversationController.State = com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE,
     voiceConversationAmplitude: Float = 0f,
     voiceConversationEnabled: Boolean = false,
+    voiceConversationActive: Boolean = false,
+    singleAsrRecording: Boolean = false,
     onVoiceConversationToggle: () -> Unit = {},
+    onSingleAsrToggle: () -> Unit = {},
+    onStopSingleAsr: () -> Unit = {},
 ) {
     val density = LocalDensity.current
     val gradientTopPaddingPx = with(density) { 20.dp.toPx() }
@@ -239,7 +243,11 @@ internal fun ChatAppBottomBarSection(
                             voiceConversationState = voiceConversationState,
                             voiceConversationAmplitude = voiceConversationAmplitude,
                             voiceConversationEnabled = voiceConversationEnabled,
+                            voiceConversationActive = voiceConversationActive,
+                            singleAsrRecording = singleAsrRecording,
                             onVoiceConversationToggle = onVoiceConversationToggle,
+                            onSingleAsrToggle = onSingleAsrToggle,
+                            onStopSingleAsr = onStopSingleAsr,
                         )
                     }
                 }

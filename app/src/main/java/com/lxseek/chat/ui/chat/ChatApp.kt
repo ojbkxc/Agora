@@ -116,6 +116,13 @@ fun ChatApp(
     val voiceConversationPartial by viewModel.voiceConversation.partialTranscript.collectAsState()
     val voiceConversationAmplitude by viewModel.voiceConversation.amplitude.collectAsState()
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
+    val voiceConversationMode by viewModel.voiceConversation.mode.collectAsState()
+    val singleAsrResult by viewModel.voiceConversation.singleAsrResult.collectAsState()
+    val voiceConversationActive = voiceConversationMode == com.lxseek.chat.viewmodel.VoiceConversationController.Mode.CONVERSATION &&
+        voiceConversationState != com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE
+    val singleAsrRecording = voiceConversationMode == com.lxseek.chat.viewmodel.VoiceConversationController.Mode.SINGLE_ASR &&
+        (voiceConversationState == com.lxseek.chat.viewmodel.VoiceConversationController.State.LISTENING ||
+            voiceConversationState == com.lxseek.chat.viewmodel.VoiceConversationController.State.TRANSCRIBING)
     val compactPreview by viewModel.compactPreview.collectAsState()
     val compactModel by viewModel.settings.contextCompactModel.collectAsState()
     val compactPrompt by viewModel.settings.contextCompactPrompt.collectAsState()
@@ -280,6 +287,13 @@ fun ChatApp(
     val shareSelectionBarSpace = if (shareSelectionActive) 68.dp else 0.dp
     val conversationSearchMatches = conversationInteraction.searchMatches
     val textFieldState = rememberSaveable(saver = androidx.compose.foundation.text.input.TextFieldState.Saver) { androidx.compose.foundation.text.input.TextFieldState() }
+    LaunchedEffect(singleAsrResult) {
+        val text = singleAsrResult
+        if (!text.isNullOrEmpty()) {
+            textFieldState.edit { replace(0, length, text) }
+            viewModel.voiceConversation.singleAsrResult.value = null
+        }
+    }
     val composer = com.lxseek.chat.ui.chat.bottombar.rememberChatComposerState()
     val inputFocusRequester = remember { FocusRequester() }
 
@@ -736,15 +750,6 @@ fun ChatApp(
                         isTransitioningToNewChat = isTransitioningToNewChat,
                     )
 
-                    VoiceConversationStatusOverlay(
-                        state = voiceConversationState,
-                        partialTranscript = voiceConversationPartial,
-                        amplitude = voiceConversationAmplitude,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = bottomBarHeight + 8.dp)
-                            .padding(horizontal = 16.dp),
-                    )
 
                 }
             }
@@ -803,6 +808,8 @@ fun ChatApp(
                 voiceConversationState = voiceConversationState,
                 voiceConversationAmplitude = voiceConversationAmplitude,
                 voiceConversationEnabled = voiceConversationEnabled,
+                voiceConversationActive = voiceConversationActive,
+                singleAsrRecording = singleAsrRecording,
                 onVoiceConversationToggle = {
                     val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                         context,
@@ -814,6 +821,19 @@ fun ChatApp(
                         micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                     }
                 },
+                onSingleAsrToggle = {
+                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.RECORD_AUDIO,
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (hasPermission) {
+                        if (singleAsrRecording) viewModel.stopSingleAsr()
+                        else viewModel.startSingleAsr()
+                    } else {
+                        micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                onStopSingleAsr = { viewModel.stopSingleAsr() },
 
             )
             } else {
@@ -821,6 +841,14 @@ fun ChatApp(
             }
         }
         }
+
+        VoiceConversationOverlay(
+            state = voiceConversationState,
+            partialTranscript = voiceConversationPartial,
+            amplitude = voiceConversationAmplitude,
+            onExit = { viewModel.stopVoiceConversation() },
+            modifier = Modifier.fillMaxSize(),
+        )
         }
 
     ChatAppDialogHost(
