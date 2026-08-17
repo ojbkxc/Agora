@@ -1,5 +1,6 @@
 package com.lxseek.chat.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -7,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -16,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -31,11 +35,24 @@ import kotlinx.coroutines.launch
 fun SettingsVoskModelsSection(
     context: android.content.Context,
     voskTranscriber: VoskTranscriber,
+    voiceLanguage: String,
+    onVoiceLanguageChange: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
     val downloadProgress by voskTranscriber.downloadProgress.collectAsState()
     val downloadingFor = remember { mutableStateMapOf<String, String>() }
+
+    // Language selector: derive the distinct base codes (en, zh, ...) from the
+    // available Vosk model list so the user picks the recognition language that
+    // is later passed to VoskTranscriber.initialize().
+    val baseLanguages = remember {
+        VoskTranscriber.AVAILABLE_LANGUAGES
+            .map { VoskTranscriber.getBaseLanguageCode(it.code) }
+            .distinct()
+            .sorted()
+    }
+    var langMenuOpen by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
@@ -50,6 +67,37 @@ fun SettingsVoskModelsSection(
             style = MaterialTheme.typography.labelSmall,
             color = if (voskTranscriber.isReady()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Recognition language selector (feeds VoskTranscriber.initialize).
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { langMenuOpen = true },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.asr_voice_language),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = voiceLanguage.ifBlank { "en" },
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            DropdownMenu(expanded = langMenuOpen, onDismissRequest = { langMenuOpen = false }) {
+                for (code in baseLanguages) {
+                    DropdownMenuItem(
+                        text = { Text(code) },
+                        onClick = {
+                            langMenuOpen = false
+                            onVoiceLanguageChange(code)
+                        },
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
 
         val downloaded = run { refresh; voskTranscriber.getDownloadedLanguages() }

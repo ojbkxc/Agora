@@ -147,6 +147,8 @@
 
     <string name="asr_engine_vosk">Vosk (Offline)</string>
     <string name="asr_engine_whisper">Whisper (Cloud)</string>
+    <string name="asr_voice_language">Recognition Language</string>
+    <string name="asr_voice_language_desc">Vosk/Whisper recognition language (e.g. en, zh)</string>
     <string name="vosk_models_title">Vosk Models</string>
     <string name="vosk_model_download">Download</string>
     <string name="vosk_model_delete">Delete</string>

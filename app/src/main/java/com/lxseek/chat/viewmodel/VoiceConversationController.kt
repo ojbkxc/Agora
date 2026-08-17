@@ -1,6 +1,7 @@
 package com.lxseek.chat.viewmodel
 
 import android.content.Context
+import android.speech.SpeechRecognizer
 import com.lxseek.chat.util.AppLog as Log
 import com.lxseek.chat.speech.AudioCaptureManager
 import com.lxseek.chat.speech.SpeechRecognizerManager
@@ -25,7 +26,7 @@ private const val TAG = "VoiceConvCtrl"
 class VoiceConversationController(
     private val scope: CoroutineScope,
     private val appContext: Context,
-    private val languageProvider: () -> String,
+    private val voiceLanguageProvider: () -> String,
     private val ttsAutoPlayOn: () -> Boolean,
     private val isLoading: StateFlow<Boolean>,
     private val sendMessage: suspend (String) -> Unit,
@@ -170,6 +171,19 @@ class VoiceConversationController(
         _singleAsrResult.value = null
     }
 
+    /**
+     * Release native/hardware resources owned by the speech engines.
+     * Called from the ViewModel's onCleared so AudioRecord, SpeechRecognizer and
+     * Vosk models do not leak across ViewModel destruction.
+     */
+    fun dispose() {
+        Log.i(TAG, "dispose()")
+        stop()
+        try { audioCaptureManager.release() } catch (e: Throwable) { Log.e(TAG, "audioCaptureManager.release failed", e) }
+        try { voskTranscriber.release() } catch (e: Throwable) { Log.e(TAG, "voskTranscriber.release failed", e) }
+        try { speechRecognizerManager.destroy() } catch (e: Throwable) { Log.e(TAG, "speechRecognizerManager.destroy failed", e) }
+    }
+
     private fun beginListening() {
         if (!active) return
         _state.value = State.LISTENING
@@ -197,7 +211,7 @@ class VoiceConversationController(
     private fun beginAutoListening() {
         scope.launch {
             try {
-                val lang = languageProvider().let { if (it == "en") "en" else if (it == "zh") "zh" else "en" }
+                val lang = resolveVoskLanguage()
                 val ready = voskTranscriber.initialize(lang)
                 if (ready && active) {
                     Log.i(TAG, "auto: vosk ready, starting vosk capture")
@@ -220,6 +234,20 @@ class VoiceConversationController(
                 }
             }
         }
+    }
+
+    /** Resolve the configured voice recognition language to a Vosk model code. */
+    private fun resolveVoskLanguage(): String {
+        val pref = try { voiceLanguageProvider().trim().lowercase() } catch (e: Throwable) {
+            Log.e(TAG, "voiceLanguageProvider crashed: ${e.message}", e); "en"
+        }
+        if (pref.isBlank() || pref == "system") return "en"
+        val base = pref.split("-").first()
+        // Prefer an exact downloaded model; otherwise pick a downloaded model whose
+        // base code matches (e.g. "zh" selected while "zh-full" is downloaded).
+        val downloaded = try { voskTranscriber.getDownloadedLanguages() } catch (e: Throwable) { emptyList() }
+        if (downloaded.isEmpty() || downloaded.contains(base)) return base
+        return downloaded.firstOrNull { VoskTranscriber.getBaseLanguageCode(it) == base } ?: base
     }
 
     private fun beginVoskCapture() {
@@ -314,8 +342,7 @@ class VoiceConversationController(
     private suspend fun transcribeWithVosk(wavFile: File) {
         _state.value = State.TRANSCRIBING
         try {
-            val lang = languageProvider()
-            val langCode = when (lang) { "zh" -> "zh"; "en" -> "en"; else -> "en" }
+            val langCode = resolveVoskLanguage()
             if (!voskTranscriber.isReady()) {
                 val initialized = voskTranscriber.initialize(langCode)
                 if (!initialized) {
@@ -339,21 +366,23 @@ class VoiceConversationController(
     private suspend fun transcribeWithWhisper(wavFile: File) {
         _state.value = State.TRANSCRIBING
         try {
-            val lang = languageProvider()
-            val languageParam = when (lang) { "en" -> "en"; "zh" -> "zh"; else -> null }
+            val langCode = resolveVoskLanguage()
+            val languageParam = when (langCode) { "en" -> "en"; "zh" -> "zh"; else -> null }
             Log.i(TAG, "Whisper transcribing ${wavFile.name}...")
             val result = whisperTranscriber.transcribe(wavFile, languageParam)
-            wavFile.delete()
             if (result.isSuccess) {
+                wavFile.delete()
                 handleTranscriptionResult(result.getOrDefault(""))
             } else {
                 Log.w(TAG, "Whisper failed: ${result.exceptionOrNull()?.message}")
                 if (active && voskTranscriber.isReady()) {
-                    Log.i(TAG, "Falling back to vosk")
-                    val wavFile2 = audioCaptureManager.stopCapture()
-                    transcribeWithVosk(wavFile2)
-                } else if (active) {
-                    _state.value = State.IDLE
+                    Log.i(TAG, "Falling back to vosk with the same recording")
+                    transcribeWithVosk(wavFile)
+                } else {
+                    wavFile.delete()
+                    if (active) {
+                        _state.value = State.IDLE
+                    }
                 }
             }
         } catch (e: Throwable) {
@@ -366,6 +395,29 @@ class VoiceConversationController(
     }
 
     private fun beginSystemListening() {
+        // GrapheneOS AI checks availability before dispatching to the system engine;
+        // when unavailable, fall back to Vosk/Whisper instead of failing silently.
+        val available = try { speechRecognizerManager.isAvailable() } catch (e: Throwable) {
+            Log.e(TAG, "isAvailable check crashed: ${e.message}", e); false
+        }
+        if (!available) {
+            Log.w(TAG, "System ASR unavailable, trying fallback engines")
+            val voskReady = try { voskTranscriber.isReady() } catch (e: Throwable) { false }
+            if (voskReady) {
+                Log.i(TAG, "system unavailable, falling back to vosk")
+                beginVoskCapture()
+            } else if (!whisperApiKey().isNullOrBlank()) {
+                Log.i(TAG, "system unavailable, falling back to whisper")
+                beginWhisperCapture()
+            } else {
+                Log.e(TAG, "system unavailable and no fallback engine ready")
+                if (active) {
+                    _state.value = State.IDLE
+                    active = false
+                }
+            }
+            return
+        }
         Log.i(TAG, "beginSystemListening: starting system ASR")
         currentEngine = "system"
         try {
@@ -383,10 +435,20 @@ class VoiceConversationController(
                             handleTranscriptionResult(result.text)
                         }
                         is SpeechRecognizerManager.RecognitionResult.Error -> {
-                            Log.w(TAG, "System ASR error: ${result.message}")
+                            Log.w(TAG, "System ASR error: ${result.message} (code=${result.code})")
+                            // GrapheneOS AI: on ERROR_CLIENT(5) the system recognizer is
+                            // broken; switch to Vosk so the conversation survives.
                             if (active) {
-                                _state.value = State.IDLE
-                                active = false
+                                val shouldSwitchToVosk = result.code == SpeechRecognizer.ERROR_CLIENT &&
+                                    voskTranscriber.isReady()
+                                if (shouldSwitchToVosk) {
+                                    Log.i(TAG, "Switching to vosk after system ERROR_CLIENT")
+                                    speechRecognizerManager.stopListening()
+                                    beginVoskCapture()
+                                } else {
+                                    _state.value = State.IDLE
+                                    active = false
+                                }
                             }
                         }
                         else -> {}

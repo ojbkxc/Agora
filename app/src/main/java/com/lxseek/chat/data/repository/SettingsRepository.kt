@@ -107,6 +107,7 @@ class SettingsRepository(
     val shareIncludeTools: StateFlow<Boolean> = hot(settingsManager.shareIncludeTools, true)
     val voiceConversationEnabled: StateFlow<Boolean> = hot(settingsManager.voiceConversationEnabled, false)
     val asrEnginePref: StateFlow<String> = hot(settingsManager.asrEnginePref, "auto")
+    val voiceLanguage: StateFlow<String> = hot(settingsManager.voiceLanguage, "en")
     val asrUseRemote: StateFlow<Boolean> = hot(settingsManager.asrUseRemote, false)
     val asrRemoteBaseUrl: StateFlow<String> = hot(settingsManager.asrRemoteBaseUrl, "https://api.openai.com/v1")
     val asrRemoteApiKey: StateFlow<String> = hot(settingsManager.asrRemoteApiKey, "")
@@ -496,6 +497,7 @@ class SettingsRepository(
     fun setShareIncludeTools(enabled: Boolean) = scope.launch { settingsManager.saveShareIncludeTools(enabled) }
     fun setVoiceConversationEnabled(enabled: Boolean) = scope.launch { settingsManager.saveVoiceConversationEnabled(enabled) }
     fun setAsrEnginePref(pref: String) = scope.launch { settingsManager.saveAsrEnginePref(pref) }
+    fun setVoiceLanguage(language: String) = scope.launch { settingsManager.saveVoiceLanguage(language) }
     fun setAsrUseRemote(enabled: Boolean) = scope.launch { settingsManager.saveAsrUseRemote(enabled) }
     fun setAsrRemoteBaseUrl(url: String) = scope.launch { settingsManager.saveAsrRemoteBaseUrl(url) }
     fun setAsrRemoteApiKey(key: String) = scope.launch { settingsManager.saveAsrRemoteApiKey(key) }

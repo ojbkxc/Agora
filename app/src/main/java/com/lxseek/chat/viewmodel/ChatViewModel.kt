@@ -284,7 +284,7 @@ class ChatViewModel(
         sandboxManager?.close()
         generationRegistry.detachUiCallbacks(generationCallbackOwner)
         dataControl.destroy()
-        voiceConversation.stop()
+        voiceConversation.dispose()
         TtsManager.stop()
     }
 
@@ -936,7 +936,7 @@ class ChatViewModel(
 
     val voiceConversation = VoiceConversationController(
         scope = viewModelScope, appContext = appContext,
-        languageProvider = { settings.ttsLanguage.value },
+        voiceLanguageProvider = { settings.voiceLanguage.value },
         ttsAutoPlayOn = { settings.ttsEnabled.value && settings.ttsAutoPlay.value },
         isLoading = isLoading,
         sendMessage = { text -> sendMessage(text) },

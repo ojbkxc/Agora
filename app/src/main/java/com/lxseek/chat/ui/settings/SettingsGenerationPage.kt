@@ -83,6 +83,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
     val asrEnginePref by viewModel.settings.asrEnginePref.collectAsState()
     val asrUseRemote by viewModel.settings.asrUseRemote.collectAsState()
+    val voiceLanguage by viewModel.settings.voiceLanguage.collectAsState()
     val asrRemoteBaseUrl by viewModel.settings.asrRemoteBaseUrl.collectAsState()
     val asrRemoteApiKey by viewModel.settings.asrRemoteApiKey.collectAsState()
     val asrRemoteModel by viewModel.settings.asrRemoteModel.collectAsState()
@@ -738,6 +739,8 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             SettingsVoskModelsSection(
                                 context = ttsContext,
                                 voskTranscriber = viewModel.voiceConversation.getVoskTranscriber(),
+                                voiceLanguage = voiceLanguage,
+                                onVoiceLanguageChange = { viewModel.settings.setVoiceLanguage(it) },
                             )
                         }
                     },

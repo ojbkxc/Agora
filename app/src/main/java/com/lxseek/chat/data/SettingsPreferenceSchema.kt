@@ -132,6 +132,7 @@ internal val SHARE_INCLUDE_THINKING = booleanPreferencesKey("share_include_think
 internal val SHARE_INCLUDE_TOOLS = booleanPreferencesKey("share_include_tools")
 internal val VOICE_CONVERSATION_ENABLED = booleanPreferencesKey("voice_conversation_enabled")
 internal val ASR_ENGINE_PREF = stringPreferencesKey("asr_engine_pref")
+internal val VOICE_LANGUAGE = stringPreferencesKey("voice_language")
 internal val ASR_USE_REMOTE = booleanPreferencesKey("asr_use_remote")
 internal val ASR_REMOTE_BASE_URL = stringPreferencesKey("asr_remote_base_url")
 internal val ASR_REMOTE_API_KEY = stringPreferencesKey("asr_remote_api_key")

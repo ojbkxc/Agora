@@ -823,6 +823,8 @@
 
     <string name="asr_engine_vosk">Vosk（离线）</string>
     <string name="asr_engine_whisper">Whisper（云端）</string>
+    <string name="asr_voice_language">识别语言</string>
+    <string name="asr_voice_language_desc">Vosk/Whisper 识别语言（如 en、zh）</string>
     <string name="vosk_models_title">Vosk 模型</string>
     <string name="vosk_model_download">下载</string>
     <string name="vosk_model_delete">删除</string>
