@@ -118,7 +118,8 @@ android {
 }
 
 // Proot binaries (libproot_exec.so, libproot_loader.so, libtalloc.so) are
-// built via GNUmakefile (see .build-proot/) and placed directly in jniLibs.
+// built via GNUmakefile (see .build-proot/) and placed directly in
+// app/src/fdroid/jniLibs/ (fdroid flavor only — PRoot sandbox is fdroid-exclusive).
 // No CMake target is needed — the binaries are manually managed prebuilts.
 // talloc is built with SONAME=libtalloc.so (no version) so AGP packaging works.
 
@@ -185,7 +186,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.okhttp)
     implementation(libs.material.color.utilities)
-    implementation(libs.lottie.compose)
+
     implementation(libs.work.runtime.ktx)
     implementation(libs.jsch)
     implementation(libs.commons.compress)

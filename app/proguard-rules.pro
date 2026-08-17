@@ -30,8 +30,6 @@
 -keep class com.lxseek.chat.api.LlamaEngine { *; }
 -keep class com.lxseek.chat.api.LlamaChatEngine { *; }
 
-# Lottie
--keep class com.airbnb.lottie.** { *; }
 
 # Coil
 -dontwarn coil.**

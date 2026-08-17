@@ -264,17 +264,17 @@ fun WelcomeScreen(
     // ── Pages ──
     val pages = listOf(
         WelcomePage(stringResource(R.string.onboarding_welcome_title), stringResource(R.string.onboarding_welcome_desc),
-            R.raw.welcome_video_1, R.raw.welcome_video_1_light),
+            R.raw.welcome_video, R.raw.welcome_video_light),
         WelcomePage(stringResource(R.string.onboarding_byok_title), stringResource(R.string.onboarding_byok_desc),
-            R.raw.welcome_video_2, R.raw.welcome_video_2_light),
+            R.raw.welcome_video, R.raw.welcome_video_light),
         WelcomePage(stringResource(R.string.onboarding_provider_title), stringResource(R.string.onboarding_provider_desc)),
         WelcomePage(stringResource(R.string.onboarding_api_key_title), stringResource(R.string.onboarding_api_key_desc)),
         WelcomePage(stringResource(R.string.onboarding_model_video_title), stringResource(R.string.onboarding_model_video_desc),
-            R.raw.welcome_video_3, R.raw.welcome_video_3_light),
+            R.raw.welcome_video, R.raw.welcome_video_light),
         WelcomePage(stringResource(R.string.onboarding_model_select_title), stringResource(R.string.onboarding_model_select_desc)),
         WelcomePage(stringResource(R.string.onboarding_auto_backup_title), stringResource(R.string.onboarding_auto_backup_desc)),
         WelcomePage(stringResource(R.string.onboarding_done_title), stringResource(R.string.onboarding_done_desc),
-            R.raw.welcome_video_4, R.raw.welcome_video_4_light)
+            R.raw.welcome_video, R.raw.welcome_video_light)
     )
 
     // ── Video players (null for config pages) ──
