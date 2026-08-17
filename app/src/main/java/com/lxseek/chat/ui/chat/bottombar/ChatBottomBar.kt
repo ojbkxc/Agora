@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
@@ -238,7 +238,7 @@ fun ChatBottomBar(
         }
     }
 
-    Box(modifier = modifier.fillMaxWidth().then(if (isExpanded) Modifier.fillMaxHeight() else Modifier).padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 12.dp)) {
+    Box(modifier = modifier.fillMaxWidth().then(if (isExpanded) Modifier.fillMaxHeight() else Modifier).padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 10.dp)) {
         Column(modifier = Modifier.fillMaxWidth().then(if (isExpanded) Modifier.fillMaxHeight() else Modifier)) {
             AnimatedVisibility(
                 visible = isExpanded,
@@ -327,19 +327,12 @@ fun ChatBottomBar(
                     }
                 },
             )
-            androidx.compose.animation.AnimatedVisibility(
-                visible = !isExpanded,
-                enter = fadeIn(tween(250)),
-                exit = ExitTransition.None,
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                IconButton(onClick = { if (!isExpandAnimating) onExpand() }, modifier = Modifier.padding(end = 4.dp, top = 4.dp).size(40.dp)) { Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.expand_all_24px), contentDescription = stringResource(R.string.expand), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)) }
-            }
+
         }
         }
 
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(48.dp).padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().background(composerOcclusionColor).padding(start = 8.dp, end = 8.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(40.dp).padding(horizontal = 4.dp)) {
                 var showAddMenu by remember { mutableStateOf(false) }
                 var lastAddDismissTime by remember { mutableLongStateOf(0L) }
                 ExposedDropdownMenuBox(
@@ -355,7 +348,7 @@ fun ChatBottomBar(
                                 showAddMenu = true
                             }
                         },
-                        modifier = Modifier.size(32.dp).menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                        modifier = Modifier.size(28.dp).menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                     ) {
                         Icon(Icons.Default.Add, stringResource(R.string.add_attachment), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -558,7 +551,7 @@ fun ChatBottomBar(
                             }
                         },
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(28.dp)
                             .menuAnchor(
                                 type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
                                 enabled = true,
@@ -641,7 +634,7 @@ fun ChatBottomBar(
                                 activeMenu = "tools"
                             }
                         }, 
-                        modifier = Modifier.size(32.dp).menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                        modifier = Modifier.size(28.dp).menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                     ) {
                         Icon(Icons.Default.MoreVert, stringResource(R.string.tools), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -830,24 +823,31 @@ fun ChatBottomBar(
                     }
                 }
             }
-            ComposerSendButton(
-                textFieldState = textFieldState,
-                composer = composer,
-                isLoading = isLoading,
-                isCompacting = isCompacting,
-                isSwitching = isSwitching,
-                isStopping = isStopping,
-                isModelValid = isModelValid,
-                voiceConversationState = voiceConversationState,
-                voiceConversationEnabled = voiceConversationEnabled,
-                voiceConversationActive = voiceConversationActive,
-                singleAsrRecording = singleAsrRecording,
-                onSendMessage = onSendMessage,
-                onStopGeneration = onStopGeneration,
-                onCollapse = onCollapse,
-                onVoiceConversationToggle = onVoiceConversationToggle,
-                onStopSingleAsr = onStopSingleAsr,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!isExpanded) {
+                    IconButton(onClick = { if (!isExpandAnimating) onExpand() }, modifier = Modifier.size(28.dp)) {
+                        Icon(painter = androidx.compose.ui.res.painterResource(id = R.drawable.expand_all_24px), contentDescription = stringResource(R.string.expand), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+                    }
+                }
+                ComposerSendButton(
+                    textFieldState = textFieldState,
+                    composer = composer,
+                    isLoading = isLoading,
+                    isCompacting = isCompacting,
+                    isSwitching = isSwitching,
+                    isStopping = isStopping,
+                    isModelValid = isModelValid,
+                    voiceConversationState = voiceConversationState,
+                    voiceConversationEnabled = voiceConversationEnabled,
+                    voiceConversationActive = voiceConversationActive,
+                    singleAsrRecording = singleAsrRecording,
+                    onSendMessage = onSendMessage,
+                    onStopGeneration = onStopGeneration,
+                    onCollapse = onCollapse,
+                    onVoiceConversationToggle = onVoiceConversationToggle,
+                    onStopSingleAsr = onStopSingleAsr,
+                )
+            }
         }
         }
         AnimatedVisibility(
@@ -982,12 +982,10 @@ fun ChatBottomBar(
             onConfirm = { result ->
                 composer.showVideoSliceDialog = false
                 composer.addSlicedVideo(result.uri, result.frameCount, result.intervalMs)
-                // Process next video in queue
                 composer.processNextVideo()
             },
             onDismiss = {
                 composer.showVideoSliceDialog = false
-                // Process next video in queue
                 composer.processNextVideo()
             }
         )
