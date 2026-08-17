@@ -9,6 +9,7 @@ import com.lxseek.chat.model.RunEffectIdentity
 import com.lxseek.chat.model.ToolExecutionStates
 import com.lxseek.chat.sandbox.SandboxManagerFactory
 import com.lxseek.chat.tool.ActionTraceBus
+import com.lxseek.chat.tool.ActionTraceEntry
 import com.lxseek.chat.tool.ActionTraceToolProvider
 import com.lxseek.chat.tool.AgentMode
 import com.lxseek.chat.tool.AskUserToolProvider
