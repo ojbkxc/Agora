@@ -82,10 +82,6 @@ jobs:
           chmod +x build-proot.sh
           ./build-proot.sh force
 
-      - name: Download sherpa-onnx native libraries
-        run: |
-          chmod +x download-sherpa.sh
-          ./download-sherpa.sh
 
       - uses: actions/setup-go@v5
         with:

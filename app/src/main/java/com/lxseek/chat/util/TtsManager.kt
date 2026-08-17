@@ -10,7 +10,7 @@ import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
-import com.lxseek.chat.speech.SherpaTtsEngine
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -109,7 +109,7 @@ object TtsManager {
     fun clearLog() { synchronized(logBuffer) { logBuffer.clear() } }
 
     fun init(context: Context) {
-        SherpaTtsEngine.init(context)
+
         if (tts != null && initialized) return
         if (tts != null && !initialized) {
             try { tts?.stop(); tts?.shutdown() } catch (_: Throwable) {}
@@ -236,28 +236,7 @@ object TtsManager {
 
     fun speak(text: String, language: String = "system", rate: Float = 1.0f): Boolean {
         if (text.isBlank()) { log("D", "speak: text is blank"); return false }
-        // Prefer on-device sherpa TTS when available + model loaded (bypasses ROM restrictions).
-        if (SherpaTtsEngine.isAvailable.value && SherpaTtsEngine.isModelLoaded.value) {
-            log("D", "speak: using SherpaTtsEngine (on-device)")
-            val ok = SherpaTtsEngine.speak(stripMarkdown(text), 0, rate.coerceIn(0.5f, 2.0f))
-            if (ok) {
-                _isPlaying.value = true
-                watchdogJob?.cancel()
-                watchdogJob = watchdogScope.launch {
-                    val mirrorJob = launch {
-                        SherpaTtsEngine.isPlaying.collect { _isPlaying.value = it }
-                    }
-                    delay(WATCHDOG_TIMEOUT_MS)
-                    mirrorJob.cancel()
-                    if (_isPlaying.value) {
-                        log("E", "Sherpa TTS watchdog timeout (${WATCHDOG_TIMEOUT_MS}ms) — forcing stop")
-                        SherpaTtsEngine.stop()
-                        _isPlaying.value = false
-                    }
-                }
-            }
-            return ok
-        }
+
         if (!initialized || tts == null) {
             log("D", "speak: buffering (initialized=$initialized tts=${tts != null})")
             pendingText = text; pendingLanguage = language; pendingRate = rate
@@ -306,9 +285,9 @@ object TtsManager {
         else -> "UNKNOWN:$result"
     }
 
-    fun stop() { watchdogJob?.cancel(); watchdogJob = null; SherpaTtsEngine.stop(); tts?.stop(); _isPlaying.value = false }
+    fun stop() { watchdogJob?.cancel(); watchdogJob = null; tts?.stop(); _isPlaying.value = false }
     fun shutdown() {
-        initGeneration++; watchdogJob?.cancel(); watchdogJob = null; SherpaTtsEngine.shutdown(); tts?.stop(); tts?.shutdown(); tts = null
+        initGeneration++; watchdogJob?.cancel(); watchdogJob = null; tts?.stop(); tts?.shutdown(); tts = null
         initialized = false; _isAvailable.value = false; _isPlaying.value = false; _langMissingData.value = false
         _lastInitStatus.value = "IDLE"; _lastSpeakResult.value = ""; _lastLanguageResult.value = ""
         pendingText = null

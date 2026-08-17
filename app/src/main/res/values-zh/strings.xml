@@ -816,7 +816,7 @@
     <string name="asr_settings_desc">语音输入引擎选择和模型管理</string>
     <string name="asr_engine_auto">自动（优先离线）</string>
     <string name="asr_engine_system">系统（在线）</string>
-    <string name="asr_engine_sherpa">Sherpa-ONNX（离线）</string>
+
     <string name="asr_engine_vosk">Vosk（离线）</string>
     <string name="asr_engine_whisper">Whisper（云端）</string>
     <string name="vosk_models_title">Vosk 模型</string>
@@ -825,26 +825,7 @@
     <string name="vosk_model_downloading">下载中… %1$d%%</string>
     <string name="vosk_model_extracting">解压中…</string>
     <string name="asr_no_engine_available">当前设备无可用 ASR 引擎</string>
-    <string name="sherpa_models_title">Sherpa-ONNX 模型</string>
-    <string name="sherpa_models_native_not_loaded">原生库未加载</string>
-    <string name="sherpa_model_vad">Silero VAD</string>
-    <string name="sherpa_model_asr">Zipformer 中英双语</string>
-    <string name="sherpa_model_tts">Kokoro-82M 语音合成</string>
-    <string name="sherpa_model_download">下载</string>
-    <string name="sherpa_model_downloaded">已下载</string>
-    <string name="sherpa_model_downloading">下载中… %1$d%%</string>
-    <string name="sherpa_model_delete">删除</string>
-    <string name="sherpa_model_load">加载</string>
-    <string name="sherpa_model_loaded">已加载</string>
-    <string name="sherpa_vad_params">VAD 参数</string>
-    <string name="sherpa_vad_threshold">灵敏度</string>
-    <string name="sherpa_vad_min_silence">最小静音 (秒)</string>
-    <string name="sherpa_vad_max_speech">最大语音 (秒)</string>
-    <string name="sherpa_download_all">下载全部模型</string>
-    <string name="sherpa_no_models_title">未下载语音模型</string>
-    <string name="sherpa_no_models_msg">下载语音模型以启用离线语音识别和合成。模型大小从 2 MB 到 200 MB 不等。</string>
-    <string name="sherpa_no_models_download">下载</string>
-    <string name="sherpa_no_models_later">稍后</string>
+
     <string name="asr_use_remote">使用远程转录 (Whisper API)</string>
     <string name="asr_use_remote_desc">本地录音后通过 OpenAI 兼容 API 转录。比系统语音识别更可靠。</string>
     <string name="asr_remote_base_url">API 地址</string>

@@ -531,7 +531,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                             "=== AppLog (all modules) ===\n" +
                                                 com.lxseek.chat.util.AppLog.getText() + "\n\n" +
                                                 TtsManager.getLogText() + "\n\n" +
-                                                com.lxseek.chat.speech.SherpaTtsEngine.getDiagnosticText(ttsContext) + "\n\n" +
+
                                                 viewModel.voiceConversation.getVoskTranscriber().getDiagnosticText()
                                         )
                                         if (name != null) {
@@ -734,11 +734,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             }
                         }
                         add {
-                            SettingsSherpaModelsSection(
-                                context = ttsContext,
-                            )
-                        }
-                        add {
+
                             SettingsVoskModelsSection(
                                 context = ttsContext,
                                 voskTranscriber = viewModel.voiceConversation.getVoskTranscriber(),
