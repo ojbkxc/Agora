@@ -345,7 +345,7 @@ internal fun CompactSegmentBlock(
     }
 
     Surface(
-        tonalElevation = 2.dp,
+        tonalElevation = 0.dp,
         shape = RoundedCornerShape(18.dp),
         modifier = modifier
             .fillMaxWidth()
@@ -730,7 +730,7 @@ private fun TimelineInfoSegmentCard(
         initialScale = SEGMENT_ENTER_INITIAL_SCALE,
     )
     Surface(
-        tonalElevation = 2.dp,
+        tonalElevation = 0.dp,
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()

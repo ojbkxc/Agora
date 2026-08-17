@@ -20,7 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +34,7 @@ import com.lxseek.chat.ui.theme.ChatType
 /** The pill-shaped search input at the top of the conversation drawer. */
 @Composable
 internal fun DrawerSearchBar(query: String, onQueryChange: (String) -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp), tonalElevation = 2.dp) {
+    Surface(modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, tonalElevation = 0.dp) {
         Row(modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
