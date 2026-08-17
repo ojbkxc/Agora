@@ -319,8 +319,8 @@ internal fun SegmentDetailSheet(
                 ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
-                    shadowElevation = 4.dp,
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                    shadowElevation = 0.dp,
                     color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {

@@ -286,7 +286,7 @@ internal fun ChatTopBar(
                                 contentDescription = stringResource(
                                     if (onNavigateBack != null) R.string.back else R.string.menu
                                 ),
-                                modifier = Modifier.size(26.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                         Spacer(modifier = Modifier.width(5.dp))
@@ -334,7 +334,7 @@ internal fun ChatTopBar(
                     ) {
                         Spacer(modifier = Modifier.width(5.dp))
                         IconButton(onClick = onNewChat, modifier = Modifier.size(44.dp)) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat), modifier = Modifier.size(30.dp))
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat), modifier = Modifier.size(24.dp))
                         }
                         Box {
                             IconButton(
@@ -346,7 +346,7 @@ internal fun ChatTopBar(
                                 Icon(
                                     Icons.Default.MoreVert,
                                     contentDescription = stringResource(R.string.options),
-                                    modifier = Modifier.size(26.dp),
+                                    modifier = Modifier.size(24.dp),
                                 )
                             }
                             DropdownMenu(
@@ -413,7 +413,7 @@ private fun ChatTopBarCapsule(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(16)
+    val shape = RoundedCornerShape(16.dp)
     Surface(
         modifier = modifier,
         shape = shape,

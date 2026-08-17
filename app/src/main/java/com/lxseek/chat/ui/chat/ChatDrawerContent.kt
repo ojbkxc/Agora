@@ -206,7 +206,7 @@ internal fun ChatDrawerContent(
                         scope.launch { drawerState.closeWithMotionPolicy(motionPolicy) }
                     },
                     modifier = Modifier.fillMaxWidth().height(42.dp),
-                    shape = CircleShape
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.Repeat, null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -238,7 +238,7 @@ internal fun ChatDrawerContent(
                     },
                     modifier = Modifier.fillMaxWidth().height(42.dp),
                     enabled = true,
-                    shape = CircleShape,
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = newChatContainer,
                         contentColor = newChatContent
@@ -444,7 +444,7 @@ internal fun ChatDrawerContent(
                         val buttonTopPx = coords.positionInWindow().y
                         onSettingsButtonTop((windowHeightPx - buttonTopPx) / density.density)
                     },
-                shape = CircleShape
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Default.Settings, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))

@@ -346,7 +346,7 @@ internal fun CompactSegmentBlock(
 
     Surface(
         tonalElevation = 0.dp,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = modifier
             .fillMaxWidth()
             .padding(top = 8.dp + topPaddingExtra, bottom = mergedBottomPadding + bottomPaddingExtra)
@@ -359,7 +359,7 @@ internal fun CompactSegmentBlock(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable {
                         if (onHeaderClick != null) {
                             onHeaderClick()
@@ -465,7 +465,7 @@ internal fun CompactSegmentBlock(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .clickable {
                                         onSegmentClick(segmentIndices.getOrElse(idx) { idx })
                                     }
@@ -507,7 +507,7 @@ internal fun CompactSegmentBlock(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .clickable {
                                         onSegmentClick(segmentIndices.getOrElse(idx) { idx })
                                     }
@@ -731,12 +731,12 @@ private fun TimelineInfoSegmentCard(
     )
     Surface(
         tonalElevation = 0.dp,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp + topPaddingExtra, bottom = 6.dp)
             .then(cardAppearanceModifier)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable {
                 onClick()
             }

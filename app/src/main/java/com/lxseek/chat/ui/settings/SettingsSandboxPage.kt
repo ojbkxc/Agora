@@ -504,7 +504,7 @@ fun SettingsSandboxPage(
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
                                         color = MaterialTheme.colorScheme.surface,
-                                        tonalElevation = 2.dp,
+                                        tonalElevation = 0.dp,
                                         modifier = Modifier.padding(top = 16.dp).fillMaxWidth().height(260.dp)
                                     ) {
                                         SelectionContainer {

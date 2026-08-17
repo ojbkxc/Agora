@@ -74,7 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 
-internal val CHAT_BOTTOM_BAR_OUTER_RADIUS = 24.dp
+internal val CHAT_BOTTOM_BAR_OUTER_RADIUS = 12.dp
 internal val CHAT_BOTTOM_BAR_OUTER_SHAPE = RoundedCornerShape(CHAT_BOTTOM_BAR_OUTER_RADIUS)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -173,10 +173,10 @@ fun ChatBottomBar(
     val haptics = LocalAgoraHaptics.current
     var showThinkingSheet by rememberSaveable { mutableStateOf(false) }
     var showOpenAiServiceTierSheet by rememberSaveable { mutableStateOf(false) }
-    val composerOcclusionColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+    val composerOcclusionColor = MaterialTheme.colorScheme.surfaceContainer
     val composerOcclusionShape = RoundedCornerShape(
-        topStart = 24.dp,
-        topEnd = 24.dp,
+        topStart = 12.dp,
+        topEnd = 12.dp,
     )
 
     // Restore PDF dialog after viewer closes
@@ -364,7 +364,7 @@ fun ChatBottomBar(
                             }
                         },
                         matchTextFieldWidth = false,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         DropdownMenuItem(
                             text = {
@@ -565,7 +565,7 @@ fun ChatBottomBar(
                             }
                         },
                         matchTextFieldWidth = false,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                     ) {
                         Column(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -634,7 +634,7 @@ fun ChatBottomBar(
                             }
                         },
                         matchTextFieldWidth = false,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         DropdownMenuItem(
                             text = {

@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.lxseek.chat.ui.theme.ChatType
+import com.lxseek.chat.ui.theme.ProviderPalette
 
 fun Modifier.verticalScrollbar(
     scrollState: ScrollState,
@@ -35,8 +36,8 @@ fun Modifier.verticalScrollbar(
 internal fun ProviderBadge(provider: String) {
     val badgeColor = when (provider.lowercase()) {
         "google", "gemini" -> MaterialTheme.colorScheme.onPrimaryContainer
-        "anthropic" -> Color(0xFFD97757)
-        "openai" -> Color(0xFF74AA9C)
+        "anthropic" -> ProviderPalette.Anthropic
+        "openai" -> ProviderPalette.OpenAI
         else -> MaterialTheme.colorScheme.primary
     }
     val badgeBackground = when (provider.lowercase()) {

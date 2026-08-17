@@ -497,7 +497,7 @@ internal fun ExecutionRow(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = 0.dp,
     ) {
         val statusText = when (execution.status) {
             MessageStatus.SUCCESS -> stringResource(R.string.task_status_success)

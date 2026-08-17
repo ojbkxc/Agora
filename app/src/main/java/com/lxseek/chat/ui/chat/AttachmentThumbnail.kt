@@ -84,10 +84,10 @@ fun FileThumbnail(
         Box(
             modifier = modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFE53935).copy(alpha = 0.15f)),
+                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Text("PDF", style = MaterialTheme.typography.labelMedium, color = Color(0xFFE53935), fontWeight = FontWeight.SemiBold)
+            Text("PDF", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
         }
     } else {
         val ext = (fileName ?: "").substringAfterLast('.', "").uppercase().take(4).ifEmpty { "TXT" }

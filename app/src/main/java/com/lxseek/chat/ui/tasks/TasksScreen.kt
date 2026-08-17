@@ -186,7 +186,7 @@ private fun TasksListPage(
                     modifier = Modifier.fillMaxWidth(),
                     shape = stackedShape(0, 2),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
+                    tonalElevation = 0.dp,
                 ) {
                     SettingsItem(
                         headlineContent = {
@@ -291,7 +291,7 @@ private fun TaskCard(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 6.dp, top = 14.dp, bottom = 14.dp),
@@ -401,7 +401,7 @@ private fun NewAutomationRow(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = 0.dp,
     ) {
         Box(
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp),

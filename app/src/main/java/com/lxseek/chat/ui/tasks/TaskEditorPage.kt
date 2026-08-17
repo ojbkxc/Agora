@@ -273,9 +273,9 @@ internal fun TaskDetailPage(
             item {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
+                    tonalElevation = 0.dp,
                 ) {
                     SettingsItem(
                         headlineContent = {
@@ -366,7 +366,7 @@ private fun LabeledField(
             singleLine = singleLine,
             minLines = if (singleLine) 1 else 4,
             isError = isError,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
         )
@@ -515,7 +515,7 @@ private fun ScheduleGroup(
                         expanded = showRepeatMenu,
                         onDismissRequest = { showRepeatMenu = false },
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                     ) {
                         ScheduleEditorMode.entries.forEach { mode ->
                             DropdownMenuItem(

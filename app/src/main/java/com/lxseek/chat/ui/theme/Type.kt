@@ -185,7 +185,7 @@ object ChatType {
     val ratingTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 35.sp)
 
     // Drawer
-    val conversationsTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 25.sp, lineHeight = 32.sp)
+    val conversationsTitle get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 22.sp)
     val drawerButton get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp)
     val drawerSearch get() = TextStyle(fontFamily = chatFontFamily, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 23.sp)
 
