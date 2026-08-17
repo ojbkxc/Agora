@@ -197,8 +197,8 @@ class VoskTranscriber(private val context: Context) {
                 "model.mdl"
             )
 
-            val foundMdlFile = possibleMdlFiles.map { File(modelDir, it) }.find { it.exists() } ?
-                modelDir.walkTopDown().find { it.isFile && it.name.endsWith(".mdl") }
+            val foundMdlFile = possibleMdlFiles.map { File(modelDir, it) }.find { it.exists() }
+                ?: modelDir.walkTopDown().find { it.isFile && it.name.endsWith(".mdl") }
 
             if (!modelDir.exists() || foundMdlFile == null) {
                 Log.w(TAG, "Vosk model for $languageCode not found at ${modelDir.absolutePath}")
@@ -586,10 +586,10 @@ class VoskTranscriber(private val context: Context) {
     fun getDiagnosticText(): String {
         val sb = StringBuilder()
         sb.append("=== VoskTranscriber Diagnostics ===\n")
-        sb.append("isReady: $isReady\n")
+        sb.append("isReady: ${isReady()}\n")
         sb.append("isModelLoaded: $isModelLoaded\n")
         sb.append("currentLanguage: $currentLanguage\n")
-        sb.append("isMultilingual: $isMultilingual\n")
+        sb.append("isMultilingual: ${isMultilingual()}\n")
         sb.append("secondaryLanguage: $secondaryLanguage\n")
         sb.append("downloadProgress: ${_downloadProgress.value}%\n")
         sb.append("Downloaded languages: ${getDownloadedLanguages()}\n")

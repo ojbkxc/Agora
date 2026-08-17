@@ -166,7 +166,7 @@ class VoiceConversationController(
         Log.i(TAG, "beginVoskCapture: starting audio capture for vosk")
         currentEngine = "vosk"
         startAudioCapture { wavFile ->
-            transcribeWithVosk(wavFile)
+            scope.launch { transcribeWithVosk(wavFile) }
         }
     }
 
@@ -174,7 +174,7 @@ class VoiceConversationController(
         Log.i(TAG, "beginWhisperCapture: starting audio capture for whisper")
         currentEngine = "whisper"
         startAudioCapture { wavFile ->
-            transcribeWithWhisper(wavFile)
+            scope.launch { transcribeWithWhisper(wavFile) }
         }
     }
 

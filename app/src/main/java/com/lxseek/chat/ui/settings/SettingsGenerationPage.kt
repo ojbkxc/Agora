@@ -723,7 +723,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 }
                             }
                         }
-                        if (!asrIsAvailable && !asrUseRemote) {
+                        if (!asrUseRemote) {
                             add {
                                 SettingsItem(
                                     headlineContent = { Text(stringResource(R.string.asr_no_engine_available)) },
