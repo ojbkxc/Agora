@@ -824,7 +824,7 @@ fun ChatBottomBar(
                     state = voiceConversationState,
                     amplitude = voiceConversationAmplitude,
                     onClick = onVoiceConversationToggle,
-                    modifier = Modifier.width(120.dp).padding(end = 8.dp),
+                    modifier = Modifier.padding(end = 8.dp),
                 )
             }
             ComposerSendButton(

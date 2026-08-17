@@ -65,7 +65,7 @@ class VoiceConversationController(
     @Volatile private var llmWasLoading = false
 
     fun toggle() {
-        Log.i(TAG, "toggle: state=${_state.value}")
+        Log.i(TAG, "toggle: state=${_state.value}, active=$active")
         when (_state.value) {
             State.IDLE, State.SPEAKING -> start()
             State.LISTENING -> stopCaptureAndTranscribe()
@@ -74,7 +74,11 @@ class VoiceConversationController(
     }
 
     fun start() {
-        if (active) return
+        if (active) {
+            Log.w(TAG, "start() called but active=true, state=${_state.value} — previous session not reset; forcing reset before restart")
+            stop()
+        }
+        Log.i(TAG, "start: beginning voice conversation")
         active = true
         waitingForLlm = false
         llmWasLoading = false
@@ -139,9 +143,10 @@ class VoiceConversationController(
     }
 
     private fun beginAutoListening() {
-        val voskReady = try {
-            scope.launch {
-                val ready = voskTranscriber.initialize(languageProvider().let { if (it == "en") "en" else if (it == "zh") "zh" else "en" })
+        scope.launch {
+            try {
+                val lang = languageProvider().let { if (it == "en") "en" else if (it == "zh") "zh" else "en" }
+                val ready = voskTranscriber.initialize(lang)
                 if (ready && active) {
                     Log.i(TAG, "auto: vosk ready, starting vosk capture")
                     beginVoskCapture()
@@ -155,10 +160,13 @@ class VoiceConversationController(
                         beginSystemListening()
                     }
                 }
+            } catch (e: Throwable) {
+                Log.e(TAG, "beginAutoListening launch crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+                if (active) {
+                    _state.value = State.IDLE
+                    active = false
+                }
             }
-        } catch (e: Throwable) {
-            Log.e(TAG, "beginAutoListening crashed: ${e.message}", e)
-            beginSystemListening()
         }
     }
 
@@ -206,6 +214,12 @@ class VoiceConversationController(
         Log.i(TAG, "stopCaptureAndTranscribe: engine=$currentEngine")
         if (currentEngine == "system") {
             try { speechRecognizerManager.stopListening() } catch (e: Throwable) { Log.e(TAG, "stopListening failed", e) }
+            partialJob?.cancel()
+            partialJob = null
+            _state.value = State.IDLE
+            active = false
+            _partialTranscript.value = ""
+            _amplitude.value = 0f
             return
         }
         if (currentEngine == "vosk" || currentEngine == "whisper" || currentEngine == "auto") {
