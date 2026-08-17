@@ -46,3 +46,15 @@
 # TTS — prevent R8 from obfuscating UtteranceProgressListener callbacks
 -keep class com.lxseek.chat.util.TtsManager { *; }
 -keep class com.lxseek.chat.util.TtsManager$* { *; }
+
+# JNA (required for Vosk native binding)
+-keep class com.sun.jna.** { *; }
+-dontwarn com.sun.jna.**
+-keep class * extends com.sun.jna.Callback { *; }
+-keep class * extends com.sun.jna.PointerType { *; }
+-keep class * implements com.sun.jna.Library { *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod,Annotation
+
+# Vosk
+-keep class org.vosk.** { *; }
+-dontwarn org.vosk.**
