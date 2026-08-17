@@ -112,7 +112,7 @@ Agora 是 **BYOK（Bring Your Own Key）LLM 客户端** — Android 原生应用
 | i18n | **仅 en + zh**（§R0.6） | `res/values*/` 目录 |
 | 字体 | **无自定义字体**（§R0.7） | `res/font/` 不存在 |
 | 源码大小 | 每 Kotlin 文件 ≤ 999 行 | `./gradlew verifyKotlinFileSize` |
-| 版本 | versionName `1.0.55` / versionCode `56` | `defaultConfig` |
+| 版本 | versionName `1.0.56` / versionCode `57` | `defaultConfig` |
 | 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
 | 许可证 | MIT | `LICENSE` |
 
@@ -406,6 +406,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-17 v1.0.56 统一发版（本次会话）：bump versionCode 56→57 / versionName 1.0.55→1.0.56。本次发版包含：任务6 移除 jlatexmath 依赖（省 ~500KB-1MB）+ 任务12 软件名称可自定义（设置页输入项 + 动态更新 Activity title）+ 任务11 全量 UI 细节检查修复（5 处装饰冗余：Type.kt userBody 14→15sp、ChatTopBar capsule 扁平化、ChatBottomBar 移除左侧工具栏装饰背景+expand/collapse 按钮 radialGradient、ChatAppBottomBarSection tonalElevation→0、ChatDrawerContent drawerShape 20→12dp+会话项 CircleShape→RoundedCornerShape(8dp)）。CI 全绿验证通过。
 
 - 2026-08-17 任务11 全量 UI 细节检查 + 修复（本次会话）：对照 ChatGPT 极简风格逐屏检查聊天/侧边栏/主题 UI，发现并修复 5 处装饰冗余。① `Type.kt` userBody 14sp→15sp（ChatGPT 用户/AI 消息应同等大小，14sp 与 body 16sp 差距过大）。② `ChatTopBar.kt` ChatTopBarCapsule 移除双层 Surface + tonalElevation=2.dp 装饰，改为单层透明扁平 Surface（顶栏胶囊不再有 elevation 灰底）。③ `ChatBottomBar.kt` 左侧工具栏移除 `surfaceColorAtElevation(10.dp)` + `RoundedCornerShape(100)` 装饰背景（ChatGPT 输入栏外左侧无装饰背景）；expand/collapse 按钮移除 `Brush.radialGradient` 光晕装饰；清理未使用 CircleShape/Brush import。④ `ChatAppBottomBarSection.kt` 外层 Surface tonalElevation 1.dp→0.dp。⑤ `ChatDrawerContent.kt` drawerShape 20dp→12dp 圆角；drawerTonalElevation 1.dp→0.dp；会话项 CircleShape 胶囊→RoundedCornerShape(8.dp) 矩形（ChatGPT 侧边栏会话项是矩形非胶囊）。5 文件改动（+18/-30 行）。commit `3929e590`。CI #32001075556 全绿验证通过。设置页面保留 v1.0.38 Apple 风格 collapsing title（任务10 已说明无需大改）。
 
