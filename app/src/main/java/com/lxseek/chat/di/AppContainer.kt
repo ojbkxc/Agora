@@ -74,24 +74,11 @@ class AppContainer(private val appContext: Context) {
      */
     fun startProcessServices() {
         appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            startEmbeddedConch()
             conversationRepository.ensureRunRecovery()
             automationScheduler.start()
         }
     }
 
-    private fun startEmbeddedConch() {
-        try {
-            val manager = com.lxseek.chat.shell.ConchServiceManager
-            if (!manager.isAvailable) return
-            val apiKey = manager.getOrGenerateApiKey(appContext)
-            if (manager.start(appContext, apiKey)) {
-                com.lxseek.chat.util.DebugLog.d("AppContainer", "Embedded Conch started")
-            }
-        } catch (e: Exception) {
-            com.lxseek.chat.util.DebugLog.w("AppContainer", "Failed to start embedded Conch", e)
-        }
-    }
     val taskRepository: TaskRepository by lazy {
         TaskRepository(chatDao)
     }
