@@ -28,6 +28,8 @@ import com.lxseek.chat.tool.ToolExecutionResult
 import com.lxseek.chat.tool.ToolImageStore
 import com.lxseek.chat.tool.ToolPresentationMetadata
 import com.lxseek.chat.tool.ToolProvider
+import com.lxseek.chat.tool.ToolTier
+import com.lxseek.chat.tool.ToolTierPolicy
 import com.lxseek.chat.tool.WebSearchToolProvider
 import com.lxseek.chat.tool.needsOuterApproval
 import kotlinx.coroutines.CancellationException
@@ -131,7 +133,7 @@ internal class GenerationToolExecutor private constructor(
     }
 
     override fun definitions(context: GenerationContext): List<ToolDefinition> =
-        providers.flatMap { it.definitions(context) }.filterByAgentMode(context)
+        providers.flatMap { it.definitions(context) }.filterByAgentMode(context).filterByTier(context)
 
     /** Filter out tools whose risk level is not allowed by the current [AgentMode]. */
     private fun List<ToolDefinition>.filterByAgentMode(context: GenerationContext): List<ToolDefinition> {
@@ -141,6 +143,13 @@ internal class GenerationToolExecutor private constructor(
                 ?.riskLevel(def.function.name) ?: RiskLevel.ReadOnly
             context.agentMode.allowsRisk(risk)
         }
+    }
+
+    /** Filter out tools whose tier is not allowed by the current context's tool tier policy. */
+    private fun List<ToolDefinition>.filterByTier(context: GenerationContext): List<ToolDefinition> {
+        val allowedTiers = ToolTierPolicy.allowedTiers(context)
+        if (allowedTiers.size == ToolTier.values().size) return this
+        return filter { def -> ToolTierPolicy.tierOf(def.function.name) in allowedTiers }
     }
 
     fun imageDefinitions(context: GenerationContext): List<ToolDefinition> =

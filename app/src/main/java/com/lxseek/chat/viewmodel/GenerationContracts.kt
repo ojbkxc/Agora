@@ -73,6 +73,8 @@ data class GenerationContext(
     val toolTimeoutMs: Long = Constants.TOOL_EXECUTION_TIMEOUT_MS,
     /** The agent execution mode that controls tool registration and approval policy. */
     val agentMode: AgentMode = AgentMode.Agent,
+    /** Tool delivery tier: "core" (essential only), "extended" (+useful), "all" (+dangerous). Defaults to "all". */
+    val toolTier: String = "all",
 )
 
 /**
