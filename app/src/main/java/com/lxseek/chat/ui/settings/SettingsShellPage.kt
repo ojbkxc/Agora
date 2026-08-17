@@ -318,13 +318,13 @@ private fun DeviceEditor(
                         label = { Text(stringResource(R.string.shell_device_type)) },
                         leadingIcon = { Icon(Icons.Default.Cable, null) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(typeMenuExpanded) },
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = typeMenuExpanded,
                         onDismissRequest = { typeMenuExpanded = false },
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.shell_type_conch)) }, onClick = { typeInput = "conch"; typeMenuExpanded = false }, leadingIcon = { Icon(Icons.Default.Cable, null) })
                         DropdownMenuItem(text = { Text(stringResource(R.string.shell_type_ssh)) }, onClick = { typeInput = "ssh"; typeMenuExpanded = false }, leadingIcon = { Icon(Icons.Default.Cable, null) })
@@ -336,28 +336,28 @@ private fun DeviceEditor(
                 if (typeInput == "conch") {
                     OutlinedTextField(value = urlInput, onValueChange = { urlInput = it }, label = { Text(stringResource(R.string.shell_device_url)) },
                         placeholder = { Text(stringResource(R.string.shell_device_url_hint)) }, leadingIcon = { Icon(Icons.Default.Link, null) },
-                        singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().focusRequester(urlFocusRequester))
+                        singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().focusRequester(urlFocusRequester))
                     Spacer(Modifier.height(10.dp))
                     OutlinedTextField(value = keyInput, onValueChange = { keyInput = it }, label = { Text(stringResource(R.string.shell_device_key)) },
                         placeholder = { Text(stringResource(R.string.shell_device_key_hint)) }, leadingIcon = { Icon(Icons.Default.Key, null) },
-                        visualTransformation = PasswordVisualTransformation(), singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
+                        visualTransformation = PasswordVisualTransformation(), singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
                 } else {
                     OutlinedTextField(value = sshHostInput, onValueChange = { sshHostInput = it }, label = { Text(stringResource(R.string.shell_device_host)) },
                         placeholder = { Text(stringResource(R.string.shell_device_host_hint)) }, leadingIcon = { Icon(Icons.Default.Dns, null) },
-                        singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().focusRequester(urlFocusRequester))
+                        singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().focusRequester(urlFocusRequester))
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = sshPortInput, onValueChange = { sshPortInput = it.filter { c -> c.isDigit() } },
                             label = { Text(stringResource(R.string.shell_device_port)) }, leadingIcon = { Icon(Icons.Default.SettingsEthernet, null) },
-                            singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(0.4f))
+                            singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(0.4f))
                         OutlinedTextField(value = sshUserInput, onValueChange = { sshUserInput = it },
                             label = { Text(stringResource(R.string.shell_device_user)) }, leadingIcon = { Icon(Icons.Default.Person, null) },
-                            singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(0.6f))
+                            singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(0.6f))
                     }
                     Spacer(Modifier.height(10.dp))
                     OutlinedTextField(value = sshPwInput, onValueChange = { sshPwInput = it }, label = { Text(stringResource(R.string.shell_device_password)) },
                         leadingIcon = { Icon(Icons.Default.Password, null) }, visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
+                        singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
 
                     // ── Host-key pinning (TOFU) ──
                     Spacer(Modifier.height(10.dp))
@@ -420,11 +420,11 @@ private fun DeviceEditor(
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text(stringResource(R.string.shell_device_name)) },
                     placeholder = { Text(stringResource(R.string.shell_device_name_hint)) }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, null) },
-                    singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().focusRequester(nameFocusRequester))
+                    singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().focusRequester(nameFocusRequester))
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(value = descInput, onValueChange = { descInput = it }, label = { Text(stringResource(R.string.shell_device_desc)) },
                     placeholder = { Text(stringResource(R.string.shell_device_desc_hint)) }, leadingIcon = { Icon(Icons.Default.Description, null) },
-                    singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
+                    singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
 
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

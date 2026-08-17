@@ -701,7 +701,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         label = { Text(stringResource(R.string.asr_remote_base_url)) },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
-                                        shape = RoundedCornerShape(16.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     OutlinedTextField(
@@ -710,7 +710,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         label = { Text(stringResource(R.string.asr_remote_api_key)) },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
-                                        shape = RoundedCornerShape(16.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     OutlinedTextField(
@@ -719,7 +719,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         label = { Text(stringResource(R.string.asr_remote_model)) },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
-                                        shape = RoundedCornerShape(16.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                     )
                                 }
                             }
