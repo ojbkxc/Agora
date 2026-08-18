@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -156,7 +157,7 @@ fun VideoSliceDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                 ) {
-                    val shape = RoundedCornerShape(50)
+                    val shape = CircleShape
                     ModeChip(selected = useFrameCountMode, onClick = { useFrameCountMode = true }, label = stringResource(R.string.by_frame_count), modifier = Modifier.weight(1f))
                     ModeChip(selected = !useFrameCountMode, onClick = { useFrameCountMode = false }, label = stringResource(R.string.by_interval), modifier = Modifier.weight(1f))
                 }
@@ -214,13 +215,13 @@ fun VideoSliceDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss, shape = RoundedCornerShape(50)) {
+                    TextButton(onClick = onDismiss, shape = CircleShape) {
                         Text(stringResource(R.string.cancel))
                     }
                     Spacer(Modifier.width(8.dp))
                     Button(onClick = {
                         onConfirm(VideoSliceResult(videoUri, effectiveFrameCount, effectiveIntervalMs))
-                    }, shape = RoundedCornerShape(50)) {
+                    }, shape = CircleShape) {
                         Text(stringResource(R.string.extract_frames, effectiveFrameCount))
                     }
                 }
@@ -236,7 +237,7 @@ private fun ModeChip(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(50)
+    val shape = CircleShape
     val bgColor by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
         animationSpec = tween(300)

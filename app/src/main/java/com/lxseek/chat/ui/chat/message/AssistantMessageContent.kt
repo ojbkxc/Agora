@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -695,7 +696,7 @@ internal fun AssistantMessageContent(
                                 modifier = Modifier
                                     .padding(start = 8.dp)
                                     .graphicsLayer { alpha = terminalActionsAlpha }
-                                    .clip(RoundedCornerShape(100))
+                                    .clip(CircleShape)
                                     .background(
                                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                     )

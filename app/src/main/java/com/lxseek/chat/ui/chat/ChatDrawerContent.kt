@@ -213,7 +213,7 @@ internal fun ChatDrawerContent(
                     Text(stringResource(R.string.tasks), style = ChatType.drawerButton)
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 val newChatDisabled = isSwitching
                 val newChatContainer by animateColorAsState(

@@ -9,8 +9,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -168,9 +167,9 @@ fun TextFileViewer(
             ) {
                 Box(modifier = Modifier.weight(1f)) {
                     Surface(
-                        shape = RoundedCornerShape(50),
+                        shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.shadow(8.dp, RoundedCornerShape(50)).widthIn(max = 320.dp)
+                        modifier = Modifier.shadow(8.dp, CircleShape).widthIn(max = 320.dp)
                     ) {
                         Text(
                             fileName,

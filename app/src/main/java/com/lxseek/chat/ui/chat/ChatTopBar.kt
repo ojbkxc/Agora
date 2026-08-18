@@ -232,7 +232,7 @@ internal fun ChatTopBar(
                             IconButton(
                                 enabled = searchMatchIndex > 0,
                                 onClick = onSearchPrevious,
-                                modifier = Modifier.size(38.dp),
+                                modifier = Modifier.size(44.dp),
                             ) {
                                 Icon(
                                     Icons.Default.KeyboardArrowUp,
@@ -243,7 +243,7 @@ internal fun ChatTopBar(
                                 enabled = searchMatchIndex >= 0 &&
                                     searchMatchIndex < searchMatchCount - 1,
                                 onClick = onSearchNext,
-                                modifier = Modifier.size(38.dp),
+                                modifier = Modifier.size(44.dp),
                             ) {
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,

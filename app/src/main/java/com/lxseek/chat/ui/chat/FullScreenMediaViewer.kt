@@ -8,12 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import com.lxseek.chat.ui.motion.MotionAwareCircularProgressIndicator as CircularProgressIndicator
@@ -151,7 +149,7 @@ fun FullScreenMediaViewer(
         return
     }
 
-    // Single image â€” full zoom/pan experience
+    // Single image â€?full zoom/pan experience
     SingleImage(url = url, onClose = onClose, onMessage = onMessage, haptics = haptics)
 }
 
@@ -202,9 +200,9 @@ private fun PdfPager(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(50),
+                    shape = CircleShape,
                     color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.shadow(8.dp, RoundedCornerShape(50))
+                    modifier = Modifier.shadow(8.dp, CircleShape)
                 ) {
                     Text(
                         "${pagerState.currentPage + 1} / ${pdfPages.size}",
@@ -237,7 +235,7 @@ private fun PdfPager(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
+                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainer)
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
@@ -329,9 +327,9 @@ private fun MediaPager(
             ) {
                 if (urls.size > 1) {
                     Surface(
-                        shape = RoundedCornerShape(50),
+                        shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.shadow(8.dp, RoundedCornerShape(50))
+                        modifier = Modifier.shadow(8.dp, CircleShape)
                     ) {
                         Text(
                             "${pagerState.currentPage + 1} / ${urls.size}",

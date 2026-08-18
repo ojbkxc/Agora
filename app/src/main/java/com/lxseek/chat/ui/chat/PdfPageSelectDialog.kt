@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import com.lxseek.chat.ui.motion.MotionAwareCircularProgressIndicator as CircularProgressIndicator
@@ -198,13 +199,13 @@ fun PdfPageSelectDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss, shape = RoundedCornerShape(50)) {
+                    TextButton(onClick = onDismiss, shape = CircleShape) {
                         Text(stringResource(R.string.cancel))
                     }
                     Spacer(Modifier.width(8.dp))
                     Button(
                         onClick = { onConfirm(PdfPageSelection(selectedPages, effectiveTotal)) },
-                        shape = RoundedCornerShape(50),
+                        shape = CircleShape,
                         enabled = selectedPages.isNotEmpty() && !isLoading
                     ) {
                         Text(stringResource(R.string.pdf_send_pages, selectedPages.size))
