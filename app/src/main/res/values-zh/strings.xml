@@ -1033,6 +1033,8 @@
     <string name="local_model_not_found">本地模型文件不存在，请重新导入模型。</string>
     <string name="local_context_exceeded">这段对话需要 %1$d 个提示词元，但本地模型上下文只有 %2$d 个词元。请减少上下文窗口，或调高模型上下文大小。</string>
     <string name="all_messages_cached">已缓存全部 %1$d 条消息。</string>
+    <string name="asr_provider_model_title">服务商语音识别模型</string>
+    <string name="asr_provider_model_desc">使用已同步的服务商模型进行在线语音识别</string>
     <string name="cached_partial_failed">已缓存 %1$d / %2$d 条，%3$d 条失败。</string>
     <string name="retry">重试</string>
     <string name="parse_error">解析错误</string>
@@ -1178,4 +1180,12 @@
     <string name="context_usage_messages">约 %1$s / %2$s tokens · %3$d 条逻辑消息</string>
     <string name="context_boundary_active">压缩边界已启用</string>
     <string name="context_boundary_none">无压缩边界</string>
+    <string name="speech_model_none">未选择服务商模型</string>
+    <string name="speech_model_select">选择模型</string>
+    <string name="speech_model_show_all">显示全部模型</string>
+    <string name="speech_models_empty">请先在服务商页面同步模型，然后在此选择</string>
+    <string name="tts_provider_model_title">服务商语音合成模型</string>
+    <string name="tts_provider_model_desc">使用已同步的服务商模型进行在线语音合成</string>
+    <string name="tts_provider_voice">服务商音色</string>
+    <string name="tts_provider_voice_desc">服务商语音合成引擎使用的音色</string>
 </resources>
