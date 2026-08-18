@@ -59,7 +59,11 @@ internal object ShellToolDefinitions {
                 parameters = ToolParameters(
                     properties = mapOf(
                         "command" to ToolProperty("string", "The shell command to execute on all target servers."),
-                        "servers" to ToolProperty("array", "List of server names to execute the command on. Each must be a valid server from list_shells. Cannot include \"Local Sandbox\"."),
+                        "servers" to ToolProperty(
+                            type = "array",
+                            description = "List of server names to execute the command on. Each must be a valid server from list_shells. Cannot include \"Local Sandbox\".",
+                            items = ToolProperty("string", "Server name")
+                        ),
                         "timeout_ms" to ToolProperty("integer", "Per-server wait budget in milliseconds (hard ceiling 295000ms)."),
                         "workdir" to ToolProperty("string", "Working directory (optional, applied to all servers)."),
                     ),
