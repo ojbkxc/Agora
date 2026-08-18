@@ -150,7 +150,11 @@ internal fun ComposerSendButton(
         onClick = {
             if (isSwitching || isStopping) return@FloatingActionButton
             when (fabIcon) {
-                ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING, ComposerActionIcon.IDLE -> {}
+                ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING -> {}
+                ComposerActionIcon.IDLE -> {
+                    haptics.selection()
+                    onVoiceConversationToggle()
+                }
                 ComposerActionIcon.STOP -> onStopGeneration()
                 ComposerActionIcon.SEND -> {
                     if (singleAsrRecording) {
