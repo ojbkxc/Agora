@@ -343,12 +343,9 @@ class VoiceConversationController(
                 val captureFlow = audioCaptureManager.startCapture()
                 captureFlow.collect { chunk ->
                     if (!active) return@collect
-                    var max = 0
-                    for (b in chunk) {
-                        val v = if (b < 0) -b.toInt() else b.toInt()
-                        if (v > max) max = v
-                    }
-                    _amplitude.value = (max / 128f).coerceIn(0f, 1f)
+                    // AudioCaptureManager computes RMS amplitude with EMA smoothing
+                    // internally on each chunk; mirror it here for UI collection.
+                    _amplitude.value = audioCaptureManager.amplitude.value
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "Audio capture flow crashed: ${e.javaClass.simpleName}: ${e.message}", e)
@@ -407,7 +404,11 @@ class VoiceConversationController(
                             else {
                                 Log.w(TAG, "auto: no engine ready for transcription")
                                 wavFile.delete()
-                                if (active) beginSystemListening()
+                                // Surface the error instead of silently restarting listening,
+                                // which discarded the recording and left the composer empty.
+                                handleTranscriptionResult(
+                                    "[No ASR engine ready — configure Vosk or Whisper in Settings]"
+                                )
                             }
                         }
                         else -> transcribeWithVosk(wavFile)
@@ -435,6 +436,11 @@ class VoiceConversationController(
             }
             if (!voskTranscriber.isReady()) {
                 Log.e(TAG, "No Vosk model ready for $langCode — download one in Settings → Speech")
+                wavFile.delete()
+                handleTranscriptionResult(
+                    "[Vosk model not loaded — download in Settings → Speech]"
+                )
+                return
             }
             Log.i(TAG, "Vosk transcribing ${wavFile.name}...")
             val text = voskTranscriber.transcribe(wavFile)
@@ -466,9 +472,9 @@ class VoiceConversationController(
                     transcribeWithVosk(wavFile)
                 } else {
                     wavFile.delete()
-                    if (active) {
-                        _state.value = State.IDLE
-                    }
+                    handleTranscriptionResult(
+                        "[Whisper transcription failed: ${result.exceptionOrNull()?.message ?: "unknown"}]"
+                    )
                 }
             }
         } catch (e: Throwable) {
@@ -584,6 +590,7 @@ class VoiceConversationController(
                 active = false
                 _partialTranscript.value = ""
                 _amplitude.value = 0f
+                _mode.value = Mode.CONVERSATION
             }
             Mode.CONVERSATION -> {
                 _state.value = State.PROCESSING

@@ -12,6 +12,9 @@ import androidx.annotation.RequiresPermission
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
@@ -19,6 +22,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.sqrt
 
 class AudioCaptureManager(private val context: Context) {
 
@@ -28,12 +32,18 @@ class AudioCaptureManager(private val context: Context) {
         private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
         private const val BUFFER_SIZE_FACTOR = 2
+        private const val AMPLITUDE_EMA_ALPHA = 0.3f
     }
 
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
     private var outputFile: File? = null
     private var pcmOutputStream: FileOutputStream? = null
+
+    /** Normalised mic amplitude (0.0–1.0) driven by RMS of each PCM chunk with EMA smoothing. */
+    private val _amplitude = MutableStateFlow(0f)
+    val amplitude: StateFlow<Float> = _amplitude.asStateFlow()
+    private var smoothedAmplitude = 0f
 
     private val bufferSize: Int by lazy {
         val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
@@ -82,6 +92,7 @@ class AudioCaptureManager(private val context: Context) {
                     val chunk = buffer.copyOf(bytesRead)
                     pcmOutputStream?.write(chunk)
                     trySend(chunk)
+                    _amplitude.value = computeRmsAmplitude(chunk)
                 } else if (bytesRead == AudioRecord.ERROR_INVALID_OPERATION) {
                     Log.e(TAG, "Invalid operation during audio read")
                     break
@@ -133,6 +144,8 @@ class AudioCaptureManager(private val context: Context) {
 
     private fun stopRecordingInternal() {
         isRecording = false
+        smoothedAmplitude = 0f
+        _amplitude.value = 0f
 
         try {
             audioRecord?.stop()
@@ -151,6 +164,30 @@ class AudioCaptureManager(private val context: Context) {
         audioRecord = null
 
         Log.i(TAG, "Audio capture stopped")
+    }
+
+    /**
+     * Compute normalised RMS amplitude from a PCM 16-bit little-endian mono chunk.
+     * RMS = sqrt(sum(sample^2)/n) / Short.MAX_VALUE, then EMA-smoothed to avoid jitter.
+     */
+    private fun computeRmsAmplitude(chunk: ByteArray): Float {
+        if (chunk.size < 2) return smoothedAmplitude
+        var sumSq = 0.0
+        var sampleCount = 0
+        var i = 0
+        while (i + 1 < chunk.size) {
+            val low = chunk[i].toInt() and 0xFF
+            val high = chunk[i + 1].toInt()
+            val sample = (high shl 8) or low
+            sumSq += sample.toDouble() * sample.toDouble()
+            sampleCount++
+            i += 2
+        }
+        if (sampleCount == 0) return smoothedAmplitude
+        val rms = sqrt(sumSq / sampleCount) / Short.MAX_VALUE
+        smoothedAmplitude = AMPLITUDE_EMA_ALPHA * rms.toFloat() +
+            (1f - AMPLITUDE_EMA_ALPHA) * smoothedAmplitude
+        return smoothedAmplitude.coerceIn(0f, 1f)
     }
 
     private fun hasRecordPermission(): Boolean {

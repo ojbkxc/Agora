@@ -151,7 +151,11 @@ internal fun VoiceConversationOverlay(
             Spacer(modifier = Modifier.height(28.dp))
 
             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(240.dp)) {
-                HaloRing(color = accent, modifier = Modifier.fillMaxSize())
+                HaloRing(
+                    color = accent,
+                    amplitude = if (state == VoiceConversationController.State.LISTENING) amplitude else 0.22f,
+                    modifier = Modifier.fillMaxSize(),
+                )
                 VoiceSpectrumRing(
                     amplitude = if (state == VoiceConversationController.State.LISTENING) amplitude else 0.22f,
                     accent = accent,
@@ -202,10 +206,12 @@ internal fun VoiceConversationOverlay(
     }
 }
 
-/** Slowly rotating conic halo behind the spectrum ring. */
+/** Slowly rotating conic halo behind the spectrum ring. Opacity and stroke width
+ *  grow with [amplitude] so the halo "breathes" with the user's voice. */
 @Composable
 private fun HaloRing(
     color: Color,
+    amplitude: Float,
     modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "haloSpin")
@@ -227,14 +233,23 @@ private fun HaloRing(
         ),
         label = "haloFade",
     )
+    val smoothAmp = remember { Animatable(0f) }
+    LaunchedEffect(amplitude) {
+        smoothAmp.animateTo(
+            targetValue = amplitude.coerceIn(0f, 1f),
+            animationSpec = tween(160),
+        )
+    }
+    val amp = smoothAmp.value
     Canvas(modifier = modifier.rotate(rotation)) {
-        val stroke = size.minDimension * 0.012f
+        val stroke = size.minDimension * (0.008f + 0.008f * amp)
+        val alphaBoost = 0.35f + 0.65f * amp
         drawArc(
             brush = Brush.sweepGradient(
                 0f to color.copy(alpha = 0f),
-                0.25f to color.copy(alpha = 0.55f * fade),
+                0.25f to color.copy(alpha = 0.55f * fade * alphaBoost),
                 0.5f to color.copy(alpha = 0f),
-                0.75f to color.copy(alpha = 0.55f * fade),
+                0.75f to color.copy(alpha = 0.55f * fade * alphaBoost),
                 1f to color.copy(alpha = 0f),
             ),
             startAngle = 0f,
@@ -289,9 +304,11 @@ internal fun VoiceSpectrumRing(
         for (i in 0 until SPECTRUM_BARS) {
             val angleDeg = i * step
             val rad = angleDeg * (PI / 180f).toFloat()
-            // Per-bar phase ripple: bars pulse outward in waves while talking.
-            val wave = 0.5f + 0.5f * sin(rad * 2f + drift * 4f)
-            val len = (0.16f + amp * 0.84f * wave).coerceIn(0.10f, 1f)
+            // Multi-frequency phase ripple: bars pulse outward in waves while talking,
+            // with a secondary higher-frequency component for a richer voiceprint.
+            val wave = 0.5f + 0.3f * sin(rad * 3f + drift * 5f) +
+                0.2f * sin(rad * 7f - drift * 3f)
+            val len = (0.12f + amp * 0.88f * wave.coerceIn(0f, 1f)).coerceIn(0.08f, 1f)
             val r0 = innerR + (outerR - innerR) * 0.05f
             val r1 = innerR + (outerR - innerR) * len
             val x0 = cx + cos(rad) * r0
