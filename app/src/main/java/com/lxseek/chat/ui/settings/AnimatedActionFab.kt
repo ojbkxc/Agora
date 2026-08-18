@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import com.lxseek.chat.ui.motion.MotionAwareCircularProgressIndicator as CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
@@ -79,7 +79,7 @@ fun AnimatedActionFab(
     ) {
         FloatingActionButton(
             onClick = { if (enabled) onClick() },
-            shape = RoundedCornerShape(50),
+            shape = CircleShape,
             containerColor = if (enabled) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {

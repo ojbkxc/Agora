@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.filled.Compress
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -370,7 +371,7 @@ internal fun ContextCompactPill(
 ) {
     Surface(
         modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
-        shape = RoundedCornerShape(100.dp),
+        shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {

@@ -11,14 +11,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 @Composable
 internal fun VoiceGradientBackground(
     modifier: Modifier = Modifier,
-    colorStart: Color = Color(0xFFFF4FD8),
-    colorMid: Color = Color(0xFF3D8BFF),
+    colorStart: Color = MaterialTheme.colorScheme.primary,
+    colorMid: Color = MaterialTheme.colorScheme.tertiary,
     intensity: Float = 0.15f,
 ) {
     val transition = rememberInfiniteTransition(label = "gradientAnim")

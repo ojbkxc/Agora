@@ -18,6 +18,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.Color
 import com.lxseek.chat.ui.chat.caseInsensitiveMatchRanges
 
+// Search highlight colors are intentionally hardcoded amber/yellow to match the
+// universal "find in page" convention (browsers, editors, IDEs) where high-contrast
+// yellow-on-dark-text is the expected affordance. Mapping to tertiaryContainer would
+// vary per theme and reduce scan-ability; the brown foreground (0xFF241A00) preserves
+// WCAG AA contrast on the amber background across light/dark schemes.
 internal val SearchHighlightBackground = Color(0xFFFFD54F)
 internal val ActiveSearchHighlightBackground = Color(0xFFFFA000)
 private val SearchHighlightForeground = Color(0xFF241A00)
