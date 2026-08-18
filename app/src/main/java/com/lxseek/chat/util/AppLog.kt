@@ -33,5 +33,17 @@ object AppLog {
         return sb.toString()
     }
 
+    fun getFilteredText(tags: Set<String>, maxLines: Int = 50): String {
+        if (tags.isEmpty() || maxLines <= 0) return ""
+        val matched = synchronized(entries) {
+            entries.filter { it.tag in tags }
+        }
+        if (matched.isEmpty()) return ""
+        val tail = if (matched.size > maxLines) matched.takeLast(maxLines) else matched
+        val sb = StringBuilder()
+        for (e in tail) sb.append("${e.time} ${e.level}/${e.tag}: ${e.msg}\n")
+        return sb.toString()
+    }
+
     fun clear() { synchronized(entries) { entries.clear() } }
 }

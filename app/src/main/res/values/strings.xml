@@ -162,6 +162,11 @@
     <string name="asr_remote_api_key">API Key</string>
     <string name="asr_remote_model">Model</string>
     <string name="asr_remote_transcribing">Transcribing…</string>
+    <string name="asr_diagnostics_title">ASR Diagnostics</string>
+    <string name="asr_engine_status">Engine: %1$s | Session: %2$s</string>
+    <string name="asr_copy_log">Copy ASR Log</string>
+    <string name="asr_save_to_downloads">Save to Downloads</string>
+    <string name="asr_no_logs_yet">No ASR logs recorded yet</string>
     <string name="voice_conversation_listening">Listening…</string>
     <string name="voice_conversation_processing">Thinking…</string>
     <string name="voice_conversation_speaking">Speaking…</string>

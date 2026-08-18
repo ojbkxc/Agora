@@ -743,6 +743,14 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 onVoiceLanguageChange = { viewModel.settings.setVoiceLanguage(it) },
                             )
                         }
+                        add {
+                            SettingsAsrDiagnosticsSection(
+                                context = ttsContext,
+                                asrEnginePref = asrEnginePref,
+                                controller = viewModel.voiceConversation,
+                                voskTranscriber = viewModel.voiceConversation.getVoskTranscriber(),
+                            )
+                        }
                     },
                 )
             }
