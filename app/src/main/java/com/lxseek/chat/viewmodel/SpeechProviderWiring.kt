@@ -62,16 +62,18 @@ object SpeechProviderWiring {
         settings: SettingsRepository,
         registry: ProviderRegistry,
     ): () -> NetworkTtsConfig? = {
-        val mid = settings.ttsProviderModel.value ?: return@networkTtsConfig null
-        val parsed = ModelId.parse(mid)
-        val baseUrl = registry.getEffectiveBaseUrl(parsed.providerName) ?: return@networkTtsConfig null
-        val apiKey = settings.resolveActiveKey(parsed.providerName)?.takeIf { it.isNotBlank() }
-            ?: return@networkTtsConfig null
-        NetworkTtsConfig(
-            baseUrl = baseUrl,
-            apiKey = apiKey,
-            model = parsed.apiModelName,
-            voice = settings.ttsProviderVoice.value.ifBlank { "alloy" },
-        )
+        run {
+            val mid = settings.ttsProviderModel.value ?: return@run null
+            val parsed = ModelId.parse(mid)
+            val baseUrl = registry.getEffectiveBaseUrl(parsed.providerName) ?: return@run null
+            val apiKey = settings.resolveActiveKey(parsed.providerName)?.takeIf { it.isNotBlank() }
+                ?: return@run null
+            NetworkTtsConfig(
+                baseUrl = baseUrl,
+                apiKey = apiKey,
+                model = parsed.apiModelName,
+                voice = settings.ttsProviderVoice.value.ifBlank { "alloy" },
+            )
+        }
     }
 }
