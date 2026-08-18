@@ -53,6 +53,13 @@ class VoiceConversationController(
     private val _singleAsrResult = MutableStateFlow<String?>(null)
     val singleAsrResult: StateFlow<String?> = _singleAsrResult.asStateFlow()
 
+    private val _singleAsrError = MutableStateFlow<String?>(null)
+    val singleAsrError: StateFlow<String?> = _singleAsrError.asStateFlow()
+
+    fun clearSingleAsrError() {
+        _singleAsrError.value = null
+    }
+
     private val audioCaptureManager = AudioCaptureManager(appContext)
     private val voskTranscriber = VoskTranscriber(appContext)
     private val speechRecognizerManager = SpeechRecognizerManager(appContext)
@@ -89,6 +96,7 @@ class VoiceConversationController(
         Log.i(TAG, "start: beginning voice conversation")
         _mode.value = Mode.CONVERSATION
         _singleAsrResult.value = null
+        _singleAsrError.value = null
         active = true
         waitingForLlm = false
         llmWasLoading = false
@@ -119,6 +127,7 @@ class VoiceConversationController(
         Log.i(TAG, "startSingleAsr: beginning single ASR")
         _mode.value = Mode.SINGLE_ASR
         _singleAsrResult.value = null
+        _singleAsrError.value = null
         active = true
         waitingForLlm = false
         llmWasLoading = false
@@ -193,6 +202,7 @@ class VoiceConversationController(
         _amplitude.value = 0f
         _mode.value = Mode.CONVERSATION
         _singleAsrResult.value = null
+        _singleAsrError.value = null
     }
 
     /**
@@ -233,34 +243,45 @@ class VoiceConversationController(
     }
 
     private fun beginAutoListening() {
+        // GrapheneOS AI checks isReady() synchronously and starts capture immediately;
+        // it does NOT block on model init before recording. Blocking caused the smoke
+        // test to fail: the user tapped stop while initialize() was still loading the
+        // model, captureJob was still null, and stopCaptureAndTranscribe() discarded
+        // the session without transcribing.
+        val voskReady = try { voskTranscriber.isReady() } catch (e: Throwable) { false }
+        if (voskReady) {
+            Log.i(TAG, "auto: vosk ready, starting vosk capture")
+            beginVoskCapture()
+            return
+        }
+        val hasKey = !whisperApiKey().isNullOrBlank()
+        if (hasKey) {
+            Log.i(TAG, "auto: vosk not ready, whisper key available, starting whisper capture")
+            beginWhisperCapture()
+            return
+        }
+        val systemAvailable = try { speechRecognizerManager.isAvailable() } catch (e: Throwable) { false }
+        if (systemAvailable) {
+            Log.i(TAG, "auto: vosk not ready, no whisper key, using system")
+            beginSystemListening()
+            return
+        }
+        // Nothing ready — start capture anyway and init Vosk in background.
+        // The WAV will be transcribed on stop; if Vosk still isn't ready by then,
+        // the user gets a clear error message via _singleAsrError instead of a
+        // silent failure.
+        Log.i(TAG, "auto: no engine ready, starting capture + background vosk init")
+        currentEngine = "auto"
+        startAudioCapture { wavFile ->
+            scope.launch { transcribeWithVosk(wavFile) }
+        }
         scope.launch {
             try {
                 val lang = resolveVoskLanguage()
-                val ready = voskTranscriber.initialize(lang)
-                // The session may have been stopped while the model was loading; do not
-                // resurrect capture for a session that is no longer listening.
-                val live = active && _state.value == State.LISTENING
-                if (ready && live) {
-                    Log.i(TAG, "auto: vosk ready, starting vosk capture")
-                    beginVoskCapture()
-                } else if (live) {
-                    val hasKey = !whisperApiKey().isNullOrBlank()
-                    if (hasKey) {
-                        Log.i(TAG, "auto: vosk not ready, whisper key available, starting whisper capture")
-                        beginWhisperCapture()
-                    } else {
-                        Log.i(TAG, "auto: vosk not ready, no whisper key, falling back to system")
-                        beginSystemListening()
-                    }
-                } else {
-                    Log.i(TAG, "auto: session no longer live after model init, skipping capture")
-                }
+                voskTranscriber.initialize(lang)
+                Log.i(TAG, "auto: background vosk init complete, ready=${voskTranscriber.isReady()}")
             } catch (e: Throwable) {
-                Log.e(TAG, "beginAutoListening launch crashed: ${e.javaClass.simpleName}: ${e.message}", e)
-                if (active) {
-                    _state.value = State.IDLE
-                    active = false
-                }
+                Log.e(TAG, "auto: background vosk init failed: ${e.message}", e)
             }
         }
     }
@@ -532,10 +553,26 @@ class VoiceConversationController(
         val cleanText = text.trim()
         if (cleanText.isBlank() || cleanText.startsWith("[")) {
             Log.w(TAG, "Transcription empty or error: '$cleanText'")
-            if (active) {
-                _state.value = State.IDLE
-                active = false
-                _mode.value = Mode.CONVERSATION
+            // GrapheneOS AI surfaces transcriber errors (e.g. "[Model not loaded]",
+            // "[Voice recognition unavailable - download model in settings]") to the
+            // user instead of silently dropping them. Mirror that for SINGLE_ASR so
+            // the composer stays empty only when the user actually said nothing.
+            val errorMsg = if (cleanText.startsWith("[")) {
+                cleanText.removeSurrounding("[", "]")
+            } else {
+                "Transcription was empty — speak louder or closer to the mic"
+            }
+            when (_mode.value) {
+                Mode.SINGLE_ASR -> {
+                    _singleAsrError.value = errorMsg
+                    _state.value = State.IDLE
+                    active = false
+                    _mode.value = Mode.CONVERSATION
+                }
+                Mode.CONVERSATION -> {
+                    _state.value = State.IDLE
+                    active = false
+                }
             }
             return
         }

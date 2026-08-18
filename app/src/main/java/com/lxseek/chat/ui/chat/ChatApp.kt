@@ -118,6 +118,7 @@ fun ChatApp(
     val voiceConversationEnabled by viewModel.settings.voiceConversationEnabled.collectAsState()
     val voiceConversationMode by viewModel.voiceConversation.mode.collectAsState()
     val singleAsrResult by viewModel.voiceConversation.singleAsrResult.collectAsState()
+    val singleAsrError by viewModel.voiceConversation.singleAsrError.collectAsState()
     val voiceConversationActive = voiceConversationMode == com.lxseek.chat.viewmodel.VoiceConversationController.Mode.CONVERSATION &&
         voiceConversationState != com.lxseek.chat.viewmodel.VoiceConversationController.State.IDLE
     val singleAsrRecording = voiceConversationMode == com.lxseek.chat.viewmodel.VoiceConversationController.Mode.SINGLE_ASR &&
@@ -293,6 +294,13 @@ fun ChatApp(
         if (!text.isNullOrEmpty()) {
             textFieldState.edit { replace(0, length, text) }
             viewModel.voiceConversation.clearSingleAsrResult()
+        }
+    }
+    LaunchedEffect(singleAsrError) {
+        val error = singleAsrError
+        if (!error.isNullOrEmpty()) {
+            viewModel.emitSnackbar(error)
+            viewModel.voiceConversation.clearSingleAsrError()
         }
     }
     val composer = com.lxseek.chat.ui.chat.bottombar.rememberChatComposerState()
