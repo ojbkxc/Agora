@@ -335,6 +335,16 @@ class VoiceConversationController(
     /** VAD thresholds for streaming auto-segmentation (ChatGPT/Gemini live mode). */
     private val streamingSilenceThreshold = 0.05f
     private val streamingSilenceDurationMs = 1500L
+    /** Force segmentation after this many ms of continuous speech to prevent infinite recording. */
+    private val streamingMaxSpeakMs = 15_000L
+    /** Require this many consecutive above-threshold chunks before marking hasSpeech=true (short noise filter). */
+    private val streamingMinTriggerChunks = 3
+    /** Calibration phase duration: collect ambient noise samples for this many ms before VAD kicks in. */
+    private val streamingCalibrationMs = 500L
+    /** Dynamic threshold multiplier applied to average ambient noise RMS. */
+    private val streamingThresholdRatio = 1.5f
+    /** Base additive constant (normalized) for dynamic threshold to avoid zero threshold in silent rooms. */
+    private val streamingThresholdBaseAdd = 0.02f
 
     /**
      * Streaming Vosk capture for CONVERSATION mode: PCM chunks feed Vosk in real
@@ -392,7 +402,13 @@ class VoiceConversationController(
             }
 
             var silenceStartMs = 0L
+            var speakStartMs = 0L
             var hasSpeech = false
+            var triggerCounter = 0
+            var dynamicThreshold = streamingSilenceThreshold
+            val calibrationAmps = mutableListOf<Float>()
+            val calibrationStartMs = System.currentTimeMillis()
+            var calibrated = false
 
             try {
                 val captureFlow = audioCaptureManager.startCapture()
@@ -402,16 +418,47 @@ class VoiceConversationController(
                     voskTranscriber.acceptWaveform(chunk)
 
                     val amp = _amplitude.value
-                    if (amp >= streamingSilenceThreshold) {
-                        hasSpeech = true
+
+                    // Calibration phase: collect ambient noise samples for 0.5s before VAD engages.
+                    // Audio is still fed to Vosk above so ASR is not delayed.
+                    if (!calibrated) {
+                        if (System.currentTimeMillis() - calibrationStartMs < streamingCalibrationMs) {
+                            calibrationAmps.add(amp)
+                            return@collect
+                        }
+                        if (calibrationAmps.isNotEmpty()) {
+                            val avgNoise = calibrationAmps.average().toFloat()
+                            dynamicThreshold = (avgNoise * streamingThresholdRatio + streamingThresholdBaseAdd)
+                                .coerceAtLeast(streamingSilenceThreshold)
+                            Log.i(TAG, "VAD calibrated: avgNoise=$avgNoise, dynamicThreshold=$dynamicThreshold")
+                            calibrationAmps.clear()
+                        }
+                        calibrated = true
+                    }
+
+                    // Short noise filter: require MIN_TRIGGER_CHUNKS consecutive above-threshold chunks
+                    // before treating this as real speech (filters coughs / table bumps / short clicks).
+                    if (amp >= dynamicThreshold) {
+                        triggerCounter++
                         silenceStartMs = 0L
-                    } else if (hasSpeech) {
-                        if (silenceStartMs == 0L) {
-                            silenceStartMs = System.currentTimeMillis()
-                        } else if (System.currentTimeMillis() - silenceStartMs >= streamingSilenceDurationMs) {
+                    } else {
+                        triggerCounter = 0
+                    }
+
+                    if (triggerCounter >= streamingMinTriggerChunks && !hasSpeech) {
+                        hasSpeech = true
+                        speakStartMs = System.currentTimeMillis()
+                    }
+
+                    if (hasSpeech) {
+                        // Force segmentation: cap continuous speech to prevent infinite recording
+                        // (user never stops talking or ambient noise stays above threshold).
+                        if (System.currentTimeMillis() - speakStartMs >= streamingMaxSpeakMs) {
+                            Log.i(TAG, "VAD force segmentation: max speak time reached")
                             val finalText = voskTranscriber.endSegment()
                             silenceStartMs = 0L
                             hasSpeech = false
+                            triggerCounter = 0
                             if (finalText != null && finalText.isNotBlank()) {
                                 _partialTranscript.value = ""
                                 captureJob?.cancel()
@@ -419,6 +466,27 @@ class VoiceConversationController(
                                 try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
                                 voskTranscriber.stopStreamingSession()
                                 handleTranscriptionResult(finalText)
+                            }
+                            return@collect
+                        }
+
+                        // Silence detection: amplitude below threshold for streamingSilenceDurationMs ends the segment.
+                        if (amp < dynamicThreshold) {
+                            if (silenceStartMs == 0L) {
+                                silenceStartMs = System.currentTimeMillis()
+                            } else if (System.currentTimeMillis() - silenceStartMs >= streamingSilenceDurationMs) {
+                                val finalText = voskTranscriber.endSegment()
+                                silenceStartMs = 0L
+                                hasSpeech = false
+                                triggerCounter = 0
+                                if (finalText != null && finalText.isNotBlank()) {
+                                    _partialTranscript.value = ""
+                                    captureJob?.cancel()
+                                    captureJob = null
+                                    try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
+                                    voskTranscriber.stopStreamingSession()
+                                    handleTranscriptionResult(finalText)
+                                }
                             }
                         }
                     }
