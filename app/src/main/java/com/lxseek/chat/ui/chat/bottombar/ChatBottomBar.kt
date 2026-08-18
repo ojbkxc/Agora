@@ -825,21 +825,19 @@ fun ChatBottomBar(
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                if (voiceConversationEnabled) {
-                    IconButton(
-                        onClick = onVoiceConversationToggle,
-                        modifier = Modifier.size(44.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (voiceConversationActive) Icons.Default.Stop else Icons.Default.Mic,
-                            contentDescription = stringResource(
-                                if (voiceConversationActive) R.string.voice_conversation_tap_to_stop
-                                else R.string.voice_conversation_tap_to_speak
-                            ),
-                            tint = if (voiceConversationActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
+                IconButton(
+                    onClick = onSingleAsrToggle,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = if (singleAsrRecording) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = stringResource(
+                            if (singleAsrRecording) R.string.voice_conversation_tap_to_stop
+                            else R.string.voice_conversation_tap_to_speak
+                        ),
+                        tint = if (singleAsrRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp),
+                    )
                 }
                 ComposerSendButton(
                     textFieldState = textFieldState,
@@ -857,7 +855,6 @@ fun ChatBottomBar(
                     onStopGeneration = onStopGeneration,
                     onCollapse = onCollapse,
                     onVoiceConversationToggle = onVoiceConversationToggle,
-                    onSingleAsrToggle = onSingleAsrToggle,
                     onStopSingleAsr = onStopSingleAsr,
                 )
         }

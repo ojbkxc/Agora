@@ -844,15 +844,30 @@ fun ChatApp(
         }
         }
 
-        VoiceConversationOverlay(
-            state = voiceConversationState,
-            partialTranscript = voiceConversationPartial,
-            amplitude = voiceConversationAmplitude,
-            // End gracefully: an in-flight recording is transcribed instead of discarded
-            // (single ASR → composer, conversation → sent), then the loop stops.
-            onExit = { viewModel.voiceConversation.finishConversationTurn() },
-            modifier = Modifier.fillMaxSize(),
-        )
+        if (voiceConversationMode == com.lxseek.chat.viewmodel.VoiceConversationController.Mode.SINGLE_ASR) {
+            // Single-shot ASR: compact bottom card, transcript lands in the composer.
+            SingleAsrOverlay(
+                state = voiceConversationState,
+                partialTranscript = voiceConversationPartial,
+                amplitude = voiceConversationAmplitude,
+                onFinish = { viewModel.stopSingleAsr() },
+                onCancel = { viewModel.stopVoiceConversation() },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 12.dp, end = 12.dp, bottom = bottomBarHeight + 8.dp),
+            )
+        } else {
+            // Multi-turn real-time conversation: full-screen voiceprint overlay.
+            VoiceConversationOverlay(
+                state = voiceConversationState,
+                partialTranscript = voiceConversationPartial,
+                amplitude = voiceConversationAmplitude,
+                // End gracefully: an in-flight recording is transcribed instead of discarded
+                // (single ASR → composer, conversation → sent), then the loop stops.
+                onExit = { viewModel.voiceConversation.finishConversationTurn() },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         }
 
     ChatAppDialogHost(

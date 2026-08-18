@@ -175,6 +175,7 @@
     <string name="voice_conversation_not_available">Speech recognition not available on this device</string>
     <string name="voice_conversation_mic_permission">Microphone permission is required for voice conversation</string>
     <string name="voice_conversation_exit">Exit voice conversation</string>
+    <string name="voice_conversation_title">Voice Conversation</string>
     <string name="edit">Edit</string>
     <string name="info">Info</string>
     <string name="more">More</string>
