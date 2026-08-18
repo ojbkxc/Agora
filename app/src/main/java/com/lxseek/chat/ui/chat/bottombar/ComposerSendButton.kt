@@ -44,9 +44,10 @@ private enum class ComposerActionIcon {
 
 /**
  * Unified composer action FAB (48dp circle). ChatGPT-style: when the composer is
- * empty the button is a mic that starts the real-time voice conversation overlay;
- * when there is text (or single ASR is recording) it becomes a send button; while
- * the LLM is generating or a voice conversation is active it becomes a stop button.
+ * empty the button starts single-shot speech-to-text recording (tap to record, tap
+ * again to drop the transcript into the composer); when there is text (or single
+ * ASR is recording) it becomes a send button; while the LLM is generating or a
+ * voice conversation is active it becomes a stop button.
  */
 @Composable
 internal fun ComposerSendButton(
@@ -69,6 +70,7 @@ internal fun ComposerSendButton(
     onStopGeneration: () -> Unit,
     onCollapse: () -> Unit,
     onVoiceConversationToggle: () -> Unit = {},
+    onSingleAsrToggle: () -> Unit = {},
     onStopSingleAsr: () -> Unit = {},
 ) {
     val haptics = LocalAgoraHaptics.current
@@ -153,7 +155,7 @@ internal fun ComposerSendButton(
                 ComposerActionIcon.STOPPING, ComposerActionIcon.PENDING -> {}
                 ComposerActionIcon.IDLE -> {
                     haptics.selection()
-                    onVoiceConversationToggle()
+                    onSingleAsrToggle()
                 }
                 ComposerActionIcon.STOP -> onStopGeneration()
                 ComposerActionIcon.SEND -> {

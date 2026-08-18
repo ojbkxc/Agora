@@ -256,8 +256,6 @@ fun ChatBottomBar(
                     .background(composerOcclusionColor)
                     .zIndex(1f),
             ) {
-        // Also shown while expanded: hiding it there meant a full-screen composer gave no sign
-        // that attachments were about to be sent.
         if (composer.selectedAttachments.isNotEmpty()) {
             AttachmentPreviewRow(
                 composer = composer,
@@ -859,6 +857,7 @@ fun ChatBottomBar(
                     onStopGeneration = onStopGeneration,
                     onCollapse = onCollapse,
                     onVoiceConversationToggle = onVoiceConversationToggle,
+                    onSingleAsrToggle = onSingleAsrToggle,
                     onStopSingleAsr = onStopSingleAsr,
                 )
         }

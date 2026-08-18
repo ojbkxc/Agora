@@ -848,7 +848,9 @@ fun ChatApp(
             state = voiceConversationState,
             partialTranscript = voiceConversationPartial,
             amplitude = voiceConversationAmplitude,
-            onExit = { viewModel.stopVoiceConversation() },
+            // End gracefully: an in-flight recording is transcribed instead of discarded
+            // (single ASR → composer, conversation → sent), then the loop stops.
+            onExit = { viewModel.voiceConversation.finishConversationTurn() },
             modifier = Modifier.fillMaxSize(),
         )
         }

@@ -137,6 +137,30 @@ class VoiceConversationController(
     }
 
     /**
+     * End a voice session gracefully from the overlay's exit affordance. Unlike [stop],
+     * an in-flight recording is transcribed (single ASR → composer; conversation → sent)
+     * instead of being discarded, and the auto-restart loop is cancelled so listening
+     * does not begin again.
+     */
+    fun finishConversationTurn() {
+        Log.i(TAG, "finishConversationTurn: mode=${_mode.value}, state=${_state.value}")
+        observeJob?.cancel()
+        observeJob = null
+        ttsObserverJob?.cancel()
+        ttsObserverJob = null
+        when (_mode.value) {
+            Mode.SINGLE_ASR -> stopSingleAsr()
+            Mode.CONVERSATION -> {
+                when (_state.value) {
+                    State.LISTENING -> stopCaptureAndTranscribe()
+                    State.TRANSCRIBING -> { /* in flight — handleTranscriptionResult settles it */ }
+                    else -> stop()
+                }
+            }
+        }
+    }
+
+    /**
      * Stop single ASR recording and transcribe. Result lands in [singleAsrResult].
      */
     fun stopSingleAsr() {
@@ -213,10 +237,13 @@ class VoiceConversationController(
             try {
                 val lang = resolveVoskLanguage()
                 val ready = voskTranscriber.initialize(lang)
-                if (ready && active) {
+                // The session may have been stopped while the model was loading; do not
+                // resurrect capture for a session that is no longer listening.
+                val live = active && _state.value == State.LISTENING
+                if (ready && live) {
                     Log.i(TAG, "auto: vosk ready, starting vosk capture")
                     beginVoskCapture()
-                } else if (active) {
+                } else if (live) {
                     val hasKey = !whisperApiKey().isNullOrBlank()
                     if (hasKey) {
                         Log.i(TAG, "auto: vosk not ready, whisper key available, starting whisper capture")
@@ -225,6 +252,8 @@ class VoiceConversationController(
                         Log.i(TAG, "auto: vosk not ready, no whisper key, falling back to system")
                         beginSystemListening()
                     }
+                } else {
+                    Log.i(TAG, "auto: session no longer live after model init, skipping capture")
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "beginAutoListening launch crashed: ${e.javaClass.simpleName}: ${e.message}", e)
@@ -328,6 +357,19 @@ class VoiceConversationController(
             return
         }
         if (currentEngine == "vosk" || currentEngine == "whisper" || currentEngine == "auto") {
+            if (_state.value == State.TRANSCRIBING) {
+                Log.w(TAG, "stopCaptureAndTranscribe: already transcribing, ignoring duplicate stop")
+                return
+            }
+            if (captureJob == null && !audioCaptureManager.isCapturing()) {
+                // The engine was still resolving (e.g. async "auto" model load) when the user
+                // stopped; there is no recording to transcribe. Reset instead of restarting.
+                Log.w(TAG, "stopCaptureAndTranscribe: no active capture, cancelling session")
+                active = false
+                _state.value = State.IDLE
+                _mode.value = Mode.CONVERSATION
+                return
+            }
             _state.value = State.TRANSCRIBING
             captureJob?.cancel()
             captureJob = null
@@ -369,6 +411,9 @@ class VoiceConversationController(
                     Log.w(TAG, "Vosk model not available for $langCode, trying en")
                     voskTranscriber.initialize("en")
                 }
+            }
+            if (!voskTranscriber.isReady()) {
+                Log.e(TAG, "No Vosk model ready for $langCode — download one in Settings → Speech")
             }
             Log.i(TAG, "Vosk transcribing ${wavFile.name}...")
             val text = voskTranscriber.transcribe(wavFile)
@@ -507,7 +552,15 @@ class VoiceConversationController(
                 _state.value = State.PROCESSING
                 waitingForLlm = true
                 llmWasLoading = false
-                sendJob = scope.launch { sendMessage(cleanText) }
+                sendJob = scope.launch {
+                    sendMessage(cleanText)
+                    if (observeJob == null) {
+                        // The user ended the loop via the overlay exit while this utterance
+                        // was being sent; settle the session instead of restarting listening.
+                        active = false
+                        _state.value = State.IDLE
+                    }
+                }
             }
         }
     }
