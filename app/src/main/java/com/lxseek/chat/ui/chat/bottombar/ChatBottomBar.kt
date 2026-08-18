@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -160,12 +161,7 @@ fun ChatBottomBar(
     val scrollState = rememberScrollState()
     val isModelValid = selectedModel.isNotBlank() && enabledModels.contains(selectedModel)
 
-    // No-op bring-into-view to prevent auto-scrolling on text field focus
-
     val composer = composerState
-
-    // Draft persistence lives in ChatApp, keyed by conversation id (the id must be captured at
-    // edit time, not at debounce-fire time — see the draft effect there).
 
     val context = LocalContext.current
     val haptics = LocalAgoraHaptics.current
@@ -421,6 +417,7 @@ fun ChatBottomBar(
                     }
                 }
                 var activeMenu by remember { mutableStateOf<String?>(null) }
+                var modelSearchQuery by rememberSaveable { mutableStateOf("") }
                 var lastModelDismissTime by remember { mutableLongStateOf(0L) }
                 var lastContextDismissTime by remember { mutableLongStateOf(0L) }
                 var lastToolsDismissTime by remember { mutableLongStateOf(0L) }
@@ -483,7 +480,6 @@ fun ChatBottomBar(
                                     )
                                 )
                             }
-                            var modelSearchQuery by remember { mutableStateOf("") }
                             val searchFocusRequester = remember { FocusRequester() }
                             LaunchedEffect(activeMenu == "model") {
                                 if (activeMenu == "model") {
@@ -497,13 +493,17 @@ fun ChatBottomBar(
                                 placeholder = { Text(stringResource(R.string.models_search_hint)) },
                                 singleLine = true,
                                 leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp)) },
+                                trailingIcon = if (modelSearchQuery.isNotEmpty()) {
+                                    { IconButton(onClick = { modelSearchQuery = "" }) { Icon(Icons.Default.Clear, stringResource(R.string.models_clear_search)) } }
+                                } else null,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).focusRequester(searchFocusRequester),
                                 shape = RoundedCornerShape(12.dp),
                             )
-                            val filteredModels = if (modelSearchQuery.isBlank()) sortedModels else sortedModels.filter { model ->
-                                model.contains(modelSearchQuery, ignoreCase = true) ||
-                                    (modelAliases[model]?.contains(modelSearchQuery, ignoreCase = true) == true) ||
-                                    com.lxseek.chat.model.ModelId.parse(model).providerName.contains(modelSearchQuery, ignoreCase = true)
+                            val normalizedQuery = modelSearchQuery.trim()
+                            val filteredModels = if (normalizedQuery.isBlank()) sortedModels else sortedModels.filter { model ->
+                                model.contains(normalizedQuery, ignoreCase = true) ||
+                                    (modelAliases[model]?.contains(normalizedQuery, ignoreCase = true) == true) ||
+                                    com.lxseek.chat.model.ModelId.parse(model).providerName.contains(normalizedQuery, ignoreCase = true)
                             }
                             if (filteredModels.isEmpty()) {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.models_search_empty)) }, onClick = {}, enabled = false)
@@ -512,7 +512,8 @@ fun ChatBottomBar(
                                     DropdownMenuItem(
                                         text = {
                                             val parsed = com.lxseek.chat.model.ModelId.parse(model)
-                                            Text(modelAliases[model] ?: ("${parsed.apiModelName} (${parsed.providerName})"))
+                                            val displayName = modelAliases[model] ?: parsed.apiModelName
+                                            Text("$displayName · ${parsed.providerName}")
                                         },
                                         onClick = { haptics.selection(); onModelSelect(model); activeMenu = null; lastModelDismissTime = 0L }
                                     )

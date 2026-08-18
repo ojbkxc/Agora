@@ -152,8 +152,22 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     val providerChoices = remember(customProviders) {
         (RemoteModelProviders + customProviders.map { it.name }).distinct()
     }
-    val manualModelGroups = remember(customModels, providerChoices) {
-        customModelGroups(customModels, providerChoices)
+    val manualModelGroups = remember(customModels, providerChoices, modelAliases, modelSearchQuery) {
+        val base = customModelGroups(customModels, providerChoices)
+        val normalizedQuery = modelSearchQuery.trim()
+        if (normalizedQuery.isEmpty()) {
+            base
+        } else {
+            base.mapNotNull { group ->
+                val providerMatches = group.providerName.contains(normalizedQuery, ignoreCase = true)
+                val filteredModels = group.models.filter { model ->
+                    providerMatches ||
+                        ModelId.parse(model).apiModelName.contains(normalizedQuery, ignoreCase = true) ||
+                        modelAliases[model]?.contains(normalizedQuery, ignoreCase = true) == true
+                }
+                filteredModels.takeIf { it.isNotEmpty() }?.let { group.copy(models = it) }
+            }
+        }
     }
     val autoFetchedModelGroups = remember(
         availableModels,
@@ -184,12 +198,13 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     // identity lets the content start at its destination, while header taps keep mutating the
     // same state object and therefore retain their normal expand/collapse animation.
     LaunchedEffect(searchActive) {
-        val knownAutoProviders = expandedProviders.keys
-            .filterTo(linkedSetOf()) { it.startsWith("auto:") }
-            .apply { addAll(autoProviderStateKeys) }
-        knownAutoProviders.forEach { providerStateKey ->
-            expandedProviders[providerStateKey] = MutableTransitionState(searchActive)
-            if (!searchActive) modelBlockHeights[providerStateKey] = 0f
+        if (searchActive) {
+            val knownAutoProviders = expandedProviders.keys
+                .filterTo(linkedSetOf()) { it.startsWith("auto:") }
+                .apply { addAll(autoProviderStateKeys) }
+            knownAutoProviders.forEach { providerStateKey ->
+                expandedProviders[providerStateKey] = MutableTransitionState(true)
+            }
         }
     }
 
@@ -297,7 +312,7 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     firstHeaderStartsSection = true,
                     lastGroupClosesSection = false,
                     allowSpatialTransitions = allowSpatialTransitions,
-                    searchActive = false,
+                    searchActive = searchActive,
                     enabledModels = enabledModels,
                     modelAliases = modelAliases,
                     expandedProviders = expandedProviders,
