@@ -578,7 +578,120 @@ class VoskTranscriber(private val context: Context) {
         return File(context.filesDir, "vosk/model-$languageCode")
     }
 
+    // ------------------------------------------------------------------
+    // Streaming real-time transcription (ChatGPT/Gemini live voice mode)
+    // ------------------------------------------------------------------
+
+    /**
+     * Callback for streaming transcription. Partial results update the live
+     * transcript display; final results fire when Vosk detects an endpoint or
+     * [endSegment] is called explicitly. Errors are surfaced for fallback.
+     */
+    interface StreamingTranscriptionCallback {
+        fun onPartialResult(text: String)
+        fun onFinalResult(text: String)
+        fun onError(error: String)
+    }
+
+    @Volatile private var streamingRecognizer: Recognizer? = null
+    @Volatile private var streamingCallback: StreamingTranscriptionCallback? = null
+    private val streamingLock = Any()
+
+    /**
+     * Start a streaming recognition session. The model must already be loaded
+     * (call [initialize] first). Returns true on success.
+     */
+    fun startStreamingSession(languageCode: String, callback: StreamingTranscriptionCallback): Boolean {
+        synchronized(streamingLock) {
+            if (!isModelLoaded || model == null) {
+                Log.w(TAG, "startStreamingSession: model not loaded for $languageCode")
+                callback.onError("Vosk model not loaded")
+                return false
+            }
+            stopStreamingSessionInternal()
+            return try {
+                val recognizer = Recognizer(model, SAMPLE_RATE)
+                recognizer.setMaxAlternatives(0)
+                recognizer.setWords(true)
+                streamingRecognizer = recognizer
+                streamingCallback = callback
+                Log.i(TAG, "Streaming session started (lang=$currentLanguage)")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start streaming session", e)
+                callback.onError("Failed to start streaming: ${e.message}")
+                false
+            }
+        }
+    }
+
+    /**
+     * Feed PCM 16-bit mono 16kHz audio to the streaming recognizer. Fires partial
+     * results per chunk and a final result when Vosk detects an endpoint.
+     */
+    fun acceptWaveform(pcmData: ByteArray) {
+        if (pcmData.isEmpty()) return
+        synchronized(streamingLock) {
+            val recognizer = streamingRecognizer ?: return
+            val callback = streamingCallback ?: return
+            try {
+                val hasResult = recognizer.acceptWaveForm(pcmData, pcmData.size)
+                if (hasResult) {
+                    val finalJson = recognizer.finalResult
+                    val finalText = JSONObject(finalJson).optString("text", "").trim()
+                    recognizer.reset()
+                    if (finalText.isNotBlank()) {
+                        callback.onFinalResult(finalText)
+                    }
+                } else {
+                    val partialJson = recognizer.partialResult
+                    val partialText = JSONObject(partialJson).optString("partial", "")
+                    if (partialText.isNotBlank()) {
+                        callback.onPartialResult(partialText)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "acceptWaveform failed", e)
+                callback.onError("Waveform accept failed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Force-end the current segment (e.g. on VAD silence). Returns the final text
+     * or null if empty. The recognizer is reset for the next segment.
+     */
+    fun endSegment(): String? {
+        synchronized(streamingLock) {
+            val recognizer = streamingRecognizer ?: return null
+            return try {
+                val finalJson = recognizer.finalResult
+                val finalText = JSONObject(finalJson).optString("text", "").trim()
+                recognizer.reset()
+                Log.d(TAG, "endSegment: '$finalText'")
+                finalText.takeIf { it.isNotBlank() }
+            } catch (e: Exception) {
+                Log.e(TAG, "endSegment failed", e)
+                null
+            }
+        }
+    }
+
+    /** Stop the streaming session and release the recognizer. */
+    fun stopStreamingSession() {
+        synchronized(streamingLock) { stopStreamingSessionInternal() }
+    }
+
+    private fun stopStreamingSessionInternal() {
+        try { streamingRecognizer?.close() } catch (e: Exception) {
+            Log.e(TAG, "Failed to close streaming recognizer", e)
+        }
+        streamingRecognizer = null
+        streamingCallback = null
+    }
+
     fun release() {
+        stopStreamingSession()
         releaseModels()
         System.gc()
     }

@@ -196,6 +196,7 @@ class VoiceConversationController(
         captureJob = null
         try { audioCaptureManager.cancelCapture() } catch (e: Throwable) { Log.e(TAG, "cancelCapture failed", e) }
         try { speechRecognizerManager.stopListening() } catch (e: Throwable) { Log.e(TAG, "stopListening failed", e) }
+        try { voskTranscriber.stopStreamingSession() } catch (e: Throwable) { Log.e(TAG, "stopStreamingSession failed", e) }
         TtsManager.stop()
         _state.value = State.IDLE
         _partialTranscript.value = ""
@@ -226,9 +227,20 @@ class VoiceConversationController(
 
         val pref = try { asrEnginePref() } catch (e: Throwable) { Log.e(TAG, "asrEnginePref crashed: ${e.message}", e); "auto" }
         currentEngine = pref
-        Log.i(TAG, "beginListening: pref=$pref")
+        Log.i(TAG, "beginListening: pref=$pref, mode=${_mode.value}")
 
         try {
+            // CONVERSATION mode with Vosk ready uses streaming real-time transcription
+            // (partial transcript updates + VAD auto-segmentation), matching ChatGPT
+            // Advanced Voice / Gemini live voice. SINGLE_ASR keeps record-then-transcribe
+            // so the composer receives the full utterance.
+            if (_mode.value == Mode.CONVERSATION && (pref == "vosk" || pref == "auto")) {
+                val voskReady = try { voskTranscriber.isReady() } catch (e: Throwable) { false }
+                if (voskReady) {
+                    beginStreamingVoskCapture()
+                    return
+                }
+            }
             when (pref) {
                 "vosk" -> beginVoskCapture()
                 "whisper" -> beginWhisperCapture()
@@ -318,6 +330,106 @@ class VoiceConversationController(
         // recognition still engages.
         Log.w(TAG, "No downloaded Vosk model for '$pref', falling back to ${downloaded.first()}")
         return downloaded.first()
+    }
+
+    /** VAD thresholds for streaming auto-segmentation (ChatGPT/Gemini live mode). */
+    private val streamingSilenceThreshold = 0.05f
+    private val streamingSilenceDurationMs = 1500L
+
+    /**
+     * Streaming Vosk capture for CONVERSATION mode: PCM chunks feed Vosk in real
+     * time, partial results update [_partialTranscript] live, and VAD silence
+     * detection (amplitude < 0.05 for 1.5s after speech) auto-segments utterances.
+     * Each final segment is sent to the LLM; after TTS playback, listening resumes.
+     */
+    private fun beginStreamingVoskCapture() {
+        Log.i(TAG, "beginStreamingVoskCapture: starting streaming real-time transcription")
+        currentEngine = "vosk"
+        captureJob?.cancel()
+        captureJob = scope.launch {
+            if (!voskTranscriber.isReady()) {
+                val lang = resolveVoskLanguage()
+                val initialized = try { voskTranscriber.initialize(lang) } catch (e: Throwable) {
+                    Log.e(TAG, "Streaming: vosk init crashed: ${e.message}", e); false
+                }
+                if (!initialized) {
+                    Log.e(TAG, "Streaming: Vosk init failed for $lang")
+                    handleTranscriptionResult("[Vosk model not loaded — download in Settings → Speech]")
+                    return@launch
+                }
+            }
+
+            val callback = object : VoskTranscriber.StreamingTranscriptionCallback {
+                override fun onPartialResult(text: String) {
+                    if (active) _partialTranscript.value = text
+                }
+                override fun onFinalResult(text: String) {
+                    if (!active) return
+                    Log.i(TAG, "Streaming Vosk final segment: '$text'")
+                    _partialTranscript.value = ""
+                    captureJob?.cancel()
+                    captureJob = null
+                    try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
+                    voskTranscriber.stopStreamingSession()
+                    handleTranscriptionResult(text)
+                }
+                override fun onError(error: String) {
+                    Log.e(TAG, "Streaming Vosk error: $error")
+                    if (active) {
+                        captureJob?.cancel()
+                        captureJob = null
+                        try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
+                        voskTranscriber.stopStreamingSession()
+                        handleTranscriptionResult("[$error]")
+                    }
+                }
+            }
+
+            val langCode = resolveVoskLanguage()
+            if (!voskTranscriber.startStreamingSession(langCode, callback)) {
+                handleTranscriptionResult("[Failed to start streaming session]")
+                return@launch
+            }
+
+            var silenceStartMs = 0L
+            var hasSpeech = false
+
+            try {
+                val captureFlow = audioCaptureManager.startCapture()
+                captureFlow.collect { chunk ->
+                    if (!active) return@collect
+                    _amplitude.value = audioCaptureManager.amplitude.value
+                    voskTranscriber.acceptWaveform(chunk)
+
+                    val amp = _amplitude.value
+                    if (amp >= streamingSilenceThreshold) {
+                        hasSpeech = true
+                        silenceStartMs = 0L
+                    } else if (hasSpeech) {
+                        if (silenceStartMs == 0L) {
+                            silenceStartMs = System.currentTimeMillis()
+                        } else if (System.currentTimeMillis() - silenceStartMs >= streamingSilenceDurationMs) {
+                            val finalText = voskTranscriber.endSegment()
+                            silenceStartMs = 0L
+                            hasSpeech = false
+                            if (finalText != null && finalText.isNotBlank()) {
+                                _partialTranscript.value = ""
+                                captureJob?.cancel()
+                                captureJob = null
+                                try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
+                                voskTranscriber.stopStreamingSession()
+                                handleTranscriptionResult(finalText)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Streaming capture flow crashed: ${e.javaClass.simpleName}: ${e.message}", e)
+                if (active) { _state.value = State.IDLE }
+            } finally {
+                voskTranscriber.stopStreamingSession()
+            }
+        }
     }
 
     private fun beginVoskCapture() {
