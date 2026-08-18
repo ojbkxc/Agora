@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
@@ -86,7 +87,13 @@ fun SettingsVoskModelsSection(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
-            DropdownMenu(expanded = langMenuOpen, onDismissRequest = { langMenuOpen = false }) {
+            DropdownMenu(
+                expanded = langMenuOpen,
+                onDismissRequest = { langMenuOpen = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 6.dp,
+                shape = RoundedCornerShape(12.dp),
+            ) {
                 for (code in baseLanguages) {
                     DropdownMenuItem(
                         text = { Text(code) },

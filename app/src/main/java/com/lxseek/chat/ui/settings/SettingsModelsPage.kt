@@ -582,6 +582,8 @@ fun SettingsModelsPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 customModelProviderMenuExpanded = false
                             },
                             matchTextFieldWidth = false,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            tonalElevation = 6.dp,
                             shape = RoundedCornerShape(12.dp),
                         ) {
                             providerChoices.forEach { providerName ->

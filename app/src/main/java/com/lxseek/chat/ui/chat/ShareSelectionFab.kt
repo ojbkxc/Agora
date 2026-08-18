@@ -39,7 +39,7 @@ internal fun ShareSelectionFab(
 ) {
     Surface(
         modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(16),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 2.dp,

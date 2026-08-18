@@ -322,6 +322,9 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         DropdownMenu(
                                             expanded = langExpanded,
                                             onDismissRequest = { langExpanded = false },
+                                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                            tonalElevation = 6.dp,
+                                            shape = RoundedCornerShape(12.dp),
                                         ) {
                                             DropdownMenuItem(
                                                 text = { Text(stringResource(R.string.tts_language_system)) },

@@ -139,6 +139,8 @@ private fun AutoBackupPeriodDropdown(currentHours: Int, onSelect: (Int) -> Unit)
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 6.dp,
             shape = RoundedCornerShape(12.dp)
         ) {
             periods.forEach { (hours, labelRes) ->
@@ -174,6 +176,8 @@ private fun AutoDeletePeriodDropdown(currentHours: Int, backupHours: Int, onSele
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 6.dp,
             shape = RoundedCornerShape(12.dp)
         ) {
             validPeriods.forEach { (hours, labelRes) ->

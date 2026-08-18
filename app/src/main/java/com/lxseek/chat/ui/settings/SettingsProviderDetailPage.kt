@@ -298,7 +298,7 @@ fun SettingsProviderDetailPage(
                                         ) {
                                             if (model.mmprojPath.isNotBlank()) {
                                                 Surface(
-                                                    shape = RoundedCornerShape(5.dp),
+                                                    shape = RoundedCornerShape(4.dp),
                                                     color = MaterialTheme.colorScheme.tertiaryContainer,
                                                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                                                 ) {
@@ -310,7 +310,7 @@ fun SettingsProviderDetailPage(
                                                 }
                                             }
                                             Surface(
-                                                shape = RoundedCornerShape(5.dp),
+                                                shape = RoundedCornerShape(4.dp),
                                                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                             ) {
@@ -321,7 +321,7 @@ fun SettingsProviderDetailPage(
                                                 )
                                             }
                                             Surface(
-                                                shape = RoundedCornerShape(5.dp),
+                                                shape = RoundedCornerShape(4.dp),
                                                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                             ) {

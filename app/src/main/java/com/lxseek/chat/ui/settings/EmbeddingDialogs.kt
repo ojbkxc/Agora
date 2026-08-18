@@ -106,6 +106,7 @@ internal fun AddRemoteEmbeddingDialog(
                                 expanded = provExpanded,
                                 onDismissRequest = { provExpanded = false },
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                tonalElevation = 6.dp,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 providers.forEachIndexed { idx, p ->
@@ -188,6 +189,7 @@ internal fun AddRemoteEmbeddingDialog(
                                 expanded = state.showModelDropdown,
                                 onDismissRequest = { state.showModelDropdown = false },
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                tonalElevation = 6.dp,
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 provider.models.forEach { model ->

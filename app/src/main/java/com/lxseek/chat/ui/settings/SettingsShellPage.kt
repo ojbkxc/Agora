@@ -324,6 +324,8 @@ private fun DeviceEditor(
                     ExposedDropdownMenu(
                         expanded = typeMenuExpanded,
                         onDismissRequest = { typeMenuExpanded = false },
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 6.dp,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.shell_type_conch)) }, onClick = { typeInput = "conch"; typeMenuExpanded = false }, leadingIcon = { Icon(Icons.Default.Cable, null) })

@@ -3,6 +3,7 @@ package com.lxseek.chat.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -106,7 +107,13 @@ private fun ProviderVoiceItem(
         modifier = Modifier.clickable { expanded = true },
     )
     Box {
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 6.dp,
+            shape = RoundedCornerShape(12.dp),
+        ) {
             NETWORK_TTS_VOICES.forEach { voice ->
                 DropdownMenuItem(
                     text = { Text(voice) },

@@ -248,7 +248,7 @@ internal fun UserMessageBubble(
                 modifier = Modifier
                     .then(contextAlpha)
                     .padding(top = 4.dp)
-                    .clip(RoundedCornerShape(100))
+                    .clip(RoundedCornerShape(100.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .padding(horizontal = 4.dp)
             ) {
