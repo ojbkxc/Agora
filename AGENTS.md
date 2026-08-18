@@ -147,7 +147,7 @@ Agora/
 │       │   ├── java/com/lxseek/chat/
 │       │   │   ├── AgoraApplication.kt   # Application（持有 AppContainer）
 │       │   │   ├── MainActivity.kt       # 唯一 Activity（Compose 入口）
-│       │   │   ├── api/               # LLM Provider 适配器（38 文件）
+│       │   │   ├── api/               # LLM Provider 适配器（39 文件）
 │       │   │   │   ├── LlmProvider.kt    # Provider 接口 + StreamEvent
 │       │   │   │   ├── HttpClient.kt     # OkHttp 单例 + SSE
 │       │   │   │   ├── openai/           # OpenAI/DeepSeek/Qwen/OpenRouter/Groq/Custom
@@ -157,15 +157,15 @@ Agora/
 │       │   │   │   └── local/            # llama.cpp 本地推理
 │       │   │   ├── data/              # Room + DataStore + Repository（49 文件）
 │       │   │   ├── model/             # 数据模型 / DTO（17 文件）
-│       │   │   ├── viewmodel/         # ViewModel + 生成控制器（86 文件）
-│       │   │   ├── ui/                # Compose UI（115 文件）
-│       │   │   │   ├── chat/          # 聊天界面（58 文件）
-│       │   │   │   ├── settings/      # 设置界面（34 文件）
-│       │   │   │   ├── theme/         # Type.kt / Theme.kt / Color.kt
+│       │   │   ├── viewmodel/         # ViewModel + 生成控制器（92 文件）
+│       │   │   ├── ui/                # Compose UI（122 文件）
+│       │   │   │   ├── chat/          # 聊天界面（63 文件）
+│       │   │   │   ├── settings/      # 设置界面（37 文件）
+│       │   │   │   ├── theme/         # Type.kt / Theme.kt / Color.kt（4 文件）
 │       │   │   │   ├── tasks/         # 任务历史（4 文件）
-│       │   │   │   ├── onboarding/    # 欢迎引导
-│       │   │   │   └── components/    # 通用组件
-│       │   │   ├── tool/              # 工具提供者（13 文件）
+│       │   │   │   ├── onboarding/    # 欢迎引导（1 文件）
+│       │   │   │   └── components/    # 通用组件（6 文件）
+│       │   │   ├── tool/              # 工具提供者（25 文件）
 
 │       │   │   ├── service/           # 前台服务 + WorkManager（8 文件）
 │       │   │   ├── mcp/               # MCP 协议客户端（4 文件）
@@ -330,6 +330,27 @@ Agora/
 - PRoot 二进制（`build-proot.sh`）：构建 `libproot_exec.so` / `libproot_loader.so` / `libtalloc.so` → `app/src/{main,fdroid}/jniLibs/arm64-v8a/`。
 - 子模块：`thirdparty/llama.cpp` + `thirdparty/proot`（checkout 需 `--recurse-submodules`）。
 
+### Agent 能力深化 P2 契约（2026-08-17 落地，已固化）
+- **`ToolTierPolicy`**（`tool/ToolTierPolicy.kt`）：工具分档下发策略。
+  - `ToolTier` 枚举：`Core` / `Extended` / `Dangerous`（可见性递减，Core 始终下发，Dangerous 需显式授权）。
+  - `tierOf(name: String): ToolTier`：工具名 → 档位映射（file_write/file_edit 属 Extended 档，安全性由 RiskLevel + 确认门控保障，tier 仅控制可见性）。
+  - `allowedTiers(ctx: GenerationContext): Set<ToolTier>`：根据 `ctx.toolTier`（"core"/"extended"/"all"）或 `agentMode` 回退决定允许档位集合。
+  - `filterByTier(definitions: List<ToolDefinition>, ctx: GenerationContext): List<ToolDefinition>`：链式过滤，被 `GenerationToolExecutor.definitions` 调用。
+  - `GenerationContext.toolTier: String = "all"`（`viewmodel/GenerationContracts.kt` 新增字段）。
+- **`ActionTraceBus`**（`tool/ActionTraceBus.kt`）：行动轨迹总线，进程级 object 单例。
+  - 256 条 `ArrayDeque` 环形缓冲区 + `Mutex` 保护并发。
+  - `record(entry: ActionTraceEntry)`：记录一次工具执行（`GenerationToolExecutor.execute` 调用，execute 开始记录 startMs + 从工具参数 JSON 提取 server 字段）。
+  - `snapshot(limit: Int = 50): List<ActionTraceEntry>`：取最近 limit 条（旧→新）。
+  - `clear()`：清空缓冲区。
+  - `toJson(limit: Int = 50): String`：序列化为 JSON（供 `get_action_trace` 工具返回）。
+- **`ActionTraceEntry`**（data class）：`toolName` / `argumentsSummary` / `resultSummary` / `isError` / `server` / `conversationId` / `runId` / `timestampMs` / `durationMs`。
+- **`ActionTraceToolProvider`**（`tool/ActionTraceToolProvider.kt`）：实现 `ToolProvider`，暴露 `get_action_trace` ReadOnly 工具（无副作用，返回 `ActionTraceBus.toJson()`）。
+- **`execute_shell_batch`**（`tool/ShellToolDefinitions.kt` + `tool/ShellToolProvider.kt`）：批量多服务器并行执行工具。
+  - 参数：`command: String` / `servers: Array<String>` / `timeout_ms: Int` / `workdir: String`。
+  - `servers` 空数组时 fallback 到 `ctx.shellDevices` 所有已配置服务器（排除 Local Sandbox），`items` schema 已补（修复 zen provider 校验）。
+  - 执行：`coroutineScope { servers.map { async { ... } }.awaitAll() }` 并行 + 一次性 confirm 门控 + `parseBackendResult` 聚合 JSON。
+  - `riskLevel = RiskLevel.Moderate`。
+
 ## 6. 下一步任务（按优先级，逐项勾选）
 
 > 每项都是可独立交付的最小单元。完成即打勾并移到「已完成」区。
@@ -427,6 +448,8 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺 Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（§R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-18 全量分析+修复批次（本次会话，task id=11 AGENTS.md 回写 agent）：① 全量分析项目代码（语音/ASR/TTS 系统 15 文件 + UI 层 60+ 文件 + 工具/数据层 15 文件），发现并修复以下问题：② ActionTraceBus durationMs/server 填充（commit `6ed57afb`，execute 开始记录 startMs + 从工具参数 JSON 提取 server 字段）+ ToolTierPolicy file_write/file_edit 移入 Extended 档（安全性由 RiskLevel + 确认门控保障，tier 控制可见性）③ 语音系统修复（commit `d442a0c6`）：ASR 转录 bug 修复（handleTranscriptionResult 成功分支重置 mode + auto 引擎无 Vosk/Whisper 时报错而非重新监听 + transcribeWithVosk 模型未就绪直接报错）+ 录音 UI 动态化（AudioCaptureManager RMS 振幅 + EMA 平滑 alpha=0.3 + VoiceConversationOverlay HaloRing 随振幅变化 + VoiceSpectrumRing 多频率波纹脉动）④ AGENTS.md §3/§10 文件数+行数全面同步（PowerShell 实测）：§3 tool 13→25 / viewmodel 86→92 / ui 115→122 / ui/chat 58→63 / ui/settings 34→37 / api 38→39 / ui/theme 补 4 / ui/onboarding 补 1 / ui/components 补 6；§10 ChatApp 757→891 / ChatAppBottomBarSection 241→257 / ChatAppOverlays 192→196 / 新增 ChatBottomBar 995 / ComposerSendButton 232 / VoiceConversationController 649 / VoiceConversationOverlay 367 / SingleAsrOverlay 136 / AudioCaptureManager 234 / ChatViewModel 998 / SettingsManager 998 / UI_REDESIGN_SPEC 801 / ARCHITECTURE 490；§5 补充 P2 新增接口契约（ToolTierPolicy/ActionTraceBus/ActionTraceEntry/ActionTraceToolProvider/execute_shell_batch）。CI #32140553234 + #32141360942 全绿。
 
 - 2026-08-18 任务9 语音系统修复（本次会话，team-mate agent）：用户反馈「现在我说完了，也没实时转成文本放入输入框发送」+「录音UI希望动态化，跟着声音实时变化」。**任务A 根因分析（4 个断点）**：① `handleTranscriptionResult` SINGLE_ASR 成功分支不重置 `_mode.value`（mode 泄漏，状态不一致）；② `stopCaptureAndTranscribe` auto 引擎无 Vosk/Whisper 时 `wavFile.delete()` + `beginSystemListening()` 重新监听（录音被丢弃，用户看到又回 LISTENING，永远无文本进输入框）；③ `transcribeWithVosk` 模型未就绪时只 Log.e 但继续执行 `transcribe()`（可能返回空/错误文本）；④ `transcribeWithWhisper` 失败回退 Vosk 未就绪时静默 `_state=IDLE`（无错误反馈）。**任务A 修复**：① 成功分支加 `_mode.value = Mode.CONVERSATION`；② auto 无引擎改调 `handleTranscriptionResult("[No ASR engine ready — configure Vosk or Whisper in Settings]")` 报错而非重新监听；③ Vosk 未就绪直接 `handleTranscriptionResult("[Vosk model not loaded — download in Settings → Speech]")` + return；④ Whisper 失败回退 Vosk 未就绪改调 `handleTranscriptionResult("[Whisper transcription failed: ...]")`。**任务B 实现（声波动态化）**：① `AudioCaptureManager` 新增 `_amplitude: StateFlow<Float>` + `computeRmsAmplitude(chunk)` 从 PCM 16-bit little-endian ByteArray 计算 RMS = sqrt(sum(sample²)/n) / Short.MAX_VALUE + EMA 平滑（alpha=0.3），在 `startCapture()` while 循环中每个 chunk 更新，`stopRecordingInternal()` 重置；② `VoiceConversationController.startAudioCapture` 改为转发 `audioCaptureManager.amplitude.value`（替换原逐 byte peak amplitude 计算——原算法逐 byte 取绝对值不是按 16bit sample，且用 peak 非 RMS 无平滑）；③ `VoiceConversationOverlay.HaloRing` 加 amplitude 参数，光环 stroke width 和 alpha 随振幅变化（`alphaBoost = 0.35 + 0.65*amp`），`VoiceSpectrumRing` 波纹改多频率成分（`0.5 + 0.3*sin(rad*3+drift*5) + 0.2*sin(rad*7-drift*3)`）让声波更丰富，柱长基线 0.12f + amp*0.88f*wave；④ `SingleAsrOverlay` 已接 amplitude（任务32 完成），无需改。**改动**：3 文件 +79/-18，全部 ≤999 行（VoiceConversationController 642→609 / AudioCaptureManager 197→198 / VoiceConversationOverlay 350→351）。未新增字符串、未 bump 版本号。commit `d442a0c6`，CI #32141360942 全绿验证通过（conclusion=success）。
 - 2026-08-18 任务30 发版 v1.0.59（本次会话）：bump versionCode 59→60 / versionName 1.0.58→1.0.59（`app/build.gradle.kts` L30-31，commit `1fdc8bac`，仅 1 文件 +2/-2）。本次发版内容汇总（自 v1.0.58 以来）：**任务29** 修复 SpeechProviderWiring.kt 编译错误（远程 commit `de6e3d2a`，networkTtsConfig lambda 体包进 `run{}` 使 `return@run null` 合法局部返回，保留动态读取设置语义）+ **任务33** i18n 字符串 en/zh 配对补齐（commit `6aa8132f`，values/strings.xml 补 88 个英文翻译 + values-zh/strings.xml 补 10 个中文，`&`→`&amp;` XML 转义，en-only/zh-only 归零）+ **任务31** 修复离线 ASR 冒烟测试三连：① fix(asr): unblock beginAutoListening + surface transcription errors（commit `4434a720`）— beginAutoListening 改同步检查 isReady 不阻塞 + handleTranscriptionResult 失败时通过 _singleAsrError StateFlow 发出错误 + ChatApp collect singleAsrError 显示 Snackbar；② fix(i18n): remove duplicate values/automation_strings.xml（commit `c8efcd6a`）— 删除与 strings.xml 重复的 88 个 key；③ fix(ui): move SingleAsrOverlay/VoiceConversationOverlay inside Box for BoxScope（commit `57fff95a`）— 修复 `.align()` 在 BoxScope 外的编译错误；④ docs(AGENTS.md): log task31 align fix（commit `0688f457`）。**发版流程**：① 读取 AGENTS.md §R0/§R2 强制规则；② `git pull --rebase origin master`（Already up to date，HEAD=0688f457）；③ bump versionCode/Name（edit L30-31）；④ `git add app/build.gradle.kts`（按约束不用 `-A`）+ `git commit -m "release: bump v1.0.59"`（commit `1fdc8bac`）+ `git push origin master`；⑤ 轮询 ci.yml CI #32132473198（head_sha=1fdc8bac）→ ~4m50s 全绿（conclusion=success）；⑥ 打 tag `v1.0.59` 指向 `1fdc8bac` + push 触发 build.yml；⑦ 轮询 Build & Release #32133284533 → ~9m40s 全绿（get-version ✓ / build-android ✓ / release ✓）；⑧ 确认 Release `Agora-v1.0.59-android-arm64-v8a.apk`（11.08MB，id=372309140）发布成功（https://github.com/ojbkxc/Agora/releases/tag/v1.0.59）。⚠️ **发版数据纠错**：远程曾存在 v1.0.59 tag 指向 commit `2fb8b7cb`（作者 xc，2026-08-18T08:57:10Z，message "chore(release): bump version to 1.0.59 (v1.0.59) - ASR/TTS compile fix + upstream MIT copyright"），该 commit **不在当前 master 历史中**（master 最近 8 commit 无 2fb8b7cb），是任务31 修复前的错误预发布（08:57 早于任务31 的 4434a720/c8efcd6a/57fff95a/0688f457 等 10:47+ commit），对应错误 Release id=372217911（published 09:07:44Z）已删除，tag 重建指向 HEAD `1fdc8bac` 后重新触发发版（与 v1.0.58 任务24 同型漂移处理）。AGENTS.md §2 版本号 1.0.58/59→1.0.59/60 + §4 已完成区前置 v1.0.59 发版条目 + §9 本条目已回写（§R0.2 强制）。
@@ -597,7 +620,7 @@ gh run view --log-failed    # 失败时查看报错日志
 - 架构文档：`ARCHITECTURE.md`（490 行，详细架构说明）。
 - 版本目录：`gradle/libs.versions.toml`（AGP/Kotlin/Compose/Room 等版本统一管理）。
 - 上游借鉴：`/opt/github/RustSync`（编译流水线参照：tag 触发 → 产物命名 → GitHub Release 模式）。
-- 关键文件速查：
+- 关键文件速查（行数为 PowerShell 实测值，2026-08-18 同步）：
   - 应用入口：`app/src/main/java/com/lxseek/chat/MainActivity.kt`
   - Application：`app/src/main/java/com/lxseek/chat/AgoraApplication.kt`
   - DI 容器：`app/src/main/java/com/lxseek/chat/di/AppContainer.kt`
@@ -606,8 +629,16 @@ gh run view --log-failed    # 失败时查看报错日志
   - 主题：`app/src/main/java/com/lxseek/chat/ui/theme/{Type,Theme,Color}.kt`
   - 语言选项：`app/src/main/java/com/lxseek/chat/ui/settings/SettingsLanguagePage.kt`
   - 系统提示：`app/src/main/java/com/lxseek/chat/data/DefaultSystemPrompt.kt`
-  - 聊天主 Composable：`app/src/main/java/com/lxseek/chat/ui/chat/ChatApp.kt`（757 行）
-  - 聊天拆分文件：`ChatAppBottomBarSection.kt`（241）/ `ChatAppOverlays.kt`（192）/ `ChatAppInteractionEffects.kt`（457）/ `ChatAppDialogHost.kt`（146）
+  - 聊天主 Composable：`app/src/main/java/com/lxseek/chat/ui/chat/ChatApp.kt`（891 行）
+  - 聊天拆分文件：`ChatAppBottomBarSection.kt`（257）/ `ChatAppOverlays.kt`（196）/ `ChatAppInteractionEffects.kt`（457）/ `ChatAppDialogHost.kt`（146）
+  - 发送区：`ui/chat/bottombar/ChatBottomBar.kt`（995）/ `ComposerSendButton.kt`（232）
+  - 语音对话控制器：`viewmodel/VoiceConversationController.kt`（649）
+  - 语音覆盖层：`ui/chat/VoiceConversationOverlay.kt`（367）/ `SingleAsrOverlay.kt`（136）
+  - 音频采集：`speech/AudioCaptureManager.kt`（234）
+  - ChatViewModel：`viewmodel/ChatViewModel.kt`（998）
+  - SettingsManager：`data/SettingsManager.kt`（998）
+  - UI 重设计规格：`UI_REDESIGN_SPEC.md`（801 行）
+  - 架构文档：`ARCHITECTURE.md`（490 行）
   - 构建配置：`app/build.gradle.kts`
   - CI 流水线：`.github/workflows/build.yml`
   - PRoot 构建：`build-proot.sh`
