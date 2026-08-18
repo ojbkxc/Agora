@@ -70,6 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal val CHAT_BOTTOM_BAR_OUTER_RADIUS = 12.dp
@@ -483,13 +484,20 @@ fun ChatBottomBar(
                                 )
                             }
                             var modelSearchQuery by remember { mutableStateOf("") }
+                            val searchFocusRequester = remember { FocusRequester() }
+                            LaunchedEffect(activeMenu == "model") {
+                                if (activeMenu == "model") {
+                                    delay(150)
+                                    runCatching { searchFocusRequester.requestFocus() }
+                                }
+                            }
                             OutlinedTextField(
                                 value = modelSearchQuery,
                                 onValueChange = { modelSearchQuery = it },
                                 placeholder = { Text(stringResource(R.string.models_search_hint)) },
                                 singleLine = true,
                                 leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp)) },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).focusRequester(searchFocusRequester),
                                 shape = RoundedCornerShape(12.dp),
                             )
                             val filteredModels = if (modelSearchQuery.isBlank()) sortedModels else sortedModels.filter { model ->
