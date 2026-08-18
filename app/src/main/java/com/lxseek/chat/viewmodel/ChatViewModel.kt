@@ -758,6 +758,9 @@ class ChatViewModel(
         foregroundAutomationBridge.start()
 
         TtsManager.init(appContext)
+        // Route read-aloud through the provider-backed TTS model when the user has selected one;
+        // otherwise TtsManager falls back to the system engine.
+        TtsManager.networkTtsConfig = SpeechProviderWiring.networkTtsConfig(settings, providerRegistry)
         viewModelScope.launch {
             TtsManager.isPlaying.collect { playing ->
                 if (!playing && _ttsPlayingMessageId.value != null) {
@@ -941,16 +944,11 @@ class ChatViewModel(
         isLoading = isLoading,
         sendMessage = { text -> sendMessage(text) },
         asrEnginePref = { settings.asrEnginePref.value },
-        whisperApiKey = {
-            val p = providerRegistry.providerForModel(settings.selectedModel.value)
-            settings.asrRemoteApiKey.value.takeIf { it.isNotBlank() } ?: settings.resolveActiveKey(p) ?: ""
-        },
-        whisperBaseUrl = {
-            val p = providerRegistry.providerForModel(settings.selectedModel.value)
-            settings.asrRemoteBaseUrl.value.takeIf { it.isNotBlank() && it != "https://api.openai.com/v1" }
-                ?: providerRegistry.getEffectiveBaseUrl(p) ?: "https://api.groq.com/openai/v1/audio/transcriptions"
-        },
-        whisperModel = { settings.asrRemoteModel.value.takeIf { it.isNotBlank() } ?: "whisper-large-v3" },
+        // Provider-backed ASR is wired from the selected ASR model (if any) via SpeechProviderWiring;
+        // otherwise it degrades to the legacy asrRemote* fields, then to the active chat provider.
+        whisperApiKey = SpeechProviderWiring.whisperApiKey(settings, providerRegistry),
+        whisperBaseUrl = SpeechProviderWiring.whisperBaseUrl(settings, providerRegistry),
+        whisperModel = SpeechProviderWiring.whisperModel(settings),
     )
     fun toggleVoiceConversation() = voiceConversation.toggle()
     fun stopVoiceConversation() = voiceConversation.stop()

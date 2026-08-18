@@ -552,6 +552,8 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                     ),
                 )
 
+                TtsProviderModelSection(viewModel)
+
                 // ── Section 6: Export ──
                 SettingsGroup(
                     title = stringResource(R.string.share_export_title),
@@ -722,6 +724,9 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         shape = RoundedCornerShape(12.dp),
                                     )
                                 }
+                            }
+                            add {
+                                AsrProviderModelSection(viewModel)
                             }
                         }
                         if (!asrUseRemote) {

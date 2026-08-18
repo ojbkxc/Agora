@@ -268,6 +268,16 @@
     <string name="image_gen_select_model">Select Image Model</string>
     <string name="image_gen_size">Default Size</string>
     <string name="image_gen_show_all">Show all models</string>
+    <string name="speech_model_select">Select Model</string>
+    <string name="speech_model_show_all">Show all models</string>
+    <string name="speech_model_none">No provider model selected</string>
+    <string name="speech_models_empty">Sync provider models on the Providers page, then pick one here</string>
+    <string name="asr_provider_model_title">Provider ASR Model</string>
+    <string name="asr_provider_model_desc">Use a synced provider model for online speech recognition</string>
+    <string name="tts_provider_model_title">Provider TTS Model</string>
+    <string name="tts_provider_model_desc">Use a synced provider model for online speech synthesis</string>
+    <string name="tts_provider_voice">Provider Voice</string>
+    <string name="tts_provider_voice_desc">Voice used by the provider TTS engine</string>
     <string name="tool_generate_image">Generate Image</string>
     <string name="tool_generating_image">Generating image…</string>
     <string name="tool_generated_image">Generated image</string>

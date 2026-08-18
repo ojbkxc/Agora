@@ -68,6 +68,11 @@ class SettingsManager(private val context: Context) {
     val ttsEnabled: Flow<Boolean> = context.dataStore.data.map { it[TTS_ENABLED] ?: false }
     val ttsAutoPlay: Flow<Boolean> = context.dataStore.data.map { it[TTS_AUTOPLAY] ?: false }
     val ttsLanguage: Flow<String> = context.dataStore.data.map { it[TTS_LANGUAGE] ?: "system" }
+    // Provider-backed TTS model ("Provider:modelId") and optional voice. Empty = system engine.
+    val ttsProviderModel: Flow<String?> = context.dataStore.data.map {
+        it[TTS_PROVIDER_MODEL]?.takeIf { v -> v.isNotBlank() }
+    }
+    val ttsProviderVoice: Flow<String> = context.dataStore.data.map { it[TTS_PROVIDER_VOICE] ?: "alloy" }
     val ttsSpeechRate: Flow<Float> = context.dataStore.data.map {
         it[TTS_SPEECH_RATE]?.toFloatOrNull() ?: 1.0f
     }
@@ -401,6 +406,10 @@ class SettingsManager(private val context: Context) {
     val asrRemoteBaseUrl: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_BASE_URL] ?: "https://api.openai.com/v1" }
     val asrRemoteApiKey: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_API_KEY] ?: "" }
     val asrRemoteModel: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_MODEL] ?: "whisper-1" }
+    // Provider-backed ASR model ("Provider:modelId"). Empty = legacy asrRemote* fields.
+    val asrProviderModel: Flow<String?> = context.dataStore.data.map {
+        it[ASR_PROVIDER_MODEL]?.takeIf { v -> v.isNotBlank() }
+    }
     val vadThreshold: Flow<Float> = context.dataStore.data.map { it[VAD_THRESHOLD]?.toFloatOrNull() ?: 0.5f }
     val vadMinSilence: Flow<Float> = context.dataStore.data.map { it[VAD_MIN_SILENCE]?.toFloatOrNull() ?: 0.25f }
     val vadMaxSpeech: Flow<Float> = context.dataStore.data.map { it[VAD_MAX_SPEECH]?.toFloatOrNull() ?: 20.0f }
@@ -441,6 +450,12 @@ class SettingsManager(private val context: Context) {
         context.dataStore.edit { it[ASR_REMOTE_MODEL] = model }
     }
 
+    suspend fun saveAsrProviderModel(model: String?) {
+        context.dataStore.edit {
+            if (model.isNullOrBlank()) it.remove(ASR_PROVIDER_MODEL) else it[ASR_PROVIDER_MODEL] = model
+        }
+    }
+
     suspend fun saveVadThreshold(value: Float) {
         context.dataStore.edit { it[VAD_THRESHOLD] = value.toString() }
     }
@@ -459,6 +474,18 @@ class SettingsManager(private val context: Context) {
 
     suspend fun saveTtsSpeechRate(rate: Float) {
         context.dataStore.edit { it[TTS_SPEECH_RATE] = rate.toString() }
+    }
+
+    suspend fun saveTtsProviderModel(model: String?) {
+        context.dataStore.edit {
+            if (model.isNullOrBlank()) it.remove(TTS_PROVIDER_MODEL) else it[TTS_PROVIDER_MODEL] = model
+        }
+    }
+
+    suspend fun saveTtsProviderVoice(voice: String) {
+        context.dataStore.edit {
+            if (voice.isBlank()) it.remove(TTS_PROVIDER_VOICE) else it[TTS_PROVIDER_VOICE] = voice
+        }
     }
 
     suspend fun saveThinkingLevel(level: String) {
@@ -887,6 +914,9 @@ class SettingsManager(private val context: Context) {
             prefs.remove(ASR_REMOTE_BASE_URL)
             prefs.remove(ASR_REMOTE_API_KEY)
             prefs.remove(ASR_REMOTE_MODEL)
+            prefs.remove(ASR_PROVIDER_MODEL)
+            prefs.remove(TTS_PROVIDER_MODEL)
+            prefs.remove(TTS_PROVIDER_VOICE)
             prefs.remove(VAD_THRESHOLD)
             prefs.remove(VAD_MIN_SILENCE)
             prefs.remove(VAD_MAX_SPEECH)

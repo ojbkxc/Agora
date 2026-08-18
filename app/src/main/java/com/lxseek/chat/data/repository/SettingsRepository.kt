@@ -112,10 +112,13 @@ class SettingsRepository(
     val asrRemoteBaseUrl: StateFlow<String> = hot(settingsManager.asrRemoteBaseUrl, "https://api.openai.com/v1")
     val asrRemoteApiKey: StateFlow<String> = hot(settingsManager.asrRemoteApiKey, "")
     val asrRemoteModel: StateFlow<String> = hot(settingsManager.asrRemoteModel, "whisper-1")
+    val asrProviderModel: StateFlow<String?> = hot(settingsManager.asrProviderModel, null)
     val vadThreshold: StateFlow<Float> = hot(settingsManager.vadThreshold, 0.5f)
     val vadMinSilence: StateFlow<Float> = hot(settingsManager.vadMinSilence, 0.25f)
     val vadMaxSpeech: StateFlow<Float> = hot(settingsManager.vadMaxSpeech, 20.0f)
     val ttsLanguage: StateFlow<String> = hot(settingsManager.ttsLanguage, "system")
+    val ttsProviderModel: StateFlow<String?> = hot(settingsManager.ttsProviderModel, null)
+    val ttsProviderVoice: StateFlow<String> = hot(settingsManager.ttsProviderVoice, "alloy")
     val ttsSpeechRate: StateFlow<Float> = hot(settingsManager.ttsSpeechRate, 1.0f)
     val thinkingLevel: StateFlow<String> = hot(settingsManager.thinkingLevel, "medium")
     val thinkingBudgetEnabled: StateFlow<Boolean> = hot(settingsManager.thinkingBudgetEnabled, false)
@@ -502,10 +505,13 @@ class SettingsRepository(
     fun setAsrRemoteBaseUrl(url: String) = scope.launch { settingsManager.saveAsrRemoteBaseUrl(url) }
     fun setAsrRemoteApiKey(key: String) = scope.launch { settingsManager.saveAsrRemoteApiKey(key) }
     fun setAsrRemoteModel(model: String) = scope.launch { settingsManager.saveAsrRemoteModel(model) }
+    fun setAsrProviderModel(model: String?) = scope.launch { settingsManager.saveAsrProviderModel(model) }
     fun setVadThreshold(value: Float) = scope.launch { settingsManager.saveVadThreshold(value) }
     fun setVadMinSilence(value: Float) = scope.launch { settingsManager.saveVadMinSilence(value) }
     fun setVadMaxSpeech(value: Float) = scope.launch { settingsManager.saveVadMaxSpeech(value) }
     fun setTtsLanguage(language: String) = scope.launch { settingsManager.saveTtsLanguage(language) }
+    fun setTtsProviderModel(model: String?) = scope.launch { settingsManager.saveTtsProviderModel(model) }
+    fun setTtsProviderVoice(voice: String) = scope.launch { settingsManager.saveTtsProviderVoice(voice) }
     fun setTtsSpeechRate(rate: Float) = scope.launch { settingsManager.saveTtsSpeechRate(rate) }
     fun setThinkingLevel(level: String) = scope.launch { settingsManager.saveThinkingLevel(level) }
     fun setThinkingBudgetEnabled(enabled: Boolean) = scope.launch { settingsManager.saveThinkingBudgetEnabled(enabled) }
