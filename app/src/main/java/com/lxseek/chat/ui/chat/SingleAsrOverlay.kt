@@ -59,12 +59,16 @@ internal fun SingleAsrOverlay(
         if (isListening) R.string.voice_conversation_listening else R.string.asr_remote_transcribing
     )
 
-    AnimatedVisibility(
-        visible = isActive,
-        enter = fadeIn(tween(200)) + slideInVertically(tween(220)) { it },
-        exit = fadeOut(tween(200)) + slideOutVertically(tween(220)) { it },
-        modifier = modifier,
+    // Full-size container with the card pinned to the bottom edge (the caller supplies padding).
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter,
     ) {
+        AnimatedVisibility(
+            visible = isActive,
+            enter = fadeIn(tween(200)) + slideInVertically(tween(220)) { it },
+            exit = fadeOut(tween(200)) + slideOutVertically(tween(220)) { it },
+        ) {
         Surface(
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
@@ -127,5 +131,6 @@ internal fun SingleAsrOverlay(
                 }
             }
         }
+    }
     }
 }

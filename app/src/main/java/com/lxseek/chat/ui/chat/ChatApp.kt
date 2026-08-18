@@ -857,9 +857,7 @@ fun ChatApp(
                     amplitude = voiceConversationAmplitude,
                     onFinish = { viewModel.stopSingleAsr() },
                     onCancel = { viewModel.stopVoiceConversation() },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(start = 12.dp, end = 12.dp, bottom = bottomBarHeight + 8.dp),
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = bottomBarHeight + 8.dp),
                 )
             } else {
                 // Multi-turn real-time conversation: full-screen voiceprint overlay.
