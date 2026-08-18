@@ -71,6 +71,7 @@ class VoiceConversationController(
 
     @Volatile private var active = false
     @Volatile private var currentEngine: String = "auto"
+    @Volatile private var isStreamingConversation = false
     private var captureJob: Job? = null
     private var observeJob: Job? = null
     private var ttsObserverJob: Job? = null
@@ -186,6 +187,7 @@ class VoiceConversationController(
         active = false
         waitingForLlm = false
         llmWasLoading = false
+        isStreamingConversation = false
         observeJob?.cancel()
         observeJob = null
         sendJob?.cancel()
@@ -335,8 +337,7 @@ class VoiceConversationController(
     /** VAD thresholds for streaming auto-segmentation (ChatGPT/Gemini live mode). */
     private val streamingSilenceThreshold = 0.05f
     private val streamingSilenceDurationMs = 1500L
-    /** Force segmentation after this many ms of continuous speech to prevent infinite recording. */
-    private val streamingMaxSpeakMs = 15_000L
+
     /** Require this many consecutive above-threshold chunks before marking hasSpeech=true (short noise filter). */
     private val streamingMinTriggerChunks = 3
     /** Calibration phase duration: collect ambient noise samples for this many ms before VAD kicks in. */
@@ -355,6 +356,7 @@ class VoiceConversationController(
     private fun beginStreamingVoskCapture() {
         Log.i(TAG, "beginStreamingVoskCapture: starting streaming real-time transcription")
         currentEngine = "vosk"
+        isStreamingConversation = true
         captureJob?.cancel()
         captureJob = scope.launch {
             if (!voskTranscriber.isReady()) {
@@ -377,11 +379,8 @@ class VoiceConversationController(
                     if (!active) return
                     Log.i(TAG, "Streaming Vosk final segment: '$text'")
                     _partialTranscript.value = ""
-                    captureJob?.cancel()
-                    captureJob = null
-                    try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
-                    voskTranscriber.stopStreamingSession()
-                    handleTranscriptionResult(text)
+                    scope.launch { handleTranscriptionResult(text) }
+                    // Do NOT stop capture — continue recording for next utterance
                 }
                 override fun onError(error: String) {
                     Log.e(TAG, "Streaming Vosk error: $error")
@@ -417,6 +416,16 @@ class VoiceConversationController(
                     _amplitude.value = audioCaptureManager.amplitude.value
                     voskTranscriber.acceptWaveform(chunk)
 
+                    // Pause VAD segmentation while TTS is playing to avoid echo loop
+                    // (TTS audio picked up by the mic would be treated as user speech).
+                    // Audio is still fed to Vosk above so ASR buffers the segment.
+                    if (TtsManager.isPlaying.value) {
+                        silenceStartMs = 0L
+                        hasSpeech = false
+                        triggerCounter = 0
+                        return@collect
+                    }
+
                     val amp = _amplitude.value
 
                     // Calibration phase: collect ambient noise samples for 0.5s before VAD engages.
@@ -451,42 +460,22 @@ class VoiceConversationController(
                     }
 
                     if (hasSpeech) {
-                        // Force segmentation: cap continuous speech to prevent infinite recording
-                        // (user never stops talking or ambient noise stays above threshold).
-                        if (System.currentTimeMillis() - speakStartMs >= streamingMaxSpeakMs) {
-                            Log.i(TAG, "VAD force segmentation: max speak time reached")
-                            val finalText = voskTranscriber.endSegment()
-                            silenceStartMs = 0L
-                            hasSpeech = false
-                            triggerCounter = 0
-                            if (finalText != null && finalText.isNotBlank()) {
-                                _partialTranscript.value = ""
-                                captureJob?.cancel()
-                                captureJob = null
-                                try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
-                                voskTranscriber.stopStreamingSession()
-                                handleTranscriptionResult(finalText)
-                            }
-                            return@collect
-                        }
-
                         // Silence detection: amplitude below threshold for streamingSilenceDurationMs ends the segment.
                         if (amp < dynamicThreshold) {
                             if (silenceStartMs == 0L) {
                                 silenceStartMs = System.currentTimeMillis()
                             } else if (System.currentTimeMillis() - silenceStartMs >= streamingSilenceDurationMs) {
+                                // Silence detected: end segment and send asynchronously, keep recording
                                 val finalText = voskTranscriber.endSegment()
                                 silenceStartMs = 0L
                                 hasSpeech = false
                                 triggerCounter = 0
                                 if (finalText != null && finalText.isNotBlank()) {
                                     _partialTranscript.value = ""
-                                    captureJob?.cancel()
-                                    captureJob = null
-                                    try { audioCaptureManager.cancelCapture() } catch (e: Throwable) {}
-                                    voskTranscriber.stopStreamingSession()
-                                    handleTranscriptionResult(finalText)
+                                    Log.i(TAG, "Streaming utterance sent asynchronously: '$finalText'")
+                                    scope.launch { handleTranscriptionResult(finalText) }
                                 }
+                                // Continue collecting — do NOT stop capture or streaming session
                             }
                         }
                     }
@@ -773,16 +762,22 @@ class VoiceConversationController(
                 _mode.value = Mode.CONVERSATION
             }
             Mode.CONVERSATION -> {
-                _state.value = State.PROCESSING
-                waitingForLlm = true
-                llmWasLoading = false
-                sendJob = scope.launch {
-                    sendMessage(cleanText)
-                    if (observeJob == null) {
-                        // The user ended the loop via the overlay exit while this utterance
-                        // was being sent; settle the session instead of restarting listening.
-                        active = false
-                        _state.value = State.IDLE
+                if (isStreamingConversation) {
+                    // Continuous streaming mode: don't change state, don't wait for LLM
+                    // Keep recording — LLM response + TTS will play while recording continues
+                    scope.launch { sendMessage(cleanText) }
+                } else {
+                    _state.value = State.PROCESSING
+                    waitingForLlm = true
+                    llmWasLoading = false
+                    sendJob = scope.launch {
+                        sendMessage(cleanText)
+                        if (observeJob == null) {
+                            // The user ended the loop via the overlay exit while this utterance
+                            // was being sent; settle the session instead of restarting listening.
+                            active = false
+                            _state.value = State.IDLE
+                        }
                     }
                 }
             }
@@ -804,10 +799,12 @@ class VoiceConversationController(
                     }
                     if (!active) return@collectLatest
                     if (!TtsManager.isPlaying.value && _state.value == State.SPEAKING) {
-                        beginListening()
+                        if (!isStreamingConversation) beginListening()
+                        else _state.value = State.LISTENING
                     }
                 } else {
-                    beginListening()
+                    if (!isStreamingConversation) beginListening()
+                    else _state.value = State.LISTENING
                 }
             }
         }
@@ -819,7 +816,8 @@ class VoiceConversationController(
             if (!playing && _state.value == State.SPEAKING) {
                 delay(300)
                 if (active && !TtsManager.isPlaying.value && _state.value == State.SPEAKING) {
-                    beginListening()
+                    if (!isStreamingConversation) beginListening()
+                    else _state.value = State.LISTENING
                 }
             }
         }
