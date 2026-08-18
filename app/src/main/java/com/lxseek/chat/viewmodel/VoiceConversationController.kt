@@ -91,7 +91,7 @@ class VoiceConversationController(
 
     fun start() {
         if (active) {
-            Log.w(TAG, "start() called but active=true, state=${_state.value} — previous session not reset; forcing reset before restart")
+            Log.w(TAG, "start() called but active=true, state=${_state.value} 鈥?previous session not reset; forcing reset before restart")
             stop()
         }
         Log.i(TAG, "start: beginning voice conversation")
@@ -118,7 +118,7 @@ class VoiceConversationController(
 
     /**
      * Single-shot ASR: record once, transcribe, publish result via [singleAsrResult].
-     * Does NOT send the message or observe LLM/TTS — the UI inserts the text into the composer.
+     * Does NOT send the message or observe LLM/TTS 鈥?the UI inserts the text into the composer.
      */
     fun startSingleAsr() {
         if (active) {
@@ -148,7 +148,7 @@ class VoiceConversationController(
 
     /**
      * End a voice session gracefully from the overlay's exit affordance. Unlike [stop],
-     * an in-flight recording is transcribed (single ASR → composer; conversation → sent)
+     * an in-flight recording is transcribed (single ASR 鈫?composer; conversation 鈫?sent)
      * instead of being discarded, and the auto-restart loop is cancelled so listening
      * does not begin again.
      */
@@ -163,7 +163,7 @@ class VoiceConversationController(
             Mode.CONVERSATION -> {
                 when (_state.value) {
                     State.LISTENING -> stopCaptureAndTranscribe()
-                    State.TRANSCRIBING -> { /* in flight — handleTranscriptionResult settles it */ }
+                    State.TRANSCRIBING -> { /* in flight 鈥?handleTranscriptionResult settles it */ }
                     else -> stop()
                 }
             }
@@ -280,7 +280,7 @@ class VoiceConversationController(
             beginSystemListening()
             return
         }
-        // Nothing ready — start capture anyway and init Vosk in background.
+        // Nothing ready 鈥?start capture anyway and init Vosk in background.
         // The WAV will be transcribed on stop; if Vosk still isn't ready by then,
         // the user gets a clear error message via _singleAsrError instead of a
         // silent failure.
@@ -302,7 +302,7 @@ class VoiceConversationController(
 
     /** Resolve the configured voice recognition language to a Vosk model code. Prefers an exact
      *  downloaded model, then a downloaded model with the same base code, then any installed
-     *  model — so offline recognition still engages instead of being silently skipped. */
+     *  model 鈥?so offline recognition still engages instead of being silently skipped. */
     private fun resolveVoskLanguage(): String {
         val pref = try { voiceLanguageProvider().trim().lowercase() } catch (e: Throwable) {
             Log.e(TAG, "voiceLanguageProvider crashed: ${e.message}", e); "en"
@@ -336,16 +336,24 @@ class VoiceConversationController(
 
     /** VAD thresholds for streaming auto-segmentation (ChatGPT/Gemini live mode). */
     private val streamingSilenceThreshold = 0.05f
-    private val streamingSilenceDurationMs = 1500L
+    private val streamingSilenceDurationMs = 1600L
 
     /** Require this many consecutive above-threshold chunks before marking hasSpeech=true (short noise filter). */
     private val streamingMinTriggerChunks = 3
     /** Calibration phase duration: collect ambient noise samples for this many ms before VAD kicks in. */
     private val streamingCalibrationMs = 500L
-    /** Dynamic threshold multiplier applied to average ambient noise RMS. */
-    private val streamingThresholdRatio = 1.5f
+    /** Dynamic threshold multiplier applied to rolling average amplitude (mean * 0.3). */
+    private val streamingThresholdRatio = 0.3f
     /** Base additive constant (normalized) for dynamic threshold to avoid zero threshold in silent rooms. */
     private val streamingThresholdBaseAdd = 0.02f
+    /** Noise floor multiplier: dynamic threshold is at least noiseFloor * 3.0. */
+    private val streamingNoiseFloorMultiplier = 3.0f
+    /** Sliding window size (in chunks) for rolling average amplitude used in adaptive threshold. */
+    private val streamingRollingWindowSize = 30
+    /** Hysteresis ratio: amplitude must drop below threshold * 0.6 to end speech (prevents brief dips). */
+    private val streamingHysteresisRatio = 0.6f
+    /** Minimum segment duration in ms; segments shorter than this are discarded as noise. */
+    private val streamingMinSegmentMs = 150L
 
     /**
      * Streaming Vosk capture for CONVERSATION mode: PCM chunks feed Vosk in real
@@ -366,7 +374,7 @@ class VoiceConversationController(
                 }
                 if (!initialized) {
                     Log.e(TAG, "Streaming: Vosk init failed for $lang")
-                    handleTranscriptionResult("[Vosk model not loaded — download in Settings → Speech]")
+                    handleTranscriptionResult("[Vosk model not loaded 鈥?download in Settings 鈫?Speech]")
                     return@launch
                 }
             }
@@ -380,7 +388,7 @@ class VoiceConversationController(
                     Log.i(TAG, "Streaming Vosk final segment: '$text'")
                     _partialTranscript.value = ""
                     scope.launch { handleTranscriptionResult(text) }
-                    // Do NOT stop capture — continue recording for next utterance
+                    // Do NOT stop capture 鈥?continue recording for next utterance
                 }
                 override fun onError(error: String) {
                     Log.e(TAG, "Streaming Vosk error: $error")
@@ -408,6 +416,9 @@ class VoiceConversationController(
             val calibrationAmps = mutableListOf<Float>()
             val calibrationStartMs = System.currentTimeMillis()
             var calibrated = false
+            // Rolling window for adaptive threshold (sliding window of recent chunk amplitudes).
+            val rollingWindow = ArrayDeque<Float>()
+            var noiseFloor = streamingSilenceThreshold
 
             try {
                 val captureFlow = audioCaptureManager.startCapture()
@@ -415,16 +426,6 @@ class VoiceConversationController(
                     if (!active) return@collect
                     _amplitude.value = audioCaptureManager.amplitude.value
                     voskTranscriber.acceptWaveform(chunk)
-
-                    // Pause VAD segmentation while TTS is playing to avoid echo loop
-                    // (TTS audio picked up by the mic would be treated as user speech).
-                    // Audio is still fed to Vosk above so ASR buffers the segment.
-                    if (TtsManager.isPlaying.value) {
-                        silenceStartMs = 0L
-                        hasSpeech = false
-                        triggerCounter = 0
-                        return@collect
-                    }
 
                     val amp = _amplitude.value
 
@@ -437,6 +438,7 @@ class VoiceConversationController(
                         }
                         if (calibrationAmps.isNotEmpty()) {
                             val avgNoise = calibrationAmps.average().toFloat()
+                            noiseFloor = avgNoise
                             dynamicThreshold = (avgNoise * streamingThresholdRatio + streamingThresholdBaseAdd)
                                 .coerceAtLeast(streamingSilenceThreshold)
                             Log.i(TAG, "VAD calibrated: avgNoise=$avgNoise, dynamicThreshold=$dynamicThreshold")
@@ -445,13 +447,40 @@ class VoiceConversationController(
                         calibrated = true
                     }
 
+                    // Adaptive threshold with sliding window: maintain rolling average of the last
+                    // N chunk amplitudes and update dynamicThreshold = max(mean*0.3, noiseFloor*3, 0.05).
+                    rollingWindow.addLast(amp)
+                    if (rollingWindow.size > streamingRollingWindowSize) {
+                        rollingWindow.removeFirst()
+                    }
+                    if (rollingWindow.isNotEmpty()) {
+                        val rollingAvg = rollingWindow.average().toFloat()
+                        if (rollingAvg < noiseFloor) {
+                            noiseFloor = rollingAvg
+                        }
+                        dynamicThreshold = maxOf(
+                            rollingAvg * streamingThresholdRatio,
+                            noiseFloor * streamingNoiseFloorMultiplier,
+                            streamingSilenceThreshold
+                        )
+                    }
+
+                    // Hysteresis: speech starts when amp >= dynamicThreshold, but only ends when
+                    // amp drops below dynamicThreshold * hysteresisRatio (0.6). This prevents brief
+                    // amplitude dips from cutting sentences short.
+                    val silenceThreshold = dynamicThreshold * streamingHysteresisRatio
+
                     // Short noise filter: require MIN_TRIGGER_CHUNKS consecutive above-threshold chunks
                     // before treating this as real speech (filters coughs / table bumps / short clicks).
                     if (amp >= dynamicThreshold) {
                         triggerCounter++
-                        silenceStartMs = 0L
                     } else {
                         triggerCounter = 0
+                    }
+
+                    // Reset silence timer whenever amplitude is above the hysteresis floor.
+                    if (amp >= silenceThreshold) {
+                        silenceStartMs = 0L
                     }
 
                     if (triggerCounter >= streamingMinTriggerChunks && !hasSpeech) {
@@ -460,22 +489,28 @@ class VoiceConversationController(
                     }
 
                     if (hasSpeech) {
-                        // Silence detection: amplitude below threshold for streamingSilenceDurationMs ends the segment.
-                        if (amp < dynamicThreshold) {
+                        // Silence detection with hysteresis: amplitude below threshold * 0.6 for
+                        // streamingSilenceDurationMs ends the segment.
+                        if (amp < silenceThreshold) {
                             if (silenceStartMs == 0L) {
                                 silenceStartMs = System.currentTimeMillis()
                             } else if (System.currentTimeMillis() - silenceStartMs >= streamingSilenceDurationMs) {
-                                // Silence detected: end segment and send asynchronously, keep recording
+                                // Silence detected: end segment. Discard segments shorter than
+                                // streamingMinSegmentMs (noise/clicks); only send meaningful speech.
                                 val finalText = voskTranscriber.endSegment()
+                                val segmentMs = System.currentTimeMillis() - speakStartMs
                                 silenceStartMs = 0L
                                 hasSpeech = false
                                 triggerCounter = 0
-                                if (finalText != null && finalText.isNotBlank()) {
+                                if (segmentMs >= streamingMinSegmentMs &&
+                                    finalText != null && finalText.isNotBlank()) {
                                     _partialTranscript.value = ""
                                     Log.i(TAG, "Streaming utterance sent asynchronously: '$finalText'")
                                     scope.launch { handleTranscriptionResult(finalText) }
+                                } else if (segmentMs < streamingMinSegmentMs) {
+                                    Log.i(TAG, "Discarded short segment (${segmentMs}ms < ${streamingMinSegmentMs}ms)")
                                 }
-                                // Continue collecting — do NOT stop capture or streaming session
+                                // Continue collecting 鈥?do NOT stop capture or streaming session
                             }
                         }
                     }
@@ -576,7 +611,7 @@ class VoiceConversationController(
                                 // Surface the error instead of silently restarting listening,
                                 // which discarded the recording and left the composer empty.
                                 handleTranscriptionResult(
-                                    "[No ASR engine ready — configure Vosk or Whisper in Settings]"
+                                    "[No ASR engine ready 鈥?configure Vosk or Whisper in Settings]"
                                 )
                             }
                         }
@@ -604,10 +639,10 @@ class VoiceConversationController(
                 }
             }
             if (!voskTranscriber.isReady()) {
-                Log.e(TAG, "No Vosk model ready for $langCode — download one in Settings → Speech")
+                Log.e(TAG, "No Vosk model ready for $langCode 鈥?download one in Settings 鈫?Speech")
                 wavFile.delete()
                 handleTranscriptionResult(
-                    "[Vosk model not loaded — download in Settings → Speech]"
+                    "[Vosk model not loaded 鈥?download in Settings 鈫?Speech]"
                 )
                 return
             }
@@ -735,7 +770,7 @@ class VoiceConversationController(
             val errorMsg = if (cleanText.startsWith("[")) {
                 cleanText.removeSurrounding("[", "]")
             } else {
-                "Transcription was empty — speak louder or closer to the mic"
+                "Transcription was empty 鈥?speak louder or closer to the mic"
             }
             when (_mode.value) {
                 Mode.SINGLE_ASR -> {
@@ -764,7 +799,7 @@ class VoiceConversationController(
             Mode.CONVERSATION -> {
                 if (isStreamingConversation) {
                     // Continuous streaming mode: don't change state, don't wait for LLM
-                    // Keep recording — LLM response + TTS will play while recording continues
+                    // Keep recording 鈥?LLM response + TTS will play while recording continues
                     scope.launch { sendMessage(cleanText) }
                 } else {
                     _state.value = State.PROCESSING
