@@ -95,7 +95,7 @@ internal fun TaskMonthDayPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         title = {
             Text(
@@ -119,7 +119,7 @@ internal fun TaskMonthDayPickerDialog(
                         expanded = showMonthMenu,
                         onDismissRequest = { showMonthMenu = false },
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                     ) {
                         monthNames.forEachIndexed { index, monthName ->
                             val month = index + 1
@@ -293,7 +293,7 @@ internal fun TaskDatePickerDialog(
                 Text(stringResource(R.string.cancel))
             }
         },
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = pickerColors,
     ) {
         DatePicker(
@@ -376,7 +376,7 @@ internal fun TaskTimePickerDialog(
     )
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         title = {
             Text(stringResource(R.string.task_at), fontWeight = FontWeight.Bold)
