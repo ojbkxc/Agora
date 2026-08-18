@@ -27,6 +27,13 @@ object ToolTierPolicy {
         "get_shell_job", "list_shell_jobs", "wait_for_job",
         "create_plan", "update_plan_item", "edit_plan",
         "ask_user",
+        // file_write/file_edit are HighRisk but essential Agent-mode capabilities (code/file
+        // editing). Tier classification controls *visibility*, not *safety* — RiskLevel plus
+        // the providers' internal confirm gate still guard these tools. Placing them in Extended
+        // ensures the "extended" tier retains full editing capability for Agent mode. Plan mode
+        // (Core + Extended) still excludes them via filterByAgentMode, which filters HighRisk
+        // regardless of tier, so Plan stays read-only as intended.
+        "file_write", "file_edit",
     )
 
     fun tierOf(toolName: String): ToolTier = when {

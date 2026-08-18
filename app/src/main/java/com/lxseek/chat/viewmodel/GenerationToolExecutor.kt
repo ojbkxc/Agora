@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 
 internal data class AuthorizedToolCall(
@@ -202,6 +203,7 @@ internal class GenerationToolExecutor private constructor(
         call: AuthorizedToolCall,
         onEvent: suspend (ToolExecutionEvent) -> Unit,
     ): AuthorizedToolResult {
+        val startMs = System.currentTimeMillis()
         val completeArguments = call.arguments.ifBlank { "{}" }
         val argumentsAreCompleteObject = runCatching {
             Json.parseToJsonElement(completeArguments).jsonObject
@@ -214,6 +216,12 @@ internal class GenerationToolExecutor private constructor(
                 ),
             )
         }
+
+        // Best-effort extraction of the optional "server" field for action trace.
+        // Not every tool carries a server argument; null is the correct value when absent.
+        val serverName = runCatching {
+            (Json.parseToJsonElement(completeArguments).jsonObject["server"] as? JsonPrimitive)?.contentOrNull
+        }.getOrNull()
 
         val result = try {
             val provider = providers.firstOrNull { it.handles(call.name) }
@@ -291,11 +299,11 @@ internal class GenerationToolExecutor private constructor(
                 argumentsSummary = completeArguments.take(500),
                 resultSummary = finalResult.text.take(500),
                 isError = finalResult.isError,
-                server = null,
+                server = serverName,
                 conversationId = call.context.conversationId,
                 runId = call.batchIdentity.runId,
                 timestampMs = System.currentTimeMillis(),
-                durationMs = 0,
+                durationMs = System.currentTimeMillis() - startMs,
             )
         )
         return call.result(finalResult)
