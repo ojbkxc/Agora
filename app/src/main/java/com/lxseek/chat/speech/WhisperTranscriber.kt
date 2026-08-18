@@ -16,6 +16,17 @@ class WhisperTranscriber(
     companion object {
         private const val TAG = "WhisperTranscriber"
         private const val TIMEOUT_MS = 60000
+        private const val TRANSCRIPTION_PATH = "/audio/transcriptions"
+
+        /** Accepts either a full transcription endpoint or an OpenAI-compatible base URL and
+         *  returns the real transcription URL. Providers hand the app their LLM chat base (e.g.
+         *  "…/openai/v1"); sending that verbatim as the POST target 404s, so we append the
+         *  speech path when it is missing. */
+        fun normalizeTranscriptionUrl(raw: String): String {
+            val base = raw.trim().trimEnd('/')
+            if (base.isEmpty()) return base
+            return if (base.endsWith(TRANSCRIPTION_PATH)) base else "$base$TRANSCRIPTION_PATH"
+        }
     }
 
     suspend fun transcribe(
@@ -29,7 +40,7 @@ class WhisperTranscriber(
 
         var connection: HttpsURLConnection? = null
         try {
-            val url = URL(baseUrlProvider())
+            val url = URL(normalizeTranscriptionUrl(baseUrlProvider()))
             val boundary = "----WebKitFormBoundary${System.currentTimeMillis()}"
 
             connection = (url.openConnection() as HttpsURLConnection).apply {

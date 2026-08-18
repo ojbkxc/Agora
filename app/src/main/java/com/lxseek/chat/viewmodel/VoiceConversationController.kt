@@ -236,18 +236,38 @@ class VoiceConversationController(
         }
     }
 
-    /** Resolve the configured voice recognition language to a Vosk model code. */
+    /** Resolve the configured voice recognition language to a Vosk model code. Prefers an exact
+     *  downloaded model, then a downloaded model with the same base code, then any installed
+     *  model — so offline recognition still engages instead of being silently skipped. */
     private fun resolveVoskLanguage(): String {
         val pref = try { voiceLanguageProvider().trim().lowercase() } catch (e: Throwable) {
             Log.e(TAG, "voiceLanguageProvider crashed: ${e.message}", e); "en"
         }
-        if (pref.isBlank() || pref == "system") return "en"
+        val downloaded = try { voskTranscriber.getDownloadedLanguages() } catch (e: Throwable) { emptyList() }
+
+        // No offline model installed at all: return the requested code so initialize() fails
+        // with a clear reason and the caller falls back to whisper/system.
+        if (downloaded.isEmpty()) {
+            return if (pref.isBlank() || pref == "system") "en" else pref.split("-").first()
+        }
+
+        // User didn't pin a language: engage offline with whatever model is installed instead
+        // of defaulting to "en" and silently skipping an installed non-English model.
+        if (pref.isBlank() || pref == "system") {
+            Log.i(TAG, "No pinned Vosk language, using installed model: ${downloaded.first()}")
+            return downloaded.first()
+        }
+
         val base = pref.split("-").first()
         // Prefer an exact downloaded model; otherwise pick a downloaded model whose
         // base code matches (e.g. "zh" selected while "zh-full" is downloaded).
-        val downloaded = try { voskTranscriber.getDownloadedLanguages() } catch (e: Throwable) { emptyList() }
-        if (downloaded.isEmpty() || downloaded.contains(base)) return base
-        return downloaded.firstOrNull { VoskTranscriber.getBaseLanguageCode(it) == base } ?: base
+        if (downloaded.contains(base)) return base
+        downloaded.firstOrNull { VoskTranscriber.getBaseLanguageCode(it) == base }?.let { return it }
+
+        // No matching model downloaded: fall back to any installed model so offline
+        // recognition still engages.
+        Log.w(TAG, "No downloaded Vosk model for '$pref', falling back to ${downloaded.first()}")
+        return downloaded.first()
     }
 
     private fun beginVoskCapture() {
