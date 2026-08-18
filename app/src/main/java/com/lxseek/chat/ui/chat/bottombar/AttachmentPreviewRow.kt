@@ -223,7 +223,7 @@ internal fun AttachmentPreviewRow(
                             .offset(x = 5.dp, y = (-5).dp)
                         .size(18.dp)
                         .background(Color.Black.copy(alpha = 0.8f), CircleShape)
-                        .clip(RoundedCornerShape(18.dp))
+                        .clip(CircleShape)
                         .clickable {
                             composer.removeAttachmentAt(index)
                         },

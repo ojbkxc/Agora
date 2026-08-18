@@ -89,7 +89,7 @@ internal fun VoiceConversationStatusOverlay(
         modifier = modifier,
     ) {
         Surface(
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
             tonalElevation = 3.dp,
             shadowElevation = 2.dp,

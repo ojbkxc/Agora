@@ -46,15 +46,15 @@ import com.lxseek.chat.util.Constants
 import com.lxseek.chat.util.noOpBringIntoView
 import com.lxseek.chat.viewmodel.ChatViewModel
 
-// Shape constants matching SettingsGroup's per-position rounding.
+// Shape constants matching SettingsGroup's per-position rounding (12dp outer edges, 4dp where cards meet).
 // Each encodes top-corners / bottom-corners for its place in the group.
-private val FullRounded   = RoundedCornerShape(24.dp)
-private val TopRounded    = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
-private val BottomRounded = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-private val MidRounded    = RoundedCornerShape(5.dp)
+private val FullRounded   = RoundedCornerShape(12.dp)
+private val TopRounded    = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+private val BottomRounded = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+private val MidRounded    = RoundedCornerShape(4.dp)
 private val FlatShape     = RoundedCornerShape(0.dp)
-private val FlatToBottom  = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-private val FiveBottom    = RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp)
+private val FlatToBottom  = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+private val FourBottom    = RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp)
 
 private val RemoteModelProviders = listOf(
     Constants.PROVIDER_GOOGLE,
@@ -902,7 +902,7 @@ private fun LazyListScope.modelProviderGroups(
                             val modelShape = when {
                                 isLastModel && isLastProvider && lastGroupClosesSection ->
                                     FlatToBottom
-                                isLastModel -> FiveBottom
+                                isLastModel -> FourBottom
                                 else -> FlatShape
                             }
                             CardSurface(shape = modelShape) {
