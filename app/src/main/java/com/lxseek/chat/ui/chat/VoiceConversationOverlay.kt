@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -118,7 +119,8 @@ internal fun VoiceConversationOverlay(
             onClick = onExit,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 12.dp, end = 8.dp)
+                .statusBarsPadding()
+                .padding(top = 8.dp, end = 8.dp)
                 .size(48.dp),
         ) {
             Surface(
@@ -242,8 +244,8 @@ private fun HaloRing(
     }
     val amp = smoothAmp.value
     Canvas(modifier = modifier.rotate(rotation)) {
-        val stroke = size.minDimension * (0.008f + 0.008f * amp)
-        val alphaBoost = 0.35f + 0.65f * amp
+        val stroke = size.minDimension * (0.006f + 0.022f * amp)
+        val alphaBoost = 0.20f + 0.80f * amp
         drawArc(
             brush = Brush.sweepGradient(
                 0f to color.copy(alpha = 0f),
@@ -300,7 +302,7 @@ internal fun VoiceSpectrumRing(
         val amp = smoothAmp.value
         // amplitude is already boosted into ~0.25-1.0 during speech by the controller; stretch
         // it across the full bar range so quiet speech shows and loud speech pushes bars out.
-        val boosted = (amp * 1.4f).coerceIn(0f, 1f)
+        val boosted = (amp * 1.9f).coerceIn(0f, 1f)
         val drift = t * 0.004f
         val step = 360f / SPECTRUM_BARS
 
@@ -312,14 +314,14 @@ internal fun VoiceSpectrumRing(
             val wave = 0.5f + 0.3f * sin(rad * 3f + drift * 6f) +
                 0.2f * sin(rad * 7f - drift * 3f)
             val noise = 0.7f + 0.3f * sin(i * 4.7f + drift * 9f)
-            val len = (0.08f + boosted * 0.92f * wave.coerceIn(0f, 1f) * noise).coerceIn(0.06f, 1f)
+            val len = (0.05f + boosted * 0.95f * wave.coerceIn(0f, 1f) * noise).coerceIn(0.04f, 1f)
             val r0 = innerR + (outerR - innerR) * 0.05f
             val r1 = innerR + (outerR - innerR) * len
             val x0 = cx + cos(rad) * r0
             val y0 = cy + sin(rad) * r0
             val x1 = cx + cos(rad) * r1
             val y1 = cy + sin(rad) * r1
-            val alpha = 0.30f + 0.70f * len
+            val alpha = 0.20f + 0.80f * len
             drawLine(
                 color = accent.copy(alpha = alpha),
                 start = Offset(x0, y0),

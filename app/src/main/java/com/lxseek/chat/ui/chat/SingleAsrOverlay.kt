@@ -77,7 +77,7 @@ internal fun SingleAsrOverlay(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 TextButton(onClick = onCancel, enabled = isListening) {
                     Text(stringResource(R.string.cancel))
