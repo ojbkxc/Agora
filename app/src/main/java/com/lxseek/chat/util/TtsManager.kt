@@ -219,6 +219,8 @@ object TtsManager {
         enginesToTry = mutableListOf<String?>().apply {
             add(null)
             if (!defaultEngine.isNullOrEmpty()) add(defaultEngine)
+            // Prefer Xiaomi XiaoAi TTS engine for a more natural voice when present.
+            if ("com.xiaomi.mibrain.speech" !in this) add("com.xiaomi.mibrain.speech")
             for (e in resolvedEngines) if (e !in this) add(e)
             if ("com.google.android.tts" !in this) add("com.google.android.tts")
         }
