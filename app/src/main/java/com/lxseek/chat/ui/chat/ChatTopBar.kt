@@ -431,8 +431,14 @@ private fun ShareSelectionTopBar(
     onDismiss: () -> Unit,
     onToggleAll: () -> Unit,
 ) {
+    // Apply statusBarsPadding so the "Selected N" title and action buttons are not
+    // obscured by the system status bar. ChatTopBar's normal (non-share) branch uses
+    // statusBarsPadding() on its AnimatedContent (see line ~165); the share-selection
+    // branch must do the same to stay within the safe top inset.
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding(),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
