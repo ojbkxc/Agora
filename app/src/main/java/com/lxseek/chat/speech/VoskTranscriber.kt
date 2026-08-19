@@ -664,6 +664,7 @@ class VoskTranscriber(private val context: Context) {
                     val finalJson = recognizer.finalResult
                     val finalText = JSONObject(finalJson).optString("text", "").trim()
                     recognizer.reset()
+                    Log.d(TAG, "stream endpoint detected by Vosk: final='$finalText'")
                     if (finalText.isNotBlank()) {
                         callback.onFinalResult(finalText)
                     }

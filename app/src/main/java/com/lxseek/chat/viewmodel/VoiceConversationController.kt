@@ -436,6 +436,10 @@ class VoiceConversationController(
             // Rolling window for adaptive threshold (sliding window of recent chunk amplitudes).
             val rollingWindow = ArrayDeque<Float>()
             var noiseFloor = streamingSilenceThreshold
+            // Slice-feed statistics: how many PCM chunks / bytes have been pushed into Vosk.
+            var chunkCount = 0L
+            var totalBytes = 0L
+            var lastFeedLogChunks = 0L
 
             try {
                 val captureFlow = audioCaptureManager.startCapture()
@@ -446,6 +450,12 @@ class VoiceConversationController(
                     // so its silence thresholds are unaffected by the display scaling.
                     _amplitude.value = (rawAmp * AMPLITUDE_BOOST).coerceIn(0f, 1f)
                     voskTranscriber.acceptWaveform(chunk)
+                    chunkCount++
+                    totalBytes += chunk.size
+                    if (chunkCount - lastFeedLogChunks >= 20) {
+                        lastFeedLogChunks = chunkCount
+                        Log.i(TAG, "Streaming feed: $chunkCount chunks (~${totalBytes / 32000}s audio) pushed to Vosk")
+                    }
 
                     val amp = rawAmp
 
@@ -506,6 +516,7 @@ class VoiceConversationController(
                     if (triggerCounter >= streamingMinTriggerChunks && !hasSpeech) {
                         hasSpeech = true
                         speakStartMs = System.currentTimeMillis()
+                        Log.i(TAG, "VAD: speech start (amp=$amp, threshold=$dynamicThreshold)")
                     }
 
                     if (hasSpeech) {
@@ -514,6 +525,7 @@ class VoiceConversationController(
                         if (amp < silenceThreshold) {
                             if (silenceStartMs == 0L) {
                                 silenceStartMs = System.currentTimeMillis()
+                                Log.d(TAG, "VAD: silence start (amp=$amp < $silenceThreshold), segment may end in ${streamingSilenceDurationMs}ms")
                             } else if (System.currentTimeMillis() - silenceStartMs >= streamingSilenceDurationMs) {
                                 // Silence detected: end segment. Discard segments shorter than
                                 // streamingMinSegmentMs (noise/clicks); only send meaningful speech.
@@ -525,10 +537,12 @@ class VoiceConversationController(
                                 if (segmentMs >= streamingMinSegmentMs &&
                                     finalText != null && finalText.isNotBlank()) {
                                     _partialTranscript.value = ""
-                                    Log.i(TAG, "Streaming utterance sent asynchronously: '$finalText'")
+                                    Log.i(TAG, "Streaming utterance sent asynchronously: '$finalText' (${segmentMs}ms)")
                                     scope.launch { handleTranscriptionResult(finalText) }
                                 } else if (segmentMs < streamingMinSegmentMs) {
                                     Log.i(TAG, "Discarded short segment (${segmentMs}ms < ${streamingMinSegmentMs}ms)")
+                                } else {
+                                    Log.i(TAG, "VAD segment ended but empty text (${segmentMs}ms), skipping")
                                 }
                                 // Continue collecting 鈥?do NOT stop capture or streaming session
                             }
@@ -539,6 +553,7 @@ class VoiceConversationController(
                 Log.e(TAG, "Streaming capture flow crashed: ${e.javaClass.simpleName}: ${e.message}", e)
                 if (active) { _state.value = State.IDLE }
             } finally {
+                Log.i(TAG, "Streaming session ended: $chunkCount chunks, $totalBytes bytes (~${totalBytes / 32000}s audio) pushed to Vosk")
                 voskTranscriber.stopStreamingSession()
             }
         }
