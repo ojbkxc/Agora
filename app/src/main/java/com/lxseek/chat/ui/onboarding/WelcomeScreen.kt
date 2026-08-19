@@ -470,11 +470,13 @@ fun WelcomeScreen(
                                 index == PAGE_API_KEY && isCustomProvider -> stringResource(R.string.onboarding_custom_title)
                                 else -> page.title
                             }
+                            // Capture delegated property to local val for smart cast (selectedProvider is `by remember { mutableStateOf }`)
+                            val providerForDesc = selectedProvider
                             val desc = when {
-                                index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_LOCAL -> stringResource(R.string.onboarding_gguf_desc)
-                                index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_OLLAMA -> stringResource(R.string.onboarding_ollama_desc)
+                                index == PAGE_API_KEY && providerForDesc == Constants.PROVIDER_LOCAL -> stringResource(R.string.onboarding_gguf_desc)
+                                index == PAGE_API_KEY && providerForDesc == Constants.PROVIDER_OLLAMA -> stringResource(R.string.onboarding_ollama_desc)
                                 index == PAGE_API_KEY && isCustomProvider -> stringResource(R.string.onboarding_custom_desc)
-                                index == PAGE_API_KEY && selectedProvider != null -> stringResource(R.string.onboarding_api_key_for, selectedProvider)
+                                index == PAGE_API_KEY && providerForDesc != null -> stringResource(R.string.onboarding_api_key_for, providerForDesc)
                                 else -> page.description
                             }
                             val isCurrent = pagerState.currentPage == index
