@@ -28,7 +28,7 @@ jobs:
             PUSH_TAG="${GITHUB_REF#refs/tags/}"
             VERSION="${PUSH_TAG#v}"
           else
-            VERSION=$(grep 'versionName' app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+            VERSION=$(grep '?: "' app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
           fi
           TAG="v${VERSION}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
