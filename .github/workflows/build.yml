@@ -19,21 +19,21 @@ jobs:
       - uses: actions/checkout@v4
       - id: v
         run: |
-          # Version always comes from build.gradle.kts — single source of truth.
-          # This eliminates the class of "manual input ≠ code version" failures.
-          VERSION=$(grep 'versionName' app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          # Source of truth depends on the trigger:
+          # - push (tag v*): extract version from the pushed tag (refs/tags/v1.0.62 -> 1.0.62).
+          #   This makes `git tag v1.0.62 && git push origin v1.0.62` the only release step.
+          # - workflow_dispatch (manual, no tag): fall back to the versionName hardcoded in
+          #   app/build.gradle.kts so manual runs still produce a sensible version.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            PUSH_TAG="${GITHUB_REF#refs/tags/}"
+            VERSION="${PUSH_TAG#v}"
+          else
+            VERSION=$(grep 'versionName' app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          fi
           TAG="v${VERSION}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Resolved version: $VERSION (tag: $TAG)"
-          # For tag push, verify the pushed tag matches build.gradle.kts.
-          if [ "${{ github.event_name }}" = "push" ]; then
-            PUSH_TAG="${GITHUB_REF#refs/tags/}"
-            if [ "$TAG" != "$PUSH_TAG" ]; then
-              echo "::error::Tag mismatch! build.gradle.kts versionName is '$VERSION' (tag '$TAG') but pushed tag is '$PUSH_TAG'"
-              exit 1
-            fi
-          fi
+          echo "Resolved version: $VERSION (tag: $TAG) from ${{ github.event_name }}"
 
   build-android:
     needs: get-version
@@ -92,7 +92,7 @@ jobs:
           ./gradlew verifyKotlinFileSize
 
       - name: Build F-Droid Release APK
-        run: ./gradlew assembleFdroidRelease
+        run: ./gradlew assembleFdroidRelease -PappVersionName=${VERSION}
 
       - name: Rename and collect APK
         run: |

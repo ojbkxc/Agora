@@ -23,12 +23,21 @@ android {
 
     ndkVersion = "28.2.13676358"
 
+    // Version: prefer gradle properties (passed by CI from git tag) over hardcoded fallback.
+    // Release flow: git tag v1.0.62 && git push origin v1.0.62 -> CI extracts 1.0.62 and
+    // passes -PappVersionName=1.0.62. Local builds without the property use the fallback below.
+    val appVersionName: String = (project.findProperty("appVersionName") as String?)
+        ?: "1.0.62"
+    val appVersionCode: Int = (project.findProperty("appVersionCode") as String?)?.toIntOrNull()
+        ?: appVersionName.substringAfterLast(".").toIntOrNull()
+        ?: 63
+
     defaultConfig {
         applicationId = "com.lxseek.chat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 63
-        versionName = "1.0.62"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
 
         ndk {
