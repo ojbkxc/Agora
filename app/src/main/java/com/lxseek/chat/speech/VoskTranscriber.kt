@@ -222,7 +222,9 @@ class VoskTranscriber(private val context: Context) {
                 Log.i(TAG, "Found model file at ${foundMdlFile.relativeTo(modelDir)} instead of $expectedPath")
             }
 
-            Log.i(TAG, "Loading Vosk model for $languageCode from ${modelDir.absolutePath}")
+            val rt = Runtime.getRuntime()
+            val freeHeapMb = (rt.maxMemory() - rt.totalMemory() + rt.freeMemory()) / 1024 / 1024
+            Log.i(TAG, "Loading Vosk model for $languageCode from ${modelDir.absolutePath} (free heap ~${freeHeapMb}MB)")
 
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
 
@@ -438,6 +440,7 @@ class VoskTranscriber(private val context: Context) {
                 ", file: ${audioFile.name}")
 
             val audioBytes = readWavFile(audioFile)
+            Log.i(TAG, "Read ${audioBytes.size} bytes PCM (${audioBytes.size / (SAMPLE_RATE.toInt() * 2)}s of 16kHz mono) from ${audioFile.name}")
 
             val primaryResult = recognizeWithModel(currentModel, audioBytes, "primary")
 
@@ -465,6 +468,9 @@ class VoskTranscriber(private val context: Context) {
     }
 
     private fun recognizeWithModel(model: Model, audioBytes: ByteArray, label: String): String {
+        if (audioBytes.isEmpty()) {
+            Log.w(TAG, "recognizeWithModel($label): empty audio buffer — nothing to transcribe")
+        }
         val recognizer = Recognizer(model, SAMPLE_RATE)
         recognizer.setMaxAlternatives(0)
         recognizer.setWords(true)
@@ -472,6 +478,7 @@ class VoskTranscriber(private val context: Context) {
         val chunkSize = 8000
         var offset = 0
         var lastPartial = ""
+        Log.i(TAG, "recognizeWithModel($label): ${audioBytes.size} bytes, ${audioBytes.size / chunkSize + 1} chunks")
 
         while (offset < audioBytes.size) {
             val end = minOf(offset + chunkSize, audioBytes.size)
@@ -516,10 +523,15 @@ class VoskTranscriber(private val context: Context) {
     }
 
     private fun readWavFile(file: File): ByteArray {
+        Log.i(TAG, "readWavFile: ${file.name} (${file.length()} bytes on disk)")
         FileInputStream(file).use { fis ->
             val header = ByteArray(44)
             fis.read(header)
-            return fis.readBytes()
+            val data = fis.readBytes()
+            if (data.isEmpty()) {
+                Log.w(TAG, "readWavFile: no audio data after WAV header — file is empty or corrupt")
+            }
+            return data
         }
     }
 
@@ -659,6 +671,7 @@ class VoskTranscriber(private val context: Context) {
                     val partialJson = recognizer.partialResult
                     val partialText = JSONObject(partialJson).optString("partial", "")
                     if (partialText.isNotBlank()) {
+                        Log.d(TAG, "stream partial: $partialText")
                         callback.onPartialResult(partialText)
                     }
                 }

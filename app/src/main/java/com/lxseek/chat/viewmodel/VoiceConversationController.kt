@@ -668,8 +668,10 @@ class VoiceConversationController(
         _state.value = State.TRANSCRIBING
         try {
             val langCode = resolveVoskLanguage()
+            Log.i(TAG, "transcribeWithVosk: lang=$langCode, wav=${wavFile.length()} bytes, voskReady=${voskTranscriber.isReady()}")
             if (!voskTranscriber.isReady()) {
                 val initialized = voskTranscriber.initialize(langCode)
+                Log.i(TAG, "transcribeWithVosk: initialize($langCode)=$initialized, ready=${voskTranscriber.isReady()}")
                 if (!initialized) {
                     Log.w(TAG, "Vosk model not available for $langCode, trying en")
                     voskTranscriber.initialize("en")
@@ -685,6 +687,7 @@ class VoiceConversationController(
             }
             Log.i(TAG, "Vosk transcribing ${wavFile.name}...")
             val text = voskTranscriber.transcribe(wavFile)
+            Log.i(TAG, "transcribeWithVosk: raw result='$text'")
             wavFile.delete()
             handleTranscriptionResult(text)
         } catch (e: Throwable) {

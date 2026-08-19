@@ -65,6 +65,7 @@ class AudioCaptureManager(private val context: Context) {
         try {
             outputFile = File(context.cacheDir, "audio_${System.currentTimeMillis()}.pcm")
             pcmOutputStream = FileOutputStream(outputFile)
+            Log.i(TAG, "Starting AudioRecord: rate=$SAMPLE_RATE, mono, PCM16, bufferSize=$bufferSize, perm=${hasRecordPermission()}")
 
             audioRecord = AudioRecord(
                 MediaRecorder.AudioSource.MIC,
@@ -74,14 +75,16 @@ class AudioCaptureManager(private val context: Context) {
                 bufferSize
             )
 
-            if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
-                close(IllegalStateException("AudioRecord failed to initialize"))
+            val audioState = audioRecord?.state
+            if (audioState != AudioRecord.STATE_INITIALIZED) {
+                Log.e(TAG, "AudioRecord failed to initialize (state=$audioState); mic may be in use or permission denied")
+                close(IllegalStateException("AudioRecord failed to initialize (state=$audioState)"))
                 return@callbackFlow
             }
 
             audioRecord?.startRecording()
             isRecording = true
-            Log.i(TAG, "Audio capture started")
+            Log.i(TAG, "Audio capture started (pcm=${outputFile?.absolutePath})")
 
             val buffer = ByteArray(bufferSize)
 
@@ -116,6 +119,7 @@ class AudioCaptureManager(private val context: Context) {
 
         val pcmFile = outputFile ?: throw IllegalStateException("No recording in progress")
         val wavFile = File(context.cacheDir, "audio_${System.currentTimeMillis()}.wav")
+        Log.i(TAG, "stopCapture: pcm=${pcmFile.length()} bytes -> ${wavFile.name}")
 
         try {
             convertPcmToWav(pcmFile, wavFile)
@@ -125,6 +129,7 @@ class AudioCaptureManager(private val context: Context) {
         }
 
         pcmFile.delete()
+        Log.i(TAG, "WAV written: ${wavFile.absolutePath} (${wavFile.length()} bytes)")
         return wavFile
     }
 
@@ -199,6 +204,10 @@ class AudioCaptureManager(private val context: Context) {
 
     private fun convertPcmToWav(pcmFile: File, wavFile: File) {
         val pcmData = pcmFile.readBytes()
+        if (pcmData.isEmpty()) {
+            Log.w(TAG, "convertPcmToWav: PCM is EMPTY (0 bytes) — nothing was captured; mic may be silent/blocked")
+        }
+        Log.i(TAG, "convertPcmToWav: ${pcmData.size} bytes PCM (${pcmData.size / (SAMPLE_RATE * 2)}s of 16kHz mono audio)")
         val totalAudioLen = pcmData.size.toLong()
         val totalDataLen = totalAudioLen + 36
         val channels = 1
