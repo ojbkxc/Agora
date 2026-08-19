@@ -234,19 +234,23 @@ class VoskTranscriber(private val context: Context) {
 
             Log.i(TAG, "Vosk model loaded for $languageCode")
             return@withContext true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to load Vosk model for $languageCode: ${e.message}", e)
-            Log.e(TAG, "Exception type: ${e.javaClass.name}")
-            val cause = e.cause
-            if (cause != null) {
-                Log.e(TAG, "Cause: ${cause.message}", cause)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            when (e) {
+                is OutOfMemoryError -> {
+                    Log.e(TAG, "Out of memory loading Vosk model for $languageCode", e)
+                    System.gc()
+                }
+                else -> {
+                    // Catch Error too (e.g. UnsatisfiedLinkError from the native vosk lib).
+                    // The previous catch(Exception) missed it, so the failure was silent.
+                    Log.e(TAG, "Failed to load Vosk model for $languageCode: ${e.message}", e)
+                    Log.e(TAG, "Exception type: ${e.javaClass.name}")
+                    e.cause?.let { Log.e(TAG, "Cause: ${it.message}", it) }
+                }
             }
             isModelLoaded = false
-            return@withContext false
-        } catch (e: OutOfMemoryError) {
-            Log.e(TAG, "Out of memory loading Vosk model for $languageCode", e)
-            isModelLoaded = false
-            System.gc()
             return@withContext false
         }
     }
@@ -719,9 +723,43 @@ class VoskTranscriber(private val context: Context) {
             if (dir.exists()) {
                 val size = getModelSize(lang.code)
                 sb.append("  ${lang.code}: ${size / 1_000_000}MB at ${dir.absolutePath}\n")
+                // Key files a vosk model needs: the acoustic model + conf. If any are missing
+                // the native Model() constructor fails even though the dir looks "downloaded".
+                val amFinal = File(dir, "am/final.mdl").exists()
+                val amModel = File(dir, "am/model.mdl").exists()
+                val flatMdl = File(dir, "final.mdl").exists() || File(dir, "model.mdl").exists()
+                val mfcc = File(dir, "conf/mfcc.conf").exists()
+                val modelConf = File(dir, "conf/model.conf").exists()
+                sb.append("      am/final.mdl=$amFinal am/model.mdl=$amModel flatMdl=$flatMdl conf/mfcc.conf=$mfcc conf/model.conf=$modelConf\n")
             }
         }
+        if (!isModelLoaded) {
+            // Report which required files are missing (no native Model() load here — this runs
+            // on the UI thread from the diagnostics screen and must not block).
+            sb.append("en load probe: ${getLoadFailureReason("en") ?: "required files present (load error will be logged on next attempt)"}\n")
+        }
         return sb.toString()
+    }
+
+    /**
+     * Read-only check of the files a vosk model needs to load. Returns null when the model
+     * directory looks complete, or a description of the missing pieces otherwise. It does NOT
+     * construct a native [Model] (that runs on the UI thread from the diagnostics screen);
+     * a native load failure (e.g. UnsatisfiedLinkError) is instead recorded by [initialize]'s
+     * catch-all Throwable handler and appears in AppLog.
+     */
+    fun getLoadFailureReason(languageCode: String = currentLanguage): String? {
+        val modelDir = getModelDirectory(languageCode)
+        if (!modelDir.exists()) return "model dir missing at ${modelDir.absolutePath}"
+        val missing = mutableListOf<String>()
+        val hasMdl = File(modelDir, "am/final.mdl").exists() ||
+            File(modelDir, "am/model.mdl").exists() ||
+            File(modelDir, "final.mdl").exists() ||
+            File(modelDir, "model.mdl").exists()
+        if (!hasMdl) missing.add("acoustic model (.mdl)")
+        if (!File(modelDir, "conf/mfcc.conf").exists()) missing.add("conf/mfcc.conf")
+        if (!File(modelDir, "conf/model.conf").exists()) missing.add("conf/model.conf")
+        return if (missing.isEmpty()) null else "missing: ${missing.joinToString(", ")}"
     }
 
     sealed class DownloadState {
