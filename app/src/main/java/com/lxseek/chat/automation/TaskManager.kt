@@ -501,9 +501,19 @@ class TaskManager(
     }
 
     private suspend fun cancelExecutions(taskId: String) {
+        // Both manual runs and WorkManager workers reserve the id before generating (A3).
+        // If an execution is in flight, cancelAllWorkByTag would terminate the LLM call and
+        // leave a half-persisted message; delete/edit only needs to stop the *schedule* —
+        // the running worker finishes and the revision/nextRunAt guard neutralizes any queued
+        // occurrence.
+        val running = synchronized(reservationMonitor) { taskId in reservedTaskIds }
         manualJobs[taskId]?.cancel()
-        runCatching { cancelScheduledExecution(taskId) }
-            .onFailure { DebugLog.w("TaskManager", "Failed to cancel work for $taskId", it) }
+        if (!running) {
+            runCatching { cancelScheduledExecution(taskId) }
+                .onFailure { DebugLog.w("TaskManager", "Failed to cancel work for $taskId", it) }
+        } else {
+            DebugLog.d("TaskManager", "Task $taskId is running; WorkManager cancel skipped (in-flight generation preserved)")
+        }
     }
 
     private fun reserve(taskId: String): Boolean = synchronized(reservationMonitor) {

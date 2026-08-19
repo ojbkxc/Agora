@@ -181,9 +181,10 @@ class LoopManagerTest {
         val result = manager.executeByConversationId("conversation")
 
         assertTrue(result is LoopManager.ExecutionResult.Superseded)
-        // The durable pre-generation claim remains consumed even though stop superseded
-        // completion. Replaying that cycle could duplicate provider/tool side effects.
-        assertEquals(1, stored.value!!.cycleCount)
+        // The pre-generation claim no longer consumes a cycle (A2): a superseded or
+        // infrastructure-failed cycle must not burn maxCycles budget, or a maxCycles=1
+        // loop could die before its first real generation.
+        assertEquals(0, stored.value!!.cycleCount)
         assertFalse(stored.value!!.active)
         assertEquals(11L, stored.value!!.revision)
     }

@@ -38,16 +38,16 @@ internal class GenerationCompletionEffectsExecutor(
         request: GenerationCompletionEffectsRequest,
         callbacks: GenerationCompletionEffectsCallbacks,
     ) {
+        // Terminal UI cleanup is independent of durability: a failed persist must never leave
+        // the composer stuck in the generating state or a stale stream on screen (C3).
+        callbacks.onStreamClear()
+        callbacks.onLoadingChange(false)
         try {
             if (request.terminalPersisted && request.text.isNotBlank()) {
                 callbacks.onMessagePersisted?.invoke(request.modelMessageId, request.text)
             }
         } catch (_: Exception) {
             // Indexing is non-authoritative and must never break terminal cleanup.
-        }
-        if (request.terminalPersisted) {
-            callbacks.onStreamClear()
-            callbacks.onLoadingChange(false)
         }
         if (request.foregroundLeaseAcquired) {
             releaseForegroundLease(request.modelMessageId)

@@ -32,7 +32,7 @@ internal class ComposerSendAdapter(
         // Acceptance transfers ownership before the composer clears. Direct inputs are Room-owned;
         // queued guidance remains memory-owned until its later drain boundary.
         val attachmentsToReclaim = withContext(NonCancellable) {
-            drafts.clearAccepted(acceptance.conversationId)
+            drafts.clearAccepted(acceptance.conversationId, text, attachments)
         }
         withContext(mainDispatcher + NonCancellable) {
             onAccepted()

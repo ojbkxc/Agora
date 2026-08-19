@@ -75,6 +75,11 @@ internal fun ComposerSendButton(
     val haptics = LocalAgoraHaptics.current
     val submitScope = rememberCoroutineScope()
     var isSubmitting by remember { mutableStateOf(false) }
+    // Snapshot captured at the moment the send button is tapped. pendingSend is shared across
+    // conversations (the composer outlives conversation switches), so submitting whatever the
+    // shared field holds later could send the *new* conversation's draft (C1).
+    var pendingSendText by remember { mutableStateOf("") }
+    var pendingSendAttachments by remember { mutableStateOf<List<SelectedAttachment>>(emptyList()) }
     val anyProcessing = composer.processingStates.isNotEmpty()
 
     suspend fun submit(
@@ -105,10 +110,16 @@ internal fun ComposerSendButton(
 
     LaunchedEffect(composer.pendingSend, anyProcessing) {
         if (composer.pendingSend && !anyProcessing) {
-            val submittedText = textFieldState.text.toString()
-            val submittedAttachments = composer.selectedAttachments.toList()
-            submit(submittedText, submittedAttachments)
+            // Submit the click-time snapshot; clear the flag BEFORE the call so an exception
+            // inside onSendMessage cannot leave the FAB spinning in PENDING forever (C4).
+            val text = pendingSendText
+            val attachments = pendingSendAttachments
             composer.pendingSend = false
+            try {
+                submit(text, attachments)
+            } catch (e: Exception) {
+                // finally in submit() already reset isSubmitting; the UI must never hang.
+            }
         }
     }
     val textIsEmpty = textFieldState.text.isBlank()
@@ -170,6 +181,10 @@ internal fun ComposerSendButton(
                     if (canSend) {
                         if (anyProcessing) {
                             composer.pendingSend = true
+                            // Capture now; the shared composer may hold different content by the
+                            // time processing finishes (C1).
+                            pendingSendText = textFieldState.text.toString()
+                            pendingSendAttachments = composer.selectedAttachments.toList()
                         } else {
                             val submittedText = textFieldState.text.toString()
                             val submittedAttachments = composer.selectedAttachments.toList()

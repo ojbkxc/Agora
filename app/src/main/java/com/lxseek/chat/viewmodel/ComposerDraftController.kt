@@ -115,18 +115,31 @@ internal class ComposerDraftController(
      * A successfully accepted send invalidates every older UI tail-flush by advancing the cached
      * revision only after the draft reference is durably cleared.
      */
-    suspend fun clearAccepted(conversationId: String): List<SelectedAttachment> =
+    suspend fun clearAccepted(
+        conversationId: String,
+        acceptedText: String,
+        acceptedAttachments: List<SelectedAttachment>,
+    ): List<SelectedAttachment> =
         withContext(Dispatchers.IO + NonCancellable) {
             persistenceMutex.withLock {
                 try {
                     val current = persistedDrafts[conversationId] ?: read(conversationId)
-                    conversations.updateDraft(conversationId, "", null)
-                    persistedDrafts[conversationId] = PersistedComposerDraft(
-                        text = "",
-                        attachments = emptyList(),
-                        revision = current.revision + 1L,
-                    )
-                    current.attachments
+                    // Clear only when the draft still holds exactly what was accepted; if the
+                    // user typed new content while the send was in flight, that content stays
+                    // (and the revision is untouched so it keeps persisting) — otherwise the
+                    // accepted input would be silently wiped and later flushes fail the
+                    // revision check (C2).
+                    val draftStillMatches =
+                        current.text == acceptedText && current.attachments == acceptedAttachments
+                    if (draftStillMatches) {
+                        conversations.updateDraft(conversationId, "", null)
+                        persistedDrafts[conversationId] = PersistedComposerDraft(
+                            text = "",
+                            attachments = emptyList(),
+                            revision = current.revision + 1L,
+                        )
+                    }
+                    if (draftStillMatches) current.attachments else emptyList()
                 } catch (e: Exception) {
                     DebugLog.e(
                         "ChatViewModel",

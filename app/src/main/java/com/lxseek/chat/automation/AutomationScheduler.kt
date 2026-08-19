@@ -100,10 +100,14 @@ class AutomationScheduler(
             loops.forEach { loop ->
                 val maxCycles = loop.maxCycles ?: LoopPolicy.DEFAULT_MAX_CYCLES
                 if (LoopPolicy.validate(loop.intervalMs, maxCycles) == null) {
-                    taskRepository.updateLoopNextFireAtIfUnchanged(
-                        loop,
-                        LoopPolicy.nextFireAt(now, loop.intervalMs),
-                    )
+                    // A clock change must not push a due-soon loop a whole interval into the
+                    // future: keep the absolute fire time while it is still ahead; only re-derive
+                    // when it already passed (clock jumped forward) so the cycle is not skipped
+                    // forever (A4).
+                    val replacement =
+                        if (loop.nextFireAt > now) loop.nextFireAt
+                        else LoopPolicy.nextFireAt(now, loop.intervalMs)
+                    taskRepository.updateLoopNextFireAtIfUnchanged(loop, replacement)
                 } else {
                     taskRepository.deactivateLoopIfUnchanged(loop, maxCycles)
                 }
@@ -125,7 +129,21 @@ class AutomationScheduler(
 
     private suspend fun reschedule(snapshot: Snapshot) = schedulingMutex.withLock {
         val now = System.currentTimeMillis()
+        // If the user revoked (or never granted) the exact-alarm permission on Android 12+,
+        // mirror it back into settings so the toggle cannot claim exact execution is active (A5).
+        if (snapshot.exactRequested && !canScheduleExactAlarms()) {
+            DebugLog.w("AutomationScheduler", "Exact alarm permission unavailable; mirroring setting off")
+            settings.setExactExecutionEnabled(false)
+        }
         val useExact = snapshot.exactRequested && canScheduleExactAlarms()
+
+        // A one-shot whose instant passed while the app was off/dead would otherwise sit enabled
+        // forever: never fires, never disables (A1). Retire it so the user sees the state change.
+        snapshot.tasks.filter { it.enabled && it.runAt != null && it.runAt <= now }
+            .forEach { task ->
+                DebugLog.d("AutomationScheduler", "retiring overdue one-shot task=${task.id}")
+                taskRepository.upsertTask(task.copy(enabled = false, nextRunAt = 0L))
+            }
 
         val activeTasks = snapshot.tasks.filter {
             it.enabled && it.name.isNotBlank() && it.prompt.isNotBlank() && when {

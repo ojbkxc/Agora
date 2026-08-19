@@ -247,9 +247,12 @@ class LoopManager(
         }
 
         // Persistently claim this cycle *before* any model/tool side effect. If the process
-        // dies after this write, a WorkManager retry sees a different nextFireAt/cycleCount
-        // and cannot replay the same turn. The next alarm is provisionally scheduled now;
-        // successful completion below moves it to one full interval after completion.
+        // dies after this write, a WorkManager retry sees a different nextFireAt and cannot
+        // replay the same turn. The next alarm is provisionally scheduled now; successful
+        // completion below moves it to one full interval after completion and bumps the cycle
+        // count. cycleCount is intentionally NOT bumped here: an infrastructure failure that
+        // triggers a worker retry would otherwise consume a cycle for a turn that never ran,
+        // so a maxCycles=1 loop could die before its first real generation (A2).
         val claimed = stateMutex.withLock {
             val latest = taskRepository.getLoop(conversationId).first()
             if (
@@ -259,17 +262,9 @@ class LoopManager(
                 return@withLock null
             }
             val maxCycles = latest.maxCycles ?: LoopPolicy.DEFAULT_MAX_CYCLES
-            val nextCount = latest.cycleCount + 1
-            val remainsActive = nextCount < maxCycles
             latest.copy(
                 maxCycles = maxCycles,
-                cycleCount = nextCount,
-                active = remainsActive,
-                nextFireAt = if (remainsActive) {
-                    LoopPolicy.nextFireAt(clock(), latest.intervalMs)
-                } else {
-                    0L
-                },
+                nextFireAt = LoopPolicy.nextFireAt(clock(), latest.intervalMs),
             ).also { taskRepository.upsertLoop(it) }
         } ?: return ExecutionResult.Superseded(
             taskRepository.getLoop(conversationId).first()
@@ -304,8 +299,22 @@ class LoopManager(
                 return@withLock null
             }
 
+            // Completion counts the cycle (a model failure that returned as Finished also
+            // counts, matching the documented semantics). The final cycle deactivates the
+            // loop here, after the generation ran, instead of at claim time.
+            val maxCycles = claimed.maxCycles ?: LoopPolicy.DEFAULT_MAX_CYCLES
+            val nextCount = latest.cycleCount + 1
+            val remainsActive = latest.active && nextCount < maxCycles
             val next = if (latest.active) {
-                latest.copy(nextFireAt = LoopPolicy.nextFireAt(clock(), latest.intervalMs))
+                latest.copy(
+                    cycleCount = nextCount,
+                    active = remainsActive,
+                    nextFireAt = if (remainsActive) {
+                        LoopPolicy.nextFireAt(clock(), latest.intervalMs)
+                    } else {
+                        0L
+                    },
+                )
             } else {
                 latest
             }
