@@ -167,6 +167,8 @@
     <string name="asr_copy_log">Copy ASR Log</string>
     <string name="asr_save_to_downloads">Save to Downloads</string>
     <string name="asr_no_logs_yet">No ASR logs recorded yet</string>
+    <string name="asr_clear_log">Clear ASR Log</string>
+    <string name="asr_log_cleared">ASR log cleared</string>
     <string name="voice_conversation_listening">Listening…</string>
     <string name="voice_conversation_processing">Thinking…</string>
     <string name="voice_conversation_speaking">Speaking…</string>

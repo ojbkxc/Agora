@@ -197,6 +197,14 @@ fun SettingsAsrDiagnosticsSection(
                     android.widget.Toast.makeText(context, "Failed to save", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }) { Text(stringResource(R.string.asr_save_to_downloads)) }
+            TextButton(onClick = {
+                AppLog.clear()
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.asr_log_cleared),
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+            }) { Text(stringResource(R.string.asr_clear_log)) }
         }
     }
 }
