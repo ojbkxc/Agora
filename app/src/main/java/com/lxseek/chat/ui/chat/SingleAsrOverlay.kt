@@ -83,11 +83,11 @@ internal fun SingleAsrOverlay(
                     Text(stringResource(R.string.cancel))
                 }
                 Spacer(modifier = Modifier.width(6.dp))
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(56.dp)) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(84.dp)) {
                     VoiceSpectrumRing(
                         amplitude = if (isListening) amplitude else 0.18f,
                         accent = accent,
-                        modifier = Modifier.size(52.dp),
+                        modifier = Modifier.size(78.dp),
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))

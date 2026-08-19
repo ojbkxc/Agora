@@ -152,7 +152,7 @@ internal fun VoiceConversationOverlay(
             )
             Spacer(modifier = Modifier.height(28.dp))
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(240.dp)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(360.dp)) {
                 HaloRing(
                     color = accent,
                     amplitude = if (state == VoiceConversationController.State.LISTENING) amplitude else 0.22f,
@@ -161,19 +161,19 @@ internal fun VoiceConversationOverlay(
                 VoiceSpectrumRing(
                     amplitude = if (state == VoiceConversationController.State.LISTENING) amplitude else 0.22f,
                     accent = accent,
-                    modifier = Modifier.size(230.dp),
+                    modifier = Modifier.size(345.dp),
                 )
                 Surface(
                     shape = CircleShape,
                     color = accent.copy(alpha = 0.16f),
-                    modifier = Modifier.size(96.dp),
+                    modifier = Modifier.size(144.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
                             imageVector = stateIcon,
                             contentDescription = null,
                             tint = accent,
-                            modifier = Modifier.size(40.dp),
+                            modifier = Modifier.size(60.dp),
                         )
                     }
                 }
@@ -245,13 +245,13 @@ private fun HaloRing(
     val amp = smoothAmp.value
     Canvas(modifier = modifier.rotate(rotation)) {
         val stroke = size.minDimension * (0.006f + 0.022f * amp)
-        val alphaBoost = 0.20f + 0.80f * amp
+        val alphaBoost = 0.16f + 0.64f * amp
         drawArc(
             brush = Brush.sweepGradient(
                 0f to color.copy(alpha = 0f),
-                0.25f to color.copy(alpha = 0.55f * fade * alphaBoost),
+                0.25f to color.copy(alpha = 0.44f * fade * alphaBoost),
                 0.5f to color.copy(alpha = 0f),
-                0.75f to color.copy(alpha = 0.55f * fade * alphaBoost),
+                0.75f to color.copy(alpha = 0.44f * fade * alphaBoost),
                 1f to color.copy(alpha = 0f),
             ),
             startAngle = 0f,
@@ -321,7 +321,7 @@ internal fun VoiceSpectrumRing(
             val y0 = cy + sin(rad) * r0
             val x1 = cx + cos(rad) * r1
             val y1 = cy + sin(rad) * r1
-            val alpha = 0.20f + 0.80f * len
+            val alpha = 0.16f + 0.64f * len
             drawLine(
                 color = accent.copy(alpha = alpha),
                 start = Offset(x0, y0),
