@@ -77,6 +77,10 @@ class VoiceConversationController(
     @Volatile private var active = false
     @Volatile private var currentEngine: String = "auto"
     @Volatile private var isStreamingConversation = false
+
+    /** Whether the controller is currently in streaming conversation mode. */
+    fun isConversationStreaming(): Boolean = isStreamingConversation
+
     private var captureJob: Job? = null
     private var observeJob: Job? = null
     private var ttsObserverJob: Job? = null
@@ -886,7 +890,9 @@ class VoiceConversationController(
             Mode.CONVERSATION -> {
                 if (isStreamingConversation) {
                     // Continuous streaming mode: don't change state, don't wait for LLM
-                    // Keep recording 鈥?LLM response + TTS will play while recording continues
+                    // Keep recording — LLM response + TTS will play while recording continues
+                    // Barge-in: stop any in-flight TTS so the new reply can play immediately.
+                    TtsManager.stop()
                     scope.launch { sendMessage(cleanText) }
                 } else {
                     _state.value = State.PROCESSING
@@ -914,7 +920,7 @@ class VoiceConversationController(
                 waitingForLlm = false
                 llmWasLoading = false
                 if (!active) return@collectLatest
-                if (ttsAutoPlayOn()) {
+                if (isStreamingConversation || ttsAutoPlayOn()) {
                     _state.value = State.SPEAKING
                     withTimeoutOrNull(TTS_START_GRACE_MS) {
                         TtsManager.isPlaying.first { it }

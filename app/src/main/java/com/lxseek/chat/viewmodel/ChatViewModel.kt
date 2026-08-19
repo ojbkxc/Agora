@@ -552,7 +552,8 @@ class ChatViewModel(
             }
             state.onStreamCommit = { conversationId, message ->
                 conversationUi.commitTerminalStreamingMessage(conversationId, message)
-                if (settings.ttsEnabled.value && settings.ttsAutoPlay.value &&
+                val voiceStreaming = voiceConversation.isConversationStreaming()
+                if ((voiceStreaming || (settings.ttsEnabled.value && settings.ttsAutoPlay.value)) &&
                     conversationId == currentConversationId.value
                 ) {
                     playTtsForMessage(message.id, message.text)
