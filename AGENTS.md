@@ -359,6 +359,7 @@ Agora/
 > 姣忛」閮芥槸鍙嫭绔嬩氦浠樼殑鏈€灏忓崟鍏冦€傚畬鎴愬嵆鎵撳嬀骞剁Щ鍒般€屽凡瀹屾垚銆嶅尯銆?
 
 - [x] **全量代码审查与修复**（2026-08-19）：安全/崩溃/UI/CI 批量修复完成，CI 全绿。无待办任务，等待用户指派新工作。
+- [x] **task id=23 ASR 设置严格引擎就绪检查 + 显著语言选择器**（2026-08-19，coding-engineer team-mate）：commit `d409bbd5`（3 files, +205/-39），**已 commit 未 push**。修复 ASR 设置页面引擎就绪诊断缺失 + 语言选择器不显著问题。待 push 后 CI 验证。
 ### P0 鈥?CI 缂栬瘧楠岃瘉涓庨娆″彂鐗?鉁?
 - [x] 閰嶇疆 GitHub Secrets锛坄KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`锛夌敤浜?Release 绛惧悕锛堝彲閫夛紝鏈厤缃垯鐢?debug 绛惧悕锛夈€?
 - [x] `git tag v1.0.1 && git push origin v1.0.1` 瑙﹀彂娴佹按绾裤€?
@@ -452,6 +453,14 @@ gh run view --log-failed    # 澶辫触鏃舵煡鐪嬫姤閿欐棩蹇?
 鐜锛氭湰鍦扮绾匡紝缂?Android SDK/NDK/CMake锛?*鏃犳硶**鏈湴 `./gradlew assembleFdroidRelease`銆傜紪璇戦獙璇佽蛋 GitHub CI锛埪2锛夈€傚瓙妯″潡 checkout 闇€ `--recurse-submodules`銆?
 
 ## 9. 鍙樻洿鏃ュ織锛堣拷鍔犳柊琛岋紝鏈€鏂板湪涓婏級
+
+- 2026-08-19 task id=23 ASR 设置严格引擎就绪检查 + 显著语言选择器（本次会话，coding-engineer team-mate）：修复 ASR 设置页面缺乏引擎就绪诊断、语言选择器不显著导致用户无法定位 Vosk ASR 静默失败根因的问题。
+  - `d409bbd5` **fix(asr-settings)**: strict engine readiness checks + prominent language selector。
+    - `SettingsAsrDiagnosticsSection.kt` — 新增 5 个参数（`asrUseRemote`/`asrRemoteBaseUrl`/`asrRemoteApiKey`/`asrRemoteModel`/`voiceLanguage`，均带默认值）；用 `buildList` 构建多行引擎就绪状态文本，按 `auto`/`vosk`/`whisper`/`system` 分支显示严格检查（auto 检查 Vosk `isReady()` + Whisper configured + System available，若都没有显示 "⚠ NO engine available!"；vosk 显示 loadedLang/downloadedLangs/modelForVoiceLang；whisper 显示 baseUrl/apiKey/model 是否 set；system 显示 `SpeechRecognizer.isRecognitionAvailable`）；新增红色（`Color(0xFFE53935)`）语言不匹配警告（所选 voice language 无已下载 Vosk 模型时）；保留原有 Vosk diagnostic text、log text、copy/save buttons 功能。硬编码英文诊断文本，无新增字符串资源。
+    - `SettingsGenerationPage.kt:757-761` — `SettingsAsrDiagnosticsSection(` 调用点添加 5 个新参数（`asrUseRemote`/`asrRemoteBaseUrl`/`asrRemoteApiKey`/`asrRemoteModel`/`voiceLanguage`），所需变量在作用域中已存在。
+    - `SettingsVoskModelsSection.kt` — Change B（前一个 subagent 完成）：新增 `BASE_LANGUAGE_DISPLAY_NAMES` 友好显示名映射（23 种基础语言）；将语言选择器重构为显著 `Surface` 卡片，显示当前语言友好名 + 下载状态指示器（✓/⚠）+ 下拉菜单（每项标注 ✓ 已下载）+ 不匹配警告（当前语言无已下载模型时红色提示）+ Ready/Lang 状态行；保留模型列表（下载/删除）功能。
+  - **约束遵守**：每文件 ≤999 行；代码和注释均英文；无新增字符串资源；无 bump 版本号；未修改 `VoiceConversationController.kt`/`ChatViewModel.kt`；`VoskTranscriber.kt` 工作目录修改未纳入本次 commit（不属于本任务范围）。
+  - **验证**：本地 git commit 成功（`d409bbd5`，3 files changed, +205/-39），**未 push**（按任务要求）。GitHub CI 验证待 push 后执行。
 
 - 2026-08-19 task id=17 TTS barge-in + 强制 TTS 播放（本次会话，coding-engineer team-mate）：修复实时语音对话中 TTS 不播放的问题。
   - `ee98a23a` **fix(voice)**: force TTS in streaming conversation + barge-in on new reply。
