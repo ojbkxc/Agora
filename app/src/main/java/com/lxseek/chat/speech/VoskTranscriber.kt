@@ -99,7 +99,13 @@ class VoskTranscriber(private val context: Context) {
         val FULL_MODELS = AVAILABLE_LANGUAGES.filter { it.isFullSize }
 
         fun getLanguageByCode(code: String): LanguageModel =
-            AVAILABLE_LANGUAGES.find { it.code == code } ?: AVAILABLE_LANGUAGES.first()
+            AVAILABLE_LANGUAGES.find { it.code == code } ?: run {
+                android.util.Log.w(
+                    "VoskTranscriber",
+                    "Language code '$code' not found in AVAILABLE_LANGUAGES, falling back to '${AVAILABLE_LANGUAGES.first().code}'"
+                )
+                AVAILABLE_LANGUAGES.first()
+            }
 
         fun getBaseLanguageCode(code: String): String =
             code.split("-").first()
@@ -622,10 +628,24 @@ class VoskTranscriber(private val context: Context) {
     private val streamingLock = Any()
 
     /**
-     * Start a streaming recognition session. The model must already be loaded
-     * (call [initialize] first). Returns true on success.
+     * Start a streaming recognition session. Auto-initializes the model if the
+     * model files exist on disk but have not been loaded yet. Returns true on
+     * success.
      */
-    fun startStreamingSession(languageCode: String, callback: StreamingTranscriptionCallback): Boolean {
+    suspend fun startStreamingSession(languageCode: String, callback: StreamingTranscriptionCallback): Boolean {
+        // Auto-initialize when model files exist but haven't been loaded yet.
+        // This handles the case where the model was downloaded but initialize()
+        // was never called (e.g., process restart, or caller forgot to init).
+        // Must happen outside synchronized block because initialize() uses
+        // withContext(Dispatchers.IO) which switches threads.
+        if (!isModelLoaded || model == null) {
+            val modelDir = getModelDirectory(languageCode)
+            val mdlFile = File(modelDir, "am/final.mdl")
+            if (mdlFile.exists()) {
+                Log.i(TAG, "startStreamingSession: model not loaded but files exist, auto-initializing for $languageCode")
+                initialize(languageCode)
+            }
+        }
         synchronized(streamingLock) {
             if (!isModelLoaded || model == null) {
                 Log.w(TAG, "startStreamingSession: model not loaded for $languageCode")
