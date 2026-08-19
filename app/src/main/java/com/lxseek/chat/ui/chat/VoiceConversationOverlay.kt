@@ -298,9 +298,9 @@ internal fun VoiceSpectrumRing(
         val outerR = radius * 0.96f
         val barWidth = ((2f * PI * innerR) / SPECTRUM_BARS).toFloat() * 0.42f
         val amp = smoothAmp.value
-        // Non-linear boost so quiet speech is still visible and loud speech pushes the bars
-        // out — "voice loud, bars big" like a real voiceprint.
-        val boosted = (amp * 1.5f - 0.05f).coerceIn(0f, 1f)
+        // amplitude is already boosted into ~0.25-1.0 during speech by the controller; stretch
+        // it across the full bar range so quiet speech shows and loud speech pushes bars out.
+        val boosted = (amp * 1.4f).coerceIn(0f, 1f)
         val drift = t * 0.004f
         val step = 360f / SPECTRUM_BARS
 
@@ -312,7 +312,7 @@ internal fun VoiceSpectrumRing(
             val wave = 0.5f + 0.3f * sin(rad * 3f + drift * 6f) +
                 0.2f * sin(rad * 7f - drift * 3f)
             val noise = 0.7f + 0.3f * sin(i * 4.7f + drift * 9f)
-            val len = (0.10f + boosted * 0.90f * wave.coerceIn(0f, 1f) * noise).coerceIn(0.06f, 1f)
+            val len = (0.08f + boosted * 0.92f * wave.coerceIn(0f, 1f) * noise).coerceIn(0.06f, 1f)
             val r0 = innerR + (outerR - innerR) * 0.05f
             val r1 = innerR + (outerR - innerR) * len
             val x0 = cx + cos(rad) * r0

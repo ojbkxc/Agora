@@ -23,6 +23,10 @@ import java.io.File
 private const val TTS_START_GRACE_MS = 5_000L
 private const val SYSTEM_FINAL_TIMEOUT_MS = 10_000L
 private const val TAG = "VoiceConvCtrl"
+// AudioCaptureManager's RMS of normal speech sits around 0.05-0.25 (16-bit PCM / Short.MAX),
+// which is barely visible in the voiceprint. This boost maps it to a 0.25-1.0 display range
+// so the bars visibly pulse with the speaker's volume. VAD keeps using the raw amplitude.
+private const val AMPLITUDE_BOOST = 5f
 
 class VoiceConversationController(
     private val scope: CoroutineScope,
@@ -437,10 +441,13 @@ class VoiceConversationController(
                 val captureFlow = audioCaptureManager.startCapture()
                 captureFlow.collect { chunk ->
                     if (!active) return@collect
-                    _amplitude.value = audioCaptureManager.amplitude.value
+                    val rawAmp = audioCaptureManager.amplitude.value
+                    // UI voiceprint uses the boosted value; VAD below stays on the raw RMS
+                    // so its silence thresholds are unaffected by the display scaling.
+                    _amplitude.value = (rawAmp * AMPLITUDE_BOOST).coerceIn(0f, 1f)
                     voskTranscriber.acceptWaveform(chunk)
 
-                    val amp = _amplitude.value
+                    val amp = rawAmp
 
                     // Calibration phase: collect ambient noise samples for 0.5s before VAD engages.
                     // Audio is still fed to Vosk above so ASR is not delayed.
@@ -560,9 +567,8 @@ class VoiceConversationController(
                 val captureFlow = audioCaptureManager.startCapture()
                 captureFlow.collect { chunk ->
                     if (!active) return@collect
-                    // AudioCaptureManager computes RMS amplitude with EMA smoothing
-                    // internally on each chunk; mirror it here for UI collection.
-                    _amplitude.value = audioCaptureManager.amplitude.value
+                    // Boost the RMS into a 0-1 display range so the voiceprint visibly moves.
+                    _amplitude.value = (audioCaptureManager.amplitude.value * AMPLITUDE_BOOST).coerceIn(0f, 1f)
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "Audio capture flow crashed: ${e.javaClass.simpleName}: ${e.message}", e)

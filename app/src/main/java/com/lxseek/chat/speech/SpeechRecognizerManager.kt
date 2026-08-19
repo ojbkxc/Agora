@@ -98,8 +98,13 @@ class SpeechRecognizerManager(private val context: Context) {
             }
 
             override fun onRmsChanged(rmsdB: Float) {
-                // Silence sits near 0-6 dB, normal speech 8-25+ dB, shouting 30+.
-                _rms.value = ((rmsdB + 6f) / 30f).coerceIn(0f, 1f)
+                // Silence sits near 0-4 dB, normal speech 5-20 dB, shouting 20-30+.
+                // Map into 0-1 with a steeper slope so speech clearly drives the voiceprint.
+                val level = ((rmsdB + 2f) / 16f).coerceIn(0f, 1f)
+                _rms.value = level
+                // Debug so we can verify the device actually fires onRmsChanged (many system
+                // recognizers never call it — in that case the bars stay flat on system engine).
+                Log.v(TAG, "onRmsChanged: ${rmsdB}dB -> $level")
             }
 
             override fun onBufferReceived(buffer: ByteArray?) {}
