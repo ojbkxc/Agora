@@ -330,7 +330,7 @@ fun SettingsDataControlPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     // Claude import preview dialog
     if (showClaudeImportDialog && claudeImportPreview != null) {
         val preview = claudeImportPreview!!
-        var dialogSelectedIds by remember { mutableStateOf(preview.conversations.map { it.uuid }.toSet()) }
+        var dialogSelectedIds by remember(preview) { mutableStateOf(preview.conversations.map { it.uuid }.toSet()) }
         val allIds = preview.conversations.map { it.uuid }.toSet()
         val allSelected = dialogSelectedIds.size == allIds.size
         val selectedConvCount = preview.conversations.count { it.uuid in dialogSelectedIds }
@@ -467,7 +467,7 @@ fun SettingsDataControlPage(viewModel: ChatViewModel, onBack: () -> Unit) {
     // GPT import preview dialog
     if (showGptImportDialog && gptImportPreview != null) {
         val preview = gptImportPreview!!
-        var dialogSelectedIds by remember { mutableStateOf(preview.conversations.map { it.uuid }.toSet()) }
+        var dialogSelectedIds by remember(preview) { mutableStateOf(preview.conversations.map { it.uuid }.toSet()) }
         val allIds = preview.conversations.map { it.uuid }.toSet()
         val allSelected = dialogSelectedIds.size == allIds.size
         val selectedConvCount = preview.conversations.count { it.uuid in dialogSelectedIds }

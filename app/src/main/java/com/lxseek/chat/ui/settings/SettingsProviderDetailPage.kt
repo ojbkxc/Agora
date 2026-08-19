@@ -467,7 +467,7 @@ fun SettingsProviderDetailPage(
             },
             title = { Text(stringResource(R.string.add_local_chat_model), fontWeight = FontWeight.Bold) },
             text = { Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                OutlinedTextField(value = modelId, onValueChange = { modelId = it; idError = null }, label = { Text(stringResource(R.string.model_id_label)) }, supportingText = if (idError != null) {{ Text(idError!!, color = MaterialTheme.colorScheme.error) }} else null, isError = idError != null, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = modelId, onValueChange = { modelId = it; idError = null }, label = { Text(stringResource(R.string.model_id_label)) }, supportingText = idError?.let { err -> { Text(err, color = MaterialTheme.colorScheme.error) } }, isError = idError != null, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = modelAlias, onValueChange = { modelAlias = it }, label = { Text(stringResource(R.string.model_alias_label)) }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
@@ -540,7 +540,7 @@ fun SettingsProviderDetailPage(
             },
             title = { Text(stringResource(R.string.edit), fontWeight = FontWeight.Bold) },
             text = { Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                OutlinedTextField(value = editModelId, onValueChange = { editModelId = it; editIdError = null }, label = { Text(stringResource(R.string.model_id_label)) }, supportingText = if (editIdError != null) {{ Text(editIdError!!, color = MaterialTheme.colorScheme.error) }} else null, isError = editIdError != null, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = editModelId, onValueChange = { editModelId = it; editIdError = null }, label = { Text(stringResource(R.string.model_id_label)) }, supportingText = editIdError?.let { err -> { Text(err, color = MaterialTheme.colorScheme.error) } }, isError = editIdError != null, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = editAlias, onValueChange = { editAlias = it }, label = { Text(stringResource(R.string.model_alias_label)) }, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))

@@ -934,12 +934,13 @@ fun ChatBottomBar(
     }
 
     // Attachment rejection / camera failure dialog
-    if (composer.rejectedMessage != null) {
+    val rejectedMsg = composer.rejectedMessage
+    if (rejectedMsg != null) {
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             onDismissRequest = { composer.rejectedMessage = null },
             title = { Text(stringResource(composer.rejectedTitleRes), fontWeight = FontWeight.Bold) },
-            text = { Text(composer.rejectedMessage!!) },
+            text = { Text(rejectedMsg) },
             confirmButton = {
                 TextButton(onClick = { composer.rejectedMessage = null }) {
                     Text(stringResource(R.string.provider_close))
@@ -977,9 +978,10 @@ fun ChatBottomBar(
     }
 
     // Video slice dialog
-    if (composer.showVideoSliceDialog && composer.pendingVideoUri != null) {
+    val pendingVideo = composer.pendingVideoUri
+    if (composer.showVideoSliceDialog && pendingVideo != null) {
         VideoSliceDialog(
-            videoUri = composer.pendingVideoUri!!,
+            videoUri = pendingVideo,
             durationMs = composer.pendingVideoDurationMs,
             onConfirm = { result ->
                 composer.showVideoSliceDialog = false

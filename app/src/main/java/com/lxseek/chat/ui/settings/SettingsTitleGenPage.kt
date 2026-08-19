@@ -61,9 +61,10 @@ fun SettingsTitleGenPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 SettingsItem(
                                     headlineContent = { Text(stringResource(R.string.title_gen_model)) },
                                     supportingContent = {
-                                        val displayName = if (titleGenModel == null) stringResource(R.string.title_gen_current_model) else {
-                                            val alias = modelAliases[titleGenModel!!]
-                                            alias ?: com.lxseek.chat.model.ModelId.parse(titleGenModel!!).apiModelName
+                                        val currentModel = titleGenModel
+                                        val displayName = if (currentModel == null) stringResource(R.string.title_gen_current_model) else {
+                                            val alias = modelAliases[currentModel]
+                                            alias ?: com.lxseek.chat.model.ModelId.parse(currentModel).apiModelName
                                         }
                                         Text(displayName)
                                     },

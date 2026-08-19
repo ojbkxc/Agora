@@ -58,10 +58,11 @@ fun SettingsShellPage(viewModel: ChatViewModel, onBack: () -> Unit) {
         targetState = showSandboxMgmt,
         forward = showSandboxMgmt
     ) { isMgmt ->
-        if (isMgmt && viewModel.sandboxManager != null) {
+        val sandboxMgr = viewModel.sandboxManager
+        if (isMgmt && sandboxMgr != null) {
             key(sandboxEntryCount) {
                 SettingsSandboxPage(
-                    sandboxManager = viewModel.sandboxManager!!,
+                    sandboxManager = sandboxMgr,
                     onBack = { showSandboxMgmt = false },
                     showDocFab = showDocFab,
                     sharedStorageEnabled = sandboxSharedStorageEnabled,

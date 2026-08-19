@@ -320,12 +320,13 @@ fun WelcomeScreen(
         // on every entry with the latest key; cancel on leave so an in-flight request
         // never lands off-screen (no list jump) and a stale key's result never wins.
         fetchJob?.cancel()
-        if (pagerState.currentPage == PAGE_MODEL_CONFIG && selectedProvider != null && selectedProvider != Constants.PROVIDER_LOCAL) {
+        val provider = selectedProvider
+        if (pagerState.currentPage == PAGE_MODEL_CONFIG && provider != null && provider != Constants.PROVIDER_LOCAL) {
             isFetchingModels = true
             fetchJob = scope.launch {
                 try {
                     kotlinx.coroutines.delay(300) // debounce swipe-through + let async key save commit
-                    viewModel.fetchModelsForProvider(selectedProvider!!)
+                    viewModel.fetchModelsForProvider(provider)
                 } catch (_: Exception) {
                     // Cancellation or network failure: keep whatever the list already shows.
                 } finally {
@@ -473,7 +474,7 @@ fun WelcomeScreen(
                                 index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_LOCAL -> stringResource(R.string.onboarding_gguf_desc)
                                 index == PAGE_API_KEY && selectedProvider == Constants.PROVIDER_OLLAMA -> stringResource(R.string.onboarding_ollama_desc)
                                 index == PAGE_API_KEY && isCustomProvider -> stringResource(R.string.onboarding_custom_desc)
-                                index == PAGE_API_KEY && selectedProvider != null -> stringResource(R.string.onboarding_api_key_for, selectedProvider!!)
+                                index == PAGE_API_KEY && selectedProvider != null -> stringResource(R.string.onboarding_api_key_for, selectedProvider)
                                 else -> page.description
                             }
                             val isCurrent = pagerState.currentPage == index

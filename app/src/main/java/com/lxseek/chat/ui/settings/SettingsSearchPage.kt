@@ -249,8 +249,8 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                         val typeLabel = if (model.type == com.lxseek.chat.data.EmbeddingModelType.REMOTE)
                                             stringResource(R.string.embedding_type_remote)
                                         else stringResource(R.string.embedding_type_local)
-                                        val cacheLabel = if (isCaching) {
-                                            "${progress!!.second - progress!!.first} ${stringResource(R.string.not_cached)} (${progress!!.first}/${progress!!.second})"
+                                        val cacheLabel = if (progress != null) {
+                                            "${progress.second - progress.first} ${stringResource(R.string.not_cached)} (${progress.first}/${progress.second})"
                                         } else if (counts != null && counts.second > 0) {
                                             val notCached = (counts.second - counts.first).coerceAtLeast(0)
                                             if (notCached == 0) stringResource(R.string.cached)
@@ -277,8 +277,8 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                                     }
                                                 }) { Text(if (allCached) stringResource(R.string.recache_action) else stringResource(R.string.cache_action)) }
                                             }
-                                            if (isCaching) {
-                                                val ratio = progress!!.first.toFloat() / progress.second.toFloat()
+                                            if (progress != null) {
+                                                val ratio = progress.first.toFloat() / progress.second.toFloat()
                                                 CircularProgressIndicator(
                                                     progress = { ratio },
                                                     modifier = Modifier.size(24.dp),
@@ -623,8 +623,8 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             )
         }
 
-        if (showRecacheConfirm != null) {
-            val modelId = showRecacheConfirm!!
+        val recacheTarget = showRecacheConfirm
+        if (recacheTarget != null) {
             AlertDialog(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 onDismissRequest = { showRecacheConfirm = null },
@@ -632,7 +632,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 text = { Text(stringResource(R.string.recache_confirm_message)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        viewModel.ragManager.cacheMessagesForModel(modelId, recache = true)
+                        viewModel.ragManager.cacheMessagesForModel(recacheTarget, recache = true)
                         showRecacheConfirm = null
                     }) { Text(stringResource(R.string.recache_action)) }
                 },
@@ -642,8 +642,8 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             )
         }
 
-        if (showDeleteDialog != null) {
-            val modelId = showDeleteDialog!!
+        val deleteTarget = showDeleteDialog
+        if (deleteTarget != null) {
             AlertDialog(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 onDismissRequest = { showDeleteDialog = null },
@@ -651,7 +651,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 text = { Text(stringResource(R.string.delete_model_confirm)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        viewModel.ragManager.deleteEmbeddingModel(modelId)
+                        viewModel.ragManager.deleteEmbeddingModel(deleteTarget)
                         showDeleteDialog = null
                     }) { Text(stringResource(R.string.delete)) }
                 },
@@ -661,10 +661,10 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
             )
         }
 
-        if (showRenameDialog != null) {
-            val modelId = showRenameDialog!!
-            var editBatchSize by remember(modelId) {
-                val model = viewModel.settings.embeddingModels.value.find { it.id == modelId }
+        val currentRenameTarget = showRenameDialog
+        if (currentRenameTarget != null) {
+            var editBatchSize by remember(currentRenameTarget) {
+                val model = viewModel.settings.embeddingModels.value.find { it.id == currentRenameTarget }
                 mutableStateOf((model?.batchSize ?: 8).toString())
             }
             AlertDialog(
@@ -697,7 +697,7 @@ fun SettingsSearchPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                 confirmButton = {
                     TextButton(onClick = {
                         if (renameText.isNotBlank()) {
-                            viewModel.ragManager.renameEmbeddingModel(modelId, renameText, editBatchSize.toIntOrNull() ?: 8)
+                            viewModel.ragManager.renameEmbeddingModel(currentRenameTarget, renameText, editBatchSize.toIntOrNull() ?: 8)
                             showRenameDialog = null
                         }
                     }) { Text(stringResource(R.string.save)) }

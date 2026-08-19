@@ -142,10 +142,11 @@ internal fun AttachmentPreviewRow(
                         .clip(RoundedCornerShape(8.dp))
                         .then(clickableMod)
 
+                    val thumb = videoThumb
                     when {
-                        isVideo && videoThumb != null -> {
+                        isVideo && thumb != null -> {
                             Image(
-                                bitmap = videoThumb!!.asImageBitmap(),
+                                bitmap = thumb.asImageBitmap(),
                                 contentDescription = stringResource(R.string.video_thumbnail),
                                 modifier = thumbModifier,
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop

@@ -232,9 +232,9 @@ private fun AdvancedParamRow(
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
-            if (isOverride) {
+            if (value != null) {
                 Text(
-                    text = format(value!!),
+                    text = format(value),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
