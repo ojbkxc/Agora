@@ -757,6 +757,11 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 asrEnginePref = asrEnginePref,
                                 controller = viewModel.voiceConversation,
                                 voskTranscriber = viewModel.voiceConversation.getVoskTranscriber(),
+                                asrUseRemote = asrUseRemote,
+                                asrRemoteBaseUrl = asrRemoteBaseUrl,
+                                asrRemoteApiKey = asrRemoteApiKey,
+                                asrRemoteModel = asrRemoteModel,
+                                voiceLanguage = voiceLanguage,
                             )
                         }
                     },

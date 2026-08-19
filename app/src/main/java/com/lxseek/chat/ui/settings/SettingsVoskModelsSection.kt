@@ -14,6 +14,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,6 +32,34 @@ import androidx.compose.ui.unit.dp
 import com.lxseek.chat.R
 import com.lxseek.chat.speech.VoskTranscriber
 import kotlinx.coroutines.launch
+
+// Friendly display names for base language codes used by Vosk models.
+// Keys are the distinct base codes derived from VoskTranscriber.AVAILABLE_LANGUAGES.
+private val BASE_LANGUAGE_DISPLAY_NAMES: Map<String, String> = mapOf(
+    "en" to "English (en)",
+    "zh" to "中文 (zh)",
+    "ru" to "Русский (ru)",
+    "de" to "Deutsch (de)",
+    "es" to "Español (es)",
+    "fr" to "Français (fr)",
+    "it" to "Italiano (it)",
+    "pt" to "Português (pt)",
+    "ja" to "日本語 (ja)",
+    "uk" to "Українська (uk)",
+    "pl" to "Polski (pl)",
+    "hi" to "हिन्दी (hi)",
+    "ko" to "한국어 (ko)",
+    "tr" to "Türkçe (tr)",
+    "vi" to "Tiếng Việt (vi)",
+    "nl" to "Nederlands (nl)",
+    "ca" to "Català (ca)",
+    "fa" to "فارسی (fa)",
+    "kz" to "Қазақ (kz)",
+    "sv" to "Svenska (sv)",
+    "cs" to "Čeština (cs)",
+    "el" to "Ελληνικά (el)",
+    "id" to "Bahasa Indonesia (id)",
+)
 
 @Composable
 fun SettingsVoskModelsSection(
@@ -55,59 +84,107 @@ fun SettingsVoskModelsSection(
     }
     var langMenuOpen by remember { mutableStateOf(false) }
 
+    // Downloaded languages (recomputed on refresh tick).
+    val downloaded = run { refresh; voskTranscriber.getDownloadedLanguages() }
+    // Map base code -> whether at least one model for that base code is downloaded.
+    val downloadedBaseCodes: Set<String> = downloaded
+        .map { VoskTranscriber.getBaseLanguageCode(it) }
+        .toSet()
+    val currentBase = VoskTranscriber.getBaseLanguageCode(voiceLanguage.ifBlank { "en" })
+    val currentLangHasModel = downloadedBaseCodes.contains(currentBase)
+
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
             text = stringResource(R.string.vosk_models_title),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
         )
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Ready: ${voskTranscriber.isReady()} | Lang: ${voskTranscriber.getCurrentLanguage()}",
-            style = MaterialTheme.typography.labelSmall,
-            color = if (voskTranscriber.isReady()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Recognition language selector (feeds VoskTranscriber.initialize).
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { langMenuOpen = true },
-            verticalAlignment = Alignment.CenterVertically,
+        // ── Prominent recognition language selector ──
+        // This card is the primary entry point for choosing the Vosk recognition
+        // language. It surfaces the current language, its download status, and a
+        // warning when the selected language has no downloaded model (the most
+        // common reason Vosk ASR silently fails to transcribe).
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 2.dp,
         ) {
-            Text(
-                text = stringResource(R.string.asr_voice_language),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = voiceLanguage.ifBlank { "en" },
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            DropdownMenu(
-                expanded = langMenuOpen,
-                onDismissRequest = { langMenuOpen = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 6.dp,
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                for (code in baseLanguages) {
-                    DropdownMenuItem(
-                        text = { Text(code) },
-                        onClick = {
-                            langMenuOpen = false
-                            onVoiceLanguageChange(code)
-                        },
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = stringResource(R.string.asr_voice_language),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { langMenuOpen = true },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = BASE_LANGUAGE_DISPLAY_NAMES[currentBase] ?: currentBase,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = if (currentLangHasModel) "✓" else "⚠",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (currentLangHasModel) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.error,
+                    )
+                    DropdownMenu(
+                        expanded = langMenuOpen,
+                        onDismissRequest = { langMenuOpen = false },
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 6.dp,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        for (code in baseLanguages) {
+                            val hasModel = downloadedBaseCodes.contains(code)
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = (BASE_LANGUAGE_DISPLAY_NAMES[code] ?: code) +
+                                            if (hasModel) "  ✓" else "",
+                                        color = if (hasModel) MaterialTheme.colorScheme.onSurface
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                onClick = {
+                                    langMenuOpen = false
+                                    onVoiceLanguageChange(code)
+                                },
+                            )
+                        }
+                    }
+                }
+                // Mismatch warning: current language has no downloaded model.
+                if (!currentLangHasModel) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "⚠ No Vosk model downloaded for \"$currentBase\". " +
+                            "Vosk ASR will not work until you download a model below.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Ready: ${voskTranscriber.isReady()} | Loaded lang: ${voskTranscriber.getCurrentLanguage()}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (voskTranscriber.isReady()) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        val downloaded = run { refresh; voskTranscriber.getDownloadedLanguages() }
+        // ── Model list (download / delete) ──
         for (model in VoskTranscriber.AVAILABLE_LANGUAGES) {
             Spacer(modifier = Modifier.height(4.dp))
             val isDownloaded = downloaded.contains(model.code)
