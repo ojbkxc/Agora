@@ -211,6 +211,7 @@ Agora/
 ## 4. 褰撳墠杩涘害锛堟埅鑷?2026-08-19锛?
 
 ### 鉁?宸插畬鎴?
+- **任务41 ASR/语音日志清理按钮**（2026-08-20，本次会话，coding-engineer team-mate）：在设置页 ASR 诊断区添加"清空 ASR 日志"按钮，点击调用 `AppLog.clear()` 清空内存日志并显示 Toast 提示。修改 3 文件：`SettingsAsrDiagnosticsSection.kt`（202→210 行，+8）— 在现有按钮 Row 内（copy log / save to downloads 之后）新增 `TextButton`，onClick 调用 `AppLog.clear()` + `Toast.makeText` 显示 `R.string.asr_log_cleared`；`values/strings.xml`（+2）— 新增 `asr_clear_log`="Clear ASR Log" + `asr_log_cleared`="ASR log cleared"；`values-zh/strings.xml`（+2）— 新增 `asr_clear_log`="清空 ASR 日志" + `asr_log_cleared`="ASR 日志已清空"。**约束遵守**：文件 ≤999 行 ✅，代码与注释均英文 ✅，用户可见文本 en/zh 双语 ✅，未 bump 版本号 ✅。变更被合并入 commit `91ab0ebb`（与 ChatTopBar statusBarsPadding 修复一同提交，非本任务变更）。**未 push**（GitHub 网络不可达，按 R0.8 待后续 push 验证 CI）。
 - **任务24 VoskTranscriber 流式会话自动初始化**（2026-08-19，本次会话，coding-engineer team-mate）：修复 `VoskTranscriber.startStreamingSession()` 在模型文件已下载但 `initialize()` 未调用时（如进程重启或调用方遗漏 init）直接返回 false 导致流式语音识别失败的问题。① `startStreamingSession()` 改为 `suspend fun`，在 `synchronized(streamingLock)` 块之前添加 auto-init 逻辑：当 `!isModelLoaded || model == null` 且 `am/final.mdl` 存在时自动调用 `initialize(languageCode)`；② `getLanguageByCode()` 添加 `Log.w` 警告日志，未知语言代码回退时可观测。修改 1 文件：`VoskTranscriber.kt`（+24/-4）。调用点 `VoiceConversationController.kt:436` 已在协程作用域内，无需修改。**约束遵守**：文件 806 行 ≤999 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅。commit `ec99db01`，**已 push**，CI #32252119499 全绿通过（conclusion=success）。
 - **任务17 TTS barge-in + 强制 TTS 播放**（2026-08-19，本次会话，coding-engineer team-mate）：修复实时语音对话中 TTS 不播放的问题。① 新回复到达时停止当前 TTS 播放（barge-in），切换到最新消息；② 实时语音对话模式下强制开启 TTS 自动播放（隐藏的、强制的，不依赖用户设置）。修改 2 文件：`VoiceConversationController.kt`（949→955 行，+10/-2）— 新增 `isConversationStreaming()` 暴露流式会话状态 + `handleTranscriptionResult` CONVERSATION 分支添加 `TtsManager.stop()` barge-in + `observeLlmAndTts` 条件改为 `isStreamingConversation || ttsAutoPlayOn()`；`ChatViewModel.kt`（998→999 行，+3/-1）— `onStreamCommit` 回调添加 `voiceStreaming` 变量并修改 TTS 播放条件。**约束遵守**：文件 ≤999 行 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅，代码与注释均用英文 ✅。commit `ee98a23a`，CI 全绿验证通过（conclusion=success）。
 - **全量代码审查与修复**（2026-08-19，本次会话，文档维护代理）：对全量 Kotlin 源码进行安全/崩溃/UI/CI 审查，产出 3 个 commit（`6723e6e7`/`fbf6231d`/`354e566e`），修复 Zip Slip 路径遍历、NPE 崩溃、Room DB 泄漏、Compose recompose race、smart cast 委托属性等问题。CI 全绿验证通过。详见 §9 变更日志。
@@ -456,6 +457,14 @@ gh run view --log-failed    # 澶辫触鏃舵煡鐪嬫姤閿欐棩蹇?
 鐜锛氭湰鍦扮绾匡紝缂?Android SDK/NDK/CMake锛?*鏃犳硶**鏈湴 `./gradlew assembleFdroidRelease`銆傜紪璇戦獙璇佽蛋 GitHub CI锛埪2锛夈€傚瓙妯″潡 checkout 闇€ `--recurse-submodules`銆?
 
 ## 9. 鍙樻洿鏃ュ織锛堣拷鍔犳柊琛岋紝鏈€鏂板湪涓婏級
+
+- 2026-08-20 task id=41 ASR/语音日志清理按钮（本次会话，coding-engineer team-mate）：在设置页 ASR 诊断区添加清空日志按钮。
+  - `91ab0ebb` **feat(settings)**: add ASR/voice log cleanup entry（与 ChatTopBar statusBarsPadding 修复合并提交，非本任务变更）。
+    - `SettingsAsrDiagnosticsSection.kt:200-207` — 在现有按钮 Row 内（copy log / save to downloads 之后）新增 `TextButton`，onClick 调用 `AppLog.clear()` 清空内存日志 + `Toast.makeText(context, context.getString(R.string.asr_log_cleared), LENGTH_SHORT).show()` 显示提示。`AppLog` 已 import（L27），`context` 在 Composable 作用域可用。
+    - `values/strings.xml:170-171` — 新增 `asr_clear_log`="Clear ASR Log" + `asr_log_cleared`="ASR log cleared"。
+    - `values-zh/strings.xml:846-847` — 新增 `asr_clear_log`="清空 ASR 日志" + `asr_log_cleared`="ASR 日志已清空"。
+  - **约束遵守**：`SettingsAsrDiagnosticsSection.kt` 210 行 ≤999 ✅；代码与注释均英文 ✅；用户可见文本 en/zh 双语 ✅；未 bump 版本号 ✅；未新增字体 ✅；i18n 仅 en/zh ✅。
+  - **验证**：本地 git commit 成功（`91ab0ebb`，4 files changed, +19/-1，含 ChatTopBar.kt 修复），**未 push**（GitHub 网络不可达，按 R0.8 待后续 push 验证 CI）。
 
 - 2026-08-19 task id=24 VoskTranscriber 流式会话自动初始化 + 未知语言代码警告（本次会话，coding-engineer team-mate）：修复 `startStreamingSession()` 在模型文件已下载但未初始化时返回 false 的 Bug #1，以及 `getLanguageByCode()` 静默回退的 Bug #2。
   - `ec99db01` **fix(vosk)**: auto-init model in startStreamingSession + warn on unknown language code。
