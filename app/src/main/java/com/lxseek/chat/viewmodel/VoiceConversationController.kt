@@ -21,6 +21,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 
 private const val TTS_START_GRACE_MS = 5_000L
+private const val SYSTEM_FINAL_TIMEOUT_MS = 10_000L
 private const val TAG = "VoiceConvCtrl"
 
 class VoiceConversationController(
@@ -77,6 +78,7 @@ class VoiceConversationController(
     private var ttsObserverJob: Job? = null
     private var sendJob: Job? = null
     private var partialJob: Job? = null
+    private var stopSystemWatchdog: Job? = null
     @Volatile private var waitingForLlm = false
     @Volatile private var llmWasLoading = false
 
@@ -194,6 +196,8 @@ class VoiceConversationController(
         sendJob = null
         partialJob?.cancel()
         partialJob = null
+        stopSystemWatchdog?.cancel()
+        stopSystemWatchdog = null
         captureJob?.cancel()
         captureJob = null
         try { audioCaptureManager.cancelCapture() } catch (e: Throwable) { Log.e(TAG, "cancelCapture failed", e) }
@@ -216,6 +220,8 @@ class VoiceConversationController(
     fun dispose() {
         Log.i(TAG, "dispose()")
         stop()
+        stopSystemWatchdog?.cancel()
+        stopSystemWatchdog = null
         try { audioCaptureManager.release() } catch (e: Throwable) { Log.e(TAG, "audioCaptureManager.release failed", e) }
         try { voskTranscriber.release() } catch (e: Throwable) { Log.e(TAG, "voskTranscriber.release failed", e) }
         try { speechRecognizerManager.destroy() } catch (e: Throwable) { Log.e(TAG, "speechRecognizerManager.destroy failed", e) }
@@ -223,6 +229,13 @@ class VoiceConversationController(
 
     private fun beginListening() {
         if (!active) return
+        // Guard against duplicate starts from the two TTS observers (observeLlmAndTts and
+        // observeTtsPlaying) racing on a very short reply: a second beginListening while
+        // already LISTENING would open a second mic/session.
+        if (_state.value == State.LISTENING) {
+            Log.d(TAG, "beginListening: already listening, ignoring duplicate start")
+            return
+        }
         _state.value = State.LISTENING
         _partialTranscript.value = ""
         _amplitude.value = 0f
@@ -564,17 +577,35 @@ class VoiceConversationController(
     private fun stopCaptureAndTranscribe() {
         Log.i(TAG, "stopCaptureAndTranscribe: engine=$currentEngine")
         if (currentEngine == "system") {
-            try { speechRecognizerManager.stopListening() } catch (e: Throwable) { Log.e(TAG, "stopListening failed", e) }
-            partialJob?.cancel()
-            partialJob = null
-            val partial = _partialTranscript.value
-            _partialTranscript.value = ""
-            _amplitude.value = 0f
-            if (partial.isNotBlank()) {
-                handleTranscriptionResult(partial)
-            } else {
-                _state.value = State.IDLE
-                active = false
+            if (_state.value == State.TRANSCRIBING) {
+                Log.w(TAG, "stopCaptureAndTranscribe: already transcribing, ignoring duplicate stop")
+                return
+            }
+            // Graceful stop: the system recognizer finalizes the utterance and delivers the
+            // result through the live flow (Final branch handles it). The previous hard stop
+            // (stopListening + cancel + destroy) killed the onResults callback, so tapping
+            // stop after speaking produced nothing — this is the smoke-test failure.
+            _state.value = State.TRANSCRIBING
+            try { speechRecognizerManager.stopListening(graceful = true) } catch (e: Throwable) {
+                Log.e(TAG, "graceful stopListening failed", e)
+            }
+            stopSystemWatchdog?.cancel()
+            stopSystemWatchdog = scope.launch {
+                delay(SYSTEM_FINAL_TIMEOUT_MS)
+                if (active && currentEngine == "system" && _state.value == State.TRANSCRIBING) {
+                    Log.w(TAG, "system final result timed out; settling session")
+                    try { speechRecognizerManager.stopListening() } catch (e: Throwable) {
+                        Log.e(TAG, "watchdog stopListening failed", e)
+                    }
+                    _partialTranscript.value = ""
+                    _amplitude.value = 0f
+                    _state.value = State.IDLE
+                    active = false
+                    if (_mode.value == Mode.SINGLE_ASR) {
+                        _singleAsrError.value = "Speech recognition timed out — try again"
+                        _mode.value = Mode.CONVERSATION
+                    }
+                }
             }
             return
         }
@@ -719,6 +750,13 @@ class VoiceConversationController(
         try {
             partialJob?.cancel()
             partialJob = scope.launch {
+                // Live mic level for the voiceprint: the system recognizer reports RMS dB.
+                // VoiceSpectrumRing's bars then move with the speaker's volume in real time.
+                launch {
+                    speechRecognizerManager.rms.collect { level ->
+                        if (active && _state.value == State.LISTENING) _amplitude.value = level
+                    }
+                }
                 speechRecognizerManager.startListening().collect { result ->
                     if (!active) return@collect
                     when (result) {
@@ -727,11 +765,15 @@ class VoiceConversationController(
                         }
                         is SpeechRecognizerManager.RecognitionResult.Final -> {
                             Log.i(TAG, "System ASR final: '${result.text}'")
+                            stopSystemWatchdog?.cancel()
+                            stopSystemWatchdog = null
                             speechRecognizerManager.stopListening()
                             handleTranscriptionResult(result.text)
                         }
                         is SpeechRecognizerManager.RecognitionResult.Error -> {
                             Log.w(TAG, "System ASR error: ${result.message} (code=${result.code})")
+                            stopSystemWatchdog?.cancel()
+                            stopSystemWatchdog = null
                             // GrapheneOS AI: on ERROR_CLIENT(5) the system recognizer is
                             // broken; switch to Vosk so the conversation survives.
                             if (active) {
@@ -744,6 +786,8 @@ class VoiceConversationController(
                                 } else {
                                     _state.value = State.IDLE
                                     active = false
+                                    // Surface the failure instead of silently dropping it.
+                                    _singleAsrError.value = "Speech recognition failed: ${result.message}"
                                 }
                             }
                         }
@@ -780,6 +824,9 @@ class VoiceConversationController(
                     _mode.value = Mode.CONVERSATION
                 }
                 Mode.CONVERSATION -> {
+                    // Surface the failure via the same snackbar channel the single-shot
+                    // card uses, instead of silently dropping the turn.
+                    _singleAsrError.value = "Speech recognition failed: $errorMsg"
                     _state.value = State.IDLE
                     active = false
                 }

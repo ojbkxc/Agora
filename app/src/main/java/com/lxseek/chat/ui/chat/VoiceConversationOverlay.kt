@@ -298,17 +298,21 @@ internal fun VoiceSpectrumRing(
         val outerR = radius * 0.96f
         val barWidth = ((2f * PI * innerR) / SPECTRUM_BARS).toFloat() * 0.42f
         val amp = smoothAmp.value
-        val drift = t * 0.002f
+        // Non-linear boost so quiet speech is still visible and loud speech pushes the bars
+        // out — "voice loud, bars big" like a real voiceprint.
+        val boosted = (amp * 1.5f - 0.05f).coerceIn(0f, 1f)
+        val drift = t * 0.004f
         val step = 360f / SPECTRUM_BARS
 
         for (i in 0 until SPECTRUM_BARS) {
             val angleDeg = i * step
             val rad = angleDeg * (PI / 180f).toFloat()
-            // Multi-frequency phase ripple: bars pulse outward in waves while talking,
-            // with a secondary higher-frequency component for a richer voiceprint.
-            val wave = 0.5f + 0.3f * sin(rad * 3f + drift * 5f) +
+            // Multi-frequency phase ripple plus per-bar noise: the ring "breathes" even at
+            // rest and pulses hard with the speaker's volume — the classic live waveform feel.
+            val wave = 0.5f + 0.3f * sin(rad * 3f + drift * 6f) +
                 0.2f * sin(rad * 7f - drift * 3f)
-            val len = (0.12f + amp * 0.88f * wave.coerceIn(0f, 1f)).coerceIn(0.08f, 1f)
+            val noise = 0.7f + 0.3f * sin(i * 4.7f + drift * 9f)
+            val len = (0.10f + boosted * 0.90f * wave.coerceIn(0f, 1f) * noise).coerceIn(0.06f, 1f)
             val r0 = innerR + (outerR - innerR) * 0.05f
             val r1 = innerR + (outerR - innerR) * len
             val x0 = cx + cos(rad) * r0

@@ -11,6 +11,9 @@ import com.lxseek.chat.util.AppLog as Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.Locale
 
@@ -22,6 +25,14 @@ class SpeechRecognizerManager(private val context: Context) {
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
+
+    /**
+     * Normalized live mic level (0..1) driven by [RecognitionListener.onRmsChanged].
+     * The system recognizer reports RMS in dB (silence ~0-6, normal speech ~8-25+);
+     * the UI voiceprint consumes this so the bars move with the speaker's volume.
+     */
+    private val _rms = MutableStateFlow(0f)
+    val rms: StateFlow<Float> = _rms.asStateFlow()
 
     sealed class RecognitionResult {
         data class Partial(val text: String) : RecognitionResult()
@@ -59,6 +70,11 @@ class SpeechRecognizerManager(private val context: Context) {
             return@callbackFlow
         }
 
+        // Tear down any recognizer left alive by a previous graceful stop whose final callback
+        // has not arrived yet. Two live SpeechRecognizer instances would fight for the mic and
+        // fail with ERROR_RECOGNIZER_BUSY.
+        stopListening()
+        _rms.value = 0f
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
 
         val recognitionIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -81,7 +97,10 @@ class SpeechRecognizerManager(private val context: Context) {
                 Log.d(TAG, "Beginning of speech")
             }
 
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) {
+                // Silence sits near 0-6 dB, normal speech 8-25+ dB, shouting 30+.
+                _rms.value = ((rmsdB + 6f) / 30f).coerceIn(0f, 1f)
+            }
 
             override fun onBufferReceived(buffer: ByteArray?) {}
 
@@ -143,17 +162,33 @@ class SpeechRecognizerManager(private val context: Context) {
         }
     }
 
-    fun stopListening() {
+    /**
+     * Stops the recognizer. With [graceful] the engine is allowed to finalize the current
+     * utterance and deliver [RecognitionResult.Final] / [RecognitionResult.Error] through the
+     * live flow (the recognizer is torn down inside the callback, by the next start, or by a
+     * watchdog); the default hard stop cancels and destroys immediately, which discards any
+     * pending result.
+     */
+    fun stopListening(graceful: Boolean = false) {
         val recognizer = speechRecognizer ?: return
         try {
-            recognizer.stopListening()
-            recognizer.cancel()
-            recognizer.destroy()
+            if (graceful) {
+                isListening = false
+                recognizer.stopListening()
+            } else {
+                recognizer.cancel()
+                recognizer.destroy()
+                speechRecognizer = null
+                isListening = false
+                _rms.value = 0f
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping speech recognizer", e)
-        } finally {
-            speechRecognizer = null
-            isListening = false
+            if (!graceful) {
+                speechRecognizer = null
+                isListening = false
+                _rms.value = 0f
+            }
         }
     }
 
