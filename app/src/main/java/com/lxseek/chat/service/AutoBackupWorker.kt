@@ -47,6 +47,8 @@ class AutoBackupWorker(
             Result.retry()
         } finally {
             manager.destroy()
+            // Close the Room database to release its resources (cursor/window allocations)
+            db.close()
         }
     }
 
