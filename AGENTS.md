@@ -346,6 +346,22 @@ gh run view --log-failed    # 澶辫触鏃舵煡鐪嬫姤閿欐棩蹇?
 
 ## 9. 鍙樻洿鏃ュ織锛堣拷鍔犳柊琛岋紝鏈€鏂板湪涓婏級
 
+- 2026-08-20 task id=40 ASR 默认中文 + 麦克风单次录音时长上限（本次会话，coding-engineer team-mate）：将 ASR 默认语言改为中文、修复 Vosk 语言不匹配 bug、给单次录音加 90 秒超时。
+  - `ceda24ab` **feat(asr)**: default to zh + fix language mismatch + single-asr recording timeout。
+    - `SettingsManager.kt:404` — `voiceLanguage` 默认值 `"en"` → `"zh"`。
+    - `SettingsRepository.kt:110` — `voiceLanguage` eager 初始默认值 `"en"` → `"zh"`（`hot()` 第二参数，DataStore 加载前使用）。
+    - `VoiceConversationController.kt:90` — 新增 `private var singleAsrTimeoutJob: Job? = null`。
+    - `VoiceConversationController.kt:94-97` — 新增 `companion object` 含 `MAX_SINGLE_ASR_DURATION_MS = 90_000L`。
+    - `VoiceConversationController.kt:153-163` — `startSingleAsr()` 在 `beginListening()` 后启动超时 Job，`delay(90s)` 后检查 `active && SINGLE_ASR && LISTENING` 则调用 `stopCaptureAndTranscribe()` 自动转写。
+    - `VoiceConversationController.kt:188-189` — `finishConversationTurn()` 取消超时 Job。
+    - `VoiceConversationController.kt:210-211` — `stopSingleAsr()` 取消超时 Job。
+    - `VoiceConversationController.kt:230-231` — `stop()` 取消超时 Job。
+    - `VoiceConversationController.kt:722-727` — `transcribeWithVosk()` 修复语言不匹配：条件从 `!isReady()` 改为 `!isReady() || getCurrentLanguage() != langCode`，移除硬编码 `"en"` 回退（初始化失败时走下方 whisper fallback / error 逻辑）。
+    - `VoiceConversationController.kt:888-889` — `handleTranscriptionResult()` 错误分支 SINGLE_ASR 取消超时 Job。
+    - `VoiceConversationController.kt:908-909` — `handleTranscriptionResult()` 成功分支 SINGLE_ASR 取消超时 Job。
+  - **约束遵守**：`VoiceConversationController.kt` 982 行 ≤999 ✅；`SettingsManager.kt` 998 行 ≤999 ✅；`SettingsRepository.kt` 580 行 ≤999 ✅；代码与注释均英文 ✅；无新增字符串资源 ✅；无 bump 版本号 ✅。
+  - **验证**：本地 git commit 成功（`ceda24ab`，3 files changed, +34/-7），**未 push**（GitHub 网络不可达，按 R0.8 待后续 push 验证 CI）。
+
 - 2026-08-20 task id=41 ASR/语音日志清理按钮（本次会话，coding-engineer team-mate）：在设置页 ASR 诊断区添加清空日志按钮。
   - `435e8e8d` **feat(settings)**: add ASR/voice log cleanup entry。
     - `SettingsAsrDiagnosticsSection.kt:200-207` — 在现有按钮 Row 内（copy log / save to downloads 之后）新增 `TextButton`，onClick 调用 `AppLog.clear()` 清空内存日志 + `Toast.makeText(context, context.getString(R.string.asr_log_cleared), LENGTH_SHORT).show()` 显示提示。`AppLog` 已 import（L27），`context` 在 Composable 作用域可用。
