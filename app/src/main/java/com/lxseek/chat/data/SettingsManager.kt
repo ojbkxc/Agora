@@ -401,7 +401,7 @@ class SettingsManager(private val context: Context) {
     val shareIncludeTools: Flow<Boolean> = context.dataStore.data.map { it[SHARE_INCLUDE_TOOLS] ?: true }
     val voiceConversationEnabled: Flow<Boolean> = context.dataStore.data.map { it[VOICE_CONVERSATION_ENABLED] ?: false }
     val asrEnginePref: Flow<String> = context.dataStore.data.map { it[ASR_ENGINE_PREF] ?: "auto" }
-    val voiceLanguage: Flow<String> = context.dataStore.data.map { it[VOICE_LANGUAGE] ?: "en" }
+    val voiceLanguage: Flow<String> = context.dataStore.data.map { it[VOICE_LANGUAGE] ?: "zh" }
     val asrUseRemote: Flow<Boolean> = context.dataStore.data.map { it[ASR_USE_REMOTE] ?: false }
     val asrRemoteBaseUrl: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_BASE_URL] ?: "https://api.openai.com/v1" }
     val asrRemoteApiKey: Flow<String> = context.dataStore.data.map { it[ASR_REMOTE_API_KEY] ?: "" }

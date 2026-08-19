@@ -107,7 +107,7 @@ class SettingsRepository(
     val shareIncludeTools: StateFlow<Boolean> = hot(settingsManager.shareIncludeTools, true)
     val voiceConversationEnabled: StateFlow<Boolean> = hot(settingsManager.voiceConversationEnabled, false)
     val asrEnginePref: StateFlow<String> = hot(settingsManager.asrEnginePref, "auto")
-    val voiceLanguage: StateFlow<String> = hot(settingsManager.voiceLanguage, "en")
+    val voiceLanguage: StateFlow<String> = hot(settingsManager.voiceLanguage, "zh")
     val asrUseRemote: StateFlow<Boolean> = hot(settingsManager.asrUseRemote, false)
     val asrRemoteBaseUrl: StateFlow<String> = hot(settingsManager.asrRemoteBaseUrl, "https://api.openai.com/v1")
     val asrRemoteApiKey: StateFlow<String> = hot(settingsManager.asrRemoteApiKey, "")

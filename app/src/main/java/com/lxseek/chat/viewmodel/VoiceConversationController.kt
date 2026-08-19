@@ -87,8 +87,14 @@ class VoiceConversationController(
     private var sendJob: Job? = null
     private var partialJob: Job? = null
     private var stopSystemWatchdog: Job? = null
+    private var singleAsrTimeoutJob: Job? = null
     @Volatile private var waitingForLlm = false
     @Volatile private var llmWasLoading = false
+
+    companion object {
+        /** Hard ceiling for a single-shot ASR recording. Auto-stops & transcribes after this. */
+        private const val MAX_SINGLE_ASR_DURATION_MS = 90_000L
+    }
 
     fun toggle() {
         Log.i(TAG, "toggle: state=${_state.value}, active=$active")
@@ -144,6 +150,17 @@ class VoiceConversationController(
         llmWasLoading = false
         try {
             beginListening()
+            // Safety ceiling: auto-stop a single-shot recording after 90 s so a user
+            // who walks away doesn't drain the battery / fill memory. The timeout
+            // fires stopCaptureAndTranscribe() which transcribes whatever was captured.
+            singleAsrTimeoutJob?.cancel()
+            singleAsrTimeoutJob = scope.launch {
+                delay(MAX_SINGLE_ASR_DURATION_MS)
+                if (active && _mode.value == Mode.SINGLE_ASR && _state.value == State.LISTENING) {
+                    Log.w(TAG, "startSingleAsr: 90 s ceiling reached, auto-stopping")
+                    stopCaptureAndTranscribe()
+                }
+            }
         } catch (e: Throwable) {
             Log.e(TAG, "startSingleAsr crashed: ${e.javaClass.simpleName}: ${e.message}", e)
             active = false
@@ -168,6 +185,8 @@ class VoiceConversationController(
         observeJob = null
         ttsObserverJob?.cancel()
         ttsObserverJob = null
+        singleAsrTimeoutJob?.cancel()
+        singleAsrTimeoutJob = null
         when (_mode.value) {
             Mode.SINGLE_ASR -> stopSingleAsr()
             Mode.CONVERSATION -> {
@@ -189,6 +208,8 @@ class VoiceConversationController(
             return
         }
         Log.i(TAG, "stopSingleAsr: engine=$currentEngine")
+        singleAsrTimeoutJob?.cancel()
+        singleAsrTimeoutJob = null
         stopCaptureAndTranscribe()
     }
 
@@ -206,6 +227,8 @@ class VoiceConversationController(
         partialJob = null
         stopSystemWatchdog?.cancel()
         stopSystemWatchdog = null
+        singleAsrTimeoutJob?.cancel()
+        singleAsrTimeoutJob = null
         captureJob?.cancel()
         captureJob = null
         try { audioCaptureManager.cancelCapture() } catch (e: Throwable) { Log.e(TAG, "cancelCapture failed", e) }
@@ -699,13 +722,13 @@ class VoiceConversationController(
         try {
             val langCode = resolveVoskLanguage()
             Log.i(TAG, "transcribeWithVosk: lang=$langCode, wav=${wavFile.length()} bytes, voskReady=${voskTranscriber.isReady()}")
-            if (!voskTranscriber.isReady()) {
+            // Re-initialize when Vosk is not ready OR when the loaded language doesn't
+            // match the requested one (e.g. user switched voice_language but Vosk still
+            // holds the previous model). Without this check, transcribe() would run
+            // against the wrong language model and produce garbage output.
+            if (!voskTranscriber.isReady() || voskTranscriber.getCurrentLanguage() != langCode) {
                 val initialized = voskTranscriber.initialize(langCode)
                 Log.i(TAG, "transcribeWithVosk: initialize($langCode)=$initialized, ready=${voskTranscriber.isReady()}")
-                if (!initialized) {
-                    Log.w(TAG, "Vosk model not available for $langCode, trying en")
-                    voskTranscriber.initialize("en")
-                }
             }
             if (!voskTranscriber.isReady()) {
                 if (!whisperApiKey().isNullOrBlank()) {
@@ -862,6 +885,8 @@ class VoiceConversationController(
             }
             when (_mode.value) {
                 Mode.SINGLE_ASR -> {
+                    singleAsrTimeoutJob?.cancel()
+                    singleAsrTimeoutJob = null
                     _singleAsrError.value = errorMsg
                     _state.value = State.IDLE
                     active = false
@@ -880,6 +905,8 @@ class VoiceConversationController(
         Log.i(TAG, "Transcription result: '$cleanText' (mode=${_mode.value})")
         when (_mode.value) {
             Mode.SINGLE_ASR -> {
+                singleAsrTimeoutJob?.cancel()
+                singleAsrTimeoutJob = null
                 _singleAsrResult.value = cleanText
                 _state.value = State.IDLE
                 active = false
