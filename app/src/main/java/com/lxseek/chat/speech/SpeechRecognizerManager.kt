@@ -104,7 +104,7 @@ class SpeechRecognizerManager(private val context: Context) {
                 _rms.value = level
                 // Debug so we can verify the device actually fires onRmsChanged (many system
                 // recognizers never call it — in that case the bars stay flat on system engine).
-                Log.v(TAG, "onRmsChanged: ${rmsdB}dB -> $level")
+                Log.d(TAG, "onRmsChanged: ${rmsdB}dB -> $level")
             }
 
             override fun onBufferReceived(buffer: ByteArray?) {}
