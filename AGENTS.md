@@ -1,350 +1,350 @@
-﻿# AGENTS.md 鈥?Agora 椤圭洰浠ｇ悊宸ヤ綔鎸囧紩
+﻿# AGENTS.md —Agora 项目代理工作指引
 
-> 鏈枃浠朵緵 AI 缂栫爜浠ｇ悊锛堝惈鏈潵浼氳瘽锛夎繘鍏ラ」鐩椂**棣栧厛鑷**锛屽揩閫熷榻愰」鐩畾浣嶃€佸綋鍓嶈繘搴︺€佹灦鏋勫绾︿笌涓嬩竴姝ヤ换鍔★紝鐒跺悗**缁х画瀹屽杽鏈畬鎴愮殑浠ｇ爜**銆?
-> 浼樺厛绾э細鏈枃浠?> `ARCHITECTURE.md`锛堟灦鏋勬枃妗ｏ紝490 琛岋級> `README.md` / `README_CN.md`銆?
-
----
-
-## R0. 寮哄埗瑙勫垯锛圡ANDATORY锛屼笉鍙粫杩囷級
-
-> 鏈妭涓?*鏈€楂樹紭鍏堢骇鐨勫己鍒剁害鏉?*锛屽噷椹句簬涓€鍒囧叾浠栨寚寮曚箣涓娿€傝繚鍙嶅嵆瑙嗕负娴佺▼澶辫触銆?
-
-1. **姣忔浼氳瘽蹇呴』鍏堣嚜璇绘湰鏂囦欢**锛氳繘鍏ラ」鐩悗锛屽湪鎵ц浠讳綍鍐欎唬鐮?鎼滅储/鏋勫缓鍔ㄤ綔涔嬪墠锛屽繀椤诲厛 `read` 瀹屾暣 `AGENTS.md`锛屽榻愩€屽綋鍓嶈繘搴︺€嶃€屼笅涓€姝ヤ换鍔°€嶃€屾帴鍙ｅ绾︺€嶃€?
-2. **姣忔浼氳瘽缁撴潫鍓嶅繀椤诲洖鍐欐湰鏂囦欢**锛氭棤璁烘湰娆″畬鎴愪簡鍑犻」浠诲姟锛堝惈 0 椤癸紝鍗充粎鎺掓煡/澶辫触锛夛紝鍦ㄧ粨鏉熷墠**蹇呴』**鐢?`edit`/`write` 鏇存柊鏈枃浠惰嚦灏戜竴澶勶細
-   - **蹇呴』**鏇存柊銆屄? 鍙樻洿鏃ュ織銆嶈拷鍔犱竴琛岋紙鏈€鏂板湪涓婏級锛岃褰曟湰娆″仛浜嗕粈涔堛€佹敼浜嗗摢浜涙枃浠躲€佹槸鍚﹂€氳繃楠岃瘉銆佷笅涓€姝ュ缓璁€?
-   - **蹇呴』**鏇存柊銆屄? 褰撳墠杩涘害銆嶄笌銆屄? 涓嬩竴姝ヤ换鍔°€嶇殑鍕鹃€夌姸鎬佷互鍙嶆槧鐪熷疄鐘舵€侊紙鏂板畬鎴愮殑鎸埌銆屽凡瀹屾垚銆嶅尯锛屾柊鍙戠幇鐨勯棶棰樺姞鍏ャ€屽凡鐭ュ皬闂銆嶏級銆?
-   - 鑻ユ敼鍔ㄤ簡鎺ュ彛濂戠害锛?*蹇呴』**鍚屾鏇存柊銆屄? 鍏抽敭鎺ュ彛濂戠害銆嶃€?
-   - 鑻ユ敼鍔ㄤ簡鐩綍缁撴瀯鎴栨柊澧?鍒犻櫎鏂囦欢锛?*蹇呴』**鍚屾鏇存柊銆屄? 浠撳簱缁撴瀯銆嶃€?
-3. **鏈枃浠舵槸鍗曚竴浜嬪疄婧愶紙single source of truth锛?*锛氬綋鏈枃浠朵笌浠ｇ爜銆佷笌 `ARCHITECTURE.md`銆佷笌鍙ｅご鎻忚堪鍑虹幇鐭涚浘鏃讹紝**鍏堜互浠ｇ爜涓哄噯**锛岀劧鍚?*绔嬪嵆鍥炲啓鏈枃浠?*娑堥櫎婕傜Щ锛涚姝㈣鏈枃浠朵笌浠ｇ爜闀挎湡涓嶄竴鑷淬€?
-4. **涓嶅緱鍒犻櫎鎴栧急鍖栨湰鑺?*锛氫换浣曞銆屄0 寮哄埗瑙勫垯銆嶇殑鍒犲噺銆侀檷绾с€佸姞銆岃鎯呭喌鑰屽畾銆嶄慨楗帮紝閮介渶鐢ㄦ埛鏄庣‘鍚屾剰锛涗唬鐞嗚嚜韬笉寰楄嚜琛屾斁瀹姐€?
-5. **璺熻繘鏄箟鍔¤€岄潪鍙€?*锛氬嵆浣跨敤鎴锋湭瑕佹眰銆屾洿鏂?AGENTS.md銆嶏紝姣忔浼氳瘽缁撴潫鍓嶄篃蹇呴』鎵ц鍥炲啓锛涚敤鎴锋槑纭銆屼笉鐢ㄦ洿鏂般€嶆椂鎵嶅彲璺宠繃锛屽苟鍦ㄥ彉鏇存棩蹇楁敞鏄庛€屼緷鐢ㄦ埛瑕佹眰璺宠繃鏈鍥炲啓銆嶃€?
-6. **璇█鍙繚鐣欎腑鑻辨枃**锛圡ANDATORY锛夛細App 鐨勮瑷€璧勬簮**浠?* `values/`锛堣嫳鏂囷級涓?`values-zh/`锛堢畝浣撲腑鏂囷級銆?*绂佹**鏂板 `values-es`/`values-fr`/`values-de`/`values-ru`/`values-ja`/`values-ko`/`values-ar`/`values-vi`/`values-pt-rBR`/`values-zh-rTW` 绛夊叾浠栬瑷€鐩綍銆傝瑷€閫夐」鍦?`SettingsLanguagePage.kt` 涓?`MainActivity.attachBaseContext()` 涓０鏄庯紝涓よ€呭繀椤诲悓姝ワ紙褰撳墠涓?`system`/`en`/`zh`锛夈€?
-7. **涓嶆墦鍖呰嚜瀹氫箟瀛椾綋**锛圡ANDATORY锛夛細**绂佹**鍦?`res/font/` 涓嬫坊鍔?`.ttf`/`.otf` 鏂囦欢銆俇I 瀛椾綋浣跨敤 `FontFamily.Default`锛堢郴缁熼粯璁わ級锛屼唬鐮?缁堢瀛椾綋浣跨敤 `FontFamily.Monospace`锛堢郴缁熺瓑瀹斤級銆傚瓧浣撳畾涔夊湪 `ui/theme/Type.kt`锛坄OutfitFamily`/`MonoFamily`锛夈€?
-8. **缂栬瘧楠岃瘉蹇呴』鎻愪氦鍒?GitHub 涓婄紪璇?*锛圡ANDATORY锛夛細鏈湴涓虹绾跨幆澧冿紝缂?Android SDK/NDK/CMake 宸ュ叿閾撅紝**鏃犳硶** `./gradlew assembleFdroidRelease`銆傚洜姝?*浠讳綍浠ｇ爜鏀瑰姩鍚庣殑缂栬瘧楠岃瘉蹇呴』閫氳繃 `git commit && git push` 鎻愪氦鍒?GitHub**锛坄origin = https://github.com/ojbkxc/Agora.git`锛屽垎鏀?`master`锛夛紝鐢?GitHub CI锛坄.github/workflows/build.yml`锛岃 搂R2锛夋墽琛屾瀯寤恒€?*绂佹**鍦ㄦ湭 push 鍒?GitHub 缂栬瘧閫氳繃鍓嶅０绉版煇瀛愪换鍔°€屽畬鎴?宸查獙璇併€嶃€?
-9. **閫氳繃 GitHub 缂栬瘧鎶ラ敊杩唬淇**锛圡ANDATORY锛夛細push 鍚庤嫢 GitHub CI 缂栬瘧/娴嬭瘯澶辫触锛?*蹇呴』**璇诲彇 CI 鏃ュ織涓殑鎶ラ敊锛屾嵁鎶ラ敊鏈湴淇鍚?*鍐嶆 commit & push**锛屽惊鐜洿鑷?CI 鍏ㄧ豢銆?*涓嶅緱**璺宠繃 CI 澶辫触鐩存帴鎺ㄨ繘涓嬩竴瀛愪换鍔★紱**涓嶅緱**鐢?`@Suppress`/娉ㄩ噴鎺夋祴璇?闄嶄綆 lint 闃堝€肩瓑鏂瑰紡缁曡繃 CI 鎶ラ敊锛堥櫎闈炵敤鎴锋槑纭悓鎰忥級銆侰I 鍏ㄧ豢鏄瓙浠诲姟瀹屾垚鐨?*鍞竴**缂栬瘧楠岃瘉鍒ゆ嵁銆?
-10. **鑷姩鎺ㄨ繘椤圭洰锛坅uto-continue锛岄粯璁よ涓猴級**锛圡ANDATORY锛夛細鐢ㄦ埛璇淬€岃嚜鍔ㄧ户缁€?銆岀户缁€?銆宎uto銆嶆垨鏈槑纭彨鍋滄椂锛屼唬鐞?*蹇呴』鑷富杩炵画鎺ㄨ繘**椤圭洰浠诲姟锛屼笉寰楁瘡瀹屾垚涓€灏忔灏卞仠涓嬫潵璇㈤棶涓嬩竴姝ャ€傚叿浣撹姹傦細
-    - 杩涘叆椤圭洰鍚庢寜 搂0 娴佺▼**鑷富**鎸戦€変笅涓€涓渶楂樹紭鍏堢骇鐨勬渶灏忓彲鐙珛浜や粯瀛愪换鍔″苟寮€宸ワ紝涓嶇瓑鐢ㄦ埛閫愰」鎸囨淳銆?
-    - 鍗曚釜瀛愪换鍔″畬鎴愬悗**绔嬪嵆**寮€濮嬩笅涓€涓紝鏃犻渶璇锋眰璁稿彲锛涗粎鍦ㄩ亣鍒般€屾柟鍚戞€у垎姝с€嶃€岀牬鍧忔€ф搷浣溿€嶃€岃繚鍙嶇‖绾︽潫銆嶃€屼俊鎭弗閲嶄笉瓒充笖鏃犳硶鍚堢悊鎺ㄦ柇銆嶆椂鎵嶇敤 `question` 宸ュ叿璇㈤棶鐢ㄦ埛銆?
-    - 鎺ㄨ繘杩囩▼涓?*涓诲姩**璧?搂R2.3 CI 淇闂幆銆伮0 鍥炲啓锛屼笉瑕佺瓑鐢ㄦ埛鎻愰啋銆?
-    - 鐢ㄦ埛鏈銆岃嚜鍔ㄧ户缁€嶆椂涔熼紦鍔卞噺灏戜笉蹇呰鐨勪腑閫旀彁闂紝浣嗗彲鍦ㄩ樁娈靛垏鎹㈡椂绠€瑕佹眹鎶ヨ繘搴︼紱鐢ㄦ埛璇淬€岃嚜鍔ㄧ户缁€嶅悗鍒?*杩炵画浣滀笟**鐩村埌浠诲姟鍏ㄩ儴瀹屾垚鎴栭亣闃绘墠鍋滀笅姹囨姤銆?
-    - 鍋滀笅姹囨姤鏃跺簲闄勩€屽凡瀹屾垚鐨?/ 姝ｅ湪鍋氱殑 / 涓嬩竴姝ユ墦绠楀仛鐨勩€嶄笁娈靛紡鎽樿锛屼究浜庣敤鎴蜂竴鍙ヨ瘽缁х画锛堝銆岀户缁€嶃€屾崲鏂瑰悜銆嶃€屽仠銆嶏級銆?
+> 本文件供 AI 编码代理（含未来会话）进入项目时**首先自读**，快速对齐项目定位、当前进度、架构契约与下一步任务，然后**继续完善未完成的代码**。
+> 优先级：本文件> `ARCHITECTURE.md`（架构文档，490 行）> `README.md` / `README_CN.md`。
 
 ---
 
-## R2. GitHub CI 缂栬瘧楠岃瘉绛栫暐锛圡ANDATORY锛岄厤鍚?搂R0.8鈥揜0.9锛?
+## R0. 强制规则（MANDATORY，不可绕过）
 
-> 鏈妭钀藉疄 搂R0.8/R0.9 鐨勩€屾彁浜ゅ埌 GitHub 缂栬瘧 + 鎹姤閿欎慨澶嶃€嶉棴鐜€傛湰鍦扮绾夸笉鍙紪璇戯紝GitHub CI 鏄?*鍞竴**缂栬瘧楠岃瘉閫氶亾銆?
+> 本节为*最高优先级的强制约束*，凌驾于一切其他指引之上。违反即视为流程失败。
 
-### R2.1 CI 瑙﹀彂鏉′欢
-- **push tag `v*`**锛堝 `v1.0.0`锛夋垨鎵嬪姩 `workflow_dispatch` 瑙﹀彂 `.github/workflows/build.yml`銆?
-- CI 鍦?GitHub-hosted runner锛坲buntu-latest锛屽彲鑱旂綉鎷?SDK/NDK/渚濊禆锛変笂鎵ц锛岃閬挎湰鍦扮绾跨己宸ュ叿閾鹃棶棰樸€?
-- 娴佹按绾跨粨鏋勶細`get-version` 鈫?`build-android` 鈫?`release`锛堣瑙?搂R2.2锛夈€?
+1. **每次会话必须先自读本文件**：进入项目后，在执行任何写代码搜索/构建动作之前，必须先 `read` 完整 `AGENTS.md`，对齐「当前进度」「下一步任务」「接口契约」。
+2. **每次会话结束前必须回写本文件**：无论本次完成了几项任务（含 0 项，即仅排查/失败），在结束前**必须**用`edit`/`write` 更新本文件至少一处：
+   - **必须**更新「— 变更日志」追加一行（最新在上），记录本次做了什么、改了哪些文件、是否通过验证、下一步建议。
+   - **必须**更新「— 当前进度」与「— 下一步任务」的勾选状态以反映真实状态（新完成的挪到「已完成」区，新发现的问题加入「已知小问题」）。
+   - 若改动了接口契约，**必须**同步更新「— 关键接口契约」。
+   - 若改动了目录结构或新增删除文件，**必须**同步更新「— 仓库结构」。
+3. **本文件是单一事实源（single source of truth）*：当本文件与代码、与 `ARCHITECTURE.md`、与口头描述出现矛盾时，**先以代码为准**，然后*立即回写本文件*消除漂移；禁止让本文件与代码长期不一致。
+4. **不得删除或弱化本节*：任何对「搂R0 强制规则」的删减、降级、加「视情况而定」修饰，都需用户明鐟同意；代理自身不得自行放宽。
+5. **跟进是义务而非可选*：即使用户未要求「更改AGENTS.md」，每次会话结束前也必须执行回写；用户明确说「不用更新」时才可跳过，并在变更日志注明「依用户要求跳过本次回写」。
+6. **语言只保留中英文**（MANDATORY）：App 的语言资源**从* `values/`（英文）为`values-zh/`（简体中文）。**禁止**新增 `values-es`/`values-fr`/`values-de`/`values-ru`/`values-ja`/`values-ko`/`values-ar`/`values-vi`/`values-pt-rBR`/`values-zh-rTW` 等其他语言目录。语言选项在`SettingsLanguagePage.kt` 为`MainActivity.attachBaseContext()` 中声明，两者必须同步（当前为`system`/`en`/`zh`）。
+7. **不打包自定义字体**（MANDATORY）：**禁止**在`res/font/` 下添加`.ttf`/`.otf` 文件。UI 字体使用 `FontFamily.Default`（系统默认），代码终端字体使用 `FontFamily.Monospace`（系统等宽）。字体定义在 `ui/theme/Type.kt`（`OutfitFamily`/`MonoFamily`）。
+8. **编译验证必须提交到GitHub 上编译*（MANDATORY）：本地为离线环境，缺Android SDK/NDK/CMake 工具链，**无法** `./gradlew assembleFdroidRelease`。因此*任何代码改动后的编译验证必须通过 `git commit && git push` 提交到GitHub**（`origin = https://github.com/ojbkxc/Agora.git`，分支`master`），用GitHub CI（`.github/workflows/build.yml`，见 搂R2）执行构建。**禁止**在未 push 到GitHub 编译通过前声称某子任务「完成已验证」。
+9. **通过 GitHub 编译报错迭代修复**（MANDATORY）：push 后若 GitHub CI 编译/测试失败，**必须**读取 CI 日志中的报错，据报错本地修复后**再次 commit & push**，循环直至CI 全绿。**不得**跳过 CI 失败直接推进下一子任务；**不得**用`@Suppress`/注释掉测试降低 lint 阈值等方式绕过 CI 报错（除非用户明确同意）。CI 全绿是子任务完成的**唯一**编译验证判据。
+10. **自动推进项目（auto-continue，默认行为）**（MANDATORY）：用户说「自动继续。「继续。「auto」或未明确叫停时，代理**必须自主连续推进**项目任务，不得每完成一小步就停下来询问下一步。具体要求：
+    - 进入项目后按 搂0 流程**自主**挑选下一个最高优先级的最小可独立交付子任务并开工，不等用户逐项指派。
+    - 单个子任务完成后**立即**开始下一个，无需请求许可；仅在遇到「方向性分歧」「破坏性操作」「违反硬约束」「信息严重不足且无法合理推断」时才用 `question` 工具询问用户。
+    - 推进过程为**主动**资搂R2.3 CI 修复闭环、搂R0 回写，不要等用户提醒。
+    - 用户未说「自动继续」时也鼓励减少不必要的中途提问，但可在阶段切换时简要汇报进度；用户说「自动继续」后到**连续作业**直到任务全部完成或遇阻才停下汇报。
+    - 停下汇报时应附「已完成的/ 正在做的 / 下一步打算做的」三段式摘要，便于用户一句话继续（如「继续」「换方向」「停」）。
 
-### R2.2 CI 蹇呴』鎵ц鐨勬楠わ紙鍏ㄧ豢鎵嶇畻閫氳繃锛?
+---
+
+## R2. GitHub CI 编译验证策略（MANDATORY，配后搂R0.8–R0.9）
+
+> 本节落实 搂R0.8/R0.9 的「提交到 GitHub 编译 + 据报错修复」闭环。本地离线不可编译，GitHub CI 更**唯一**编译验证通道。
+
+### R2.1 CI 触发条件
+- **push tag `v*`**（如 `v1.0.0`）或手动 `workflow_dispatch` 触发 `.github/workflows/build.yml`。
+- CI 在GitHub-hosted runner（ubuntu-latest，可联网拉SDK/NDK/依赖）上执行，规避本地离线缺工具链问题。
+- 流水线结构：`get-version` →`build-android` →`release`（详见搂R2.2）。
+
+### R2.2 CI 必须执行的步骤（全绿才算通过，
 ```
-# .github/workflows/build.yml 鎵ц娴佺▼
-1. get-version: 浠?git tag 鎻愬彇 TAG (v1.0.0) 鍜?VERSION (1.0.0)
+# .github/workflows/build.yml 执行流程
+1. get-version: 件git tag 提取 TAG (v1.0.0) 和VERSION (1.0.0)
 2. build-android:
-   - checkout (submodules: recursive) 鈥?鎷夊彇 llama.cpp + proot 瀛愭ā鍧?
+   - checkout (submodules: recursive) —拉取 llama.cpp + proot 子模块
    - setup JDK 21 (temurin) + Android SDK + NDK 28.2.13676358
-   - 鎭㈠绛惧悕瀵嗛挜 (KEYSTORE_BASE64 secret 鈫?local.properties)
-   - ./build-proot.sh force 鈥?鏋勫缓 PRoot 鍘熺敓浜岃繘鍒?(libproot_*.so, libtalloc.so)
-   - ./gradlew -p build-logic test 鈥?鏋勫缓鎻掍欢娴嬭瘯
-   - ./gradlew verifyKotlinFileSize 鈥?婧愮爜澶у皬绛栫暐 (姣忔枃浠?鈮?999 琛?
-   - ./gradlew assembleFdroidRelease 鈥?鏋勫缓 F-Droid Release APK
-   - 閲嶅懡鍚? app-fdroid-release.apk 鈫?Agora-v{VERSION}-android-arm64-v8a.apk
-3. release: gh release create 鈥?涓婁紶 APK 鍒?GitHub Release
+   - 恢复签名密钥 (KEYSTORE_BASE64 secret →local.properties)
+   - ./build-proot.sh force —构建 PRoot 原生二进到(libproot_*.so, libtalloc.so)
+   - ./gradlew -p build-logic test —构建插件测试
+   - ./gradlew verifyKotlinFileSize —源码大小策略 (每文件≤999 血
+   - ./gradlew assembleFdroidRelease —构建 F-Droid Release APK
+   - 重命后 app-fdroid-release.apk →Agora-v{VERSION}-android-arm64-v8a.apk
+3. release: gh release create —上传 APK 到GitHub Release
 ```
 
-### R2.3 鎹姤閿欎慨澶嶇殑杩唬娴佺▼锛堟瘡娆?push 鍚庡繀璧帮級
-1. `git push origin master`锛堟垨 `git push origin v1.0.0` 瑙﹀彂鍙戠増锛夈€?
-2. 鐢?`gh run watch` 鎴栨祻瑙堝櫒鏌ョ湅 `https://github.com/ojbkxc/Agora/actions` 鐨勮繍琛岀粨鏋溿€?
-3. 鑻ュけ璐ワ細`gh run view --log-failed` 鍙栨姤閿欐棩蹇楋紝瀹氫綅棣栦釜 `error:` / `FAILED` / `e: file://` 琛屻€?
-4. 鏈湴鎸夋姤閿欎慨浠ｇ爜锛堜慨 import/绫诲瀷/璧勬簮寮曠敤/Composable 绛惧悕绛夛級锛?*涓?*缁曡繃锛堜笉 `@Suppress`銆佷笉鍒犳祴璇曘€佷笉闄嶄綆 lint 闃堝€硷級銆?
-5. `git commit && git push`锛屽洖鍒版楠?2锛岀洿鑷?CI 鍏ㄧ豢銆?
-6. CI 鍏ㄧ豢鍚庢墠鑳藉湪 搂4/搂6 鍕鹃€夎瀛愪换鍔°€屽畬鎴愩€嶅苟鍦?搂9 鍙樻洿鏃ュ織娉ㄦ槑銆孋I 鍏ㄧ豢楠岃瘉閫氳繃銆嶃€?
+### R2.3 据报错修复的迭代流程（每次push 后必走）
+1. `git push origin master`（或 `git push origin v1.0.0` 触发发版）。
+2. 用`gh run watch` 或浏览器查看 `https://github.com/ojbkxc/Agora/actions` 的运行结果。
+3. 若失败：`gh run view --log-failed` 取报错日志，定位首个 `error:` / `FAILED` / `e: file://` 行。
+4. 本地按报错修代码（修 import/类型/资源引用/Composable 签名等），*为*绕过（不 `@Suppress`、不删测试、不降低 lint 阈值）。
+5. `git commit && git push`，回到步骤2，直至CI 全绿。
+6. CI 全绿后才能在 搂4/搂6 勾选该子任务「完成」并在搂9 变更日志注明「CI 全绿验证通过」。
 
-### R2.4 鏈湴鍙仛鐨勯潤鎬佹鏌ワ紙push 鍓嶈嚜妫€锛屽噺灏?CI 寰€杩旓級
-- **`git status` 纭鏃犳畫鐣欐湭 commit 淇敼**锛氫細璇濆紑濮嬪墠鍜?commit 鍓嶅悇鎵ц涓€娆★紝纭繚鎵€鏈変慨鏀圭殑鏂囦欢閮借 staged銆?*杩欐槸鏈€甯歌鐨?CI 澶辫触鏍瑰洜涔嬩竴**鈥斺€斾慨鏀逛簡鏂囦欢浣嗗繕璁?commit锛孋I 鐢ㄧ殑鏄棫鐗堟湰銆?
-- 浜哄伐 review锛歩mport 璺緞銆丆omposable 绛惧悕銆佽祫婧愬紩鐢紙`R.string.*`/`R.drawable.*`锛夈€乣@Composable` 娉ㄨВ銆?
-- **Kotlin 绫诲瀷妫€鏌ワ紙鏈湴鏃犳硶缂栬瘧锛屽繀椤讳汉宸ユ煡锛?*锛?
-  - `suspend` 鍑芥暟/lambda锛氱‘璁?lambda 绫诲瀷鍖归厤锛坄suspend (T) -> Unit` vs `(T) -> Unit`锛夈€俙Flow.emit()` / `MutableSharedFlow.emit()` 鏄?suspend锛屼笉鑳藉湪鏅€?lambda 涓皟鐢ㄣ€?
-  - `nullable` 绫诲瀷锛氱‘璁?`String?` vs `String` 浼犻€掓纭€俙StateFlow<T?>.value` 杩斿洖 `T?`锛屼紶缁欓潪绌哄弬鏁伴渶鍔?`?: return` 鎴?`!!`銆?
-  - 鏂板鍙傛暟锛氱‘璁ゆ墍鏈夎皟鐢ㄧ偣閮戒紶浜嗘纭被鍨嬬殑鍙傛暟銆?
-- **鏂板瀛楃涓茶祫婧?*锛氱‘璁?`values/strings.xml`锛坋n锛? `values-zh/strings.xml`锛坺h锛?*閮?*娣诲姞浜嗗悓鍚?key銆?
-- **鏂板璁剧疆椤?*锛氱‘璁?`SettingsPreferenceSchema` + `SettingsManager` + `SettingsRepository` + UI 鍥涘眰**閮?*娣诲姞浜嗐€?
-- 纭鏃?`R.font.*` 寮曠敤锛埪0.7 绂佹鑷畾涔夊瓧浣擄級銆?
-- 纭鏃犻潪 en/zh 鐨勮瑷€璧勬簮鐩綍鎴栬瑷€閫夐」锛埪0.6锛夈€?
-- 纭 Kotlin 鏂囦欢涓嶈秴杩?999 琛岋紙`./gradlew verifyKotlinFileSize` 鍩虹嚎锛夈€?
+### R2.4 本地可做的静态检查（push 前自检，减少CI 往返）
+- **`git status` 确认无残留未 commit 修改**：会话开始前和commit 前各执行一次，确保所有修改的文件都被 staged。**这是最常见的CI 失败根因之一**——修改了文件但忘记commit，CI 用的是旧版本。
+- 人工 review：import 路径、Composable 签名、资源引用（`R.string.*`/`R.drawable.*`）、`@Composable` 注解。
+- **Kotlin 类型检查（本地无法编译，必须人工查，*）
+  - `suspend` 函数/lambda：鐟记lambda 类型匹配（`suspend (T) -> Unit` vs `(T) -> Unit`）。`Flow.emit()` / `MutableSharedFlow.emit()` 更suspend，不能在普选lambda 中调用。
+  - `nullable` 类型：鐟记`String?` vs `String` 传递正确。`StateFlow<T?>.value` 返回 `T?`，传给非空参数需加`?: return` 成`!!`。
+  - 新增参数：鐟认所有调用点都传了正确类型的参数。
+- **新增字符串资源*：鐟记`values/strings.xml`（en） `values-zh/strings.xml`（zh）*都*添加了同后key。
+- **新增设置项*：鐟记`SettingsPreferenceSchema` + `SettingsManager` + `SettingsRepository` + UI 四层**都*添加了。
+- 确认无`R.font.*` 引用（搂R0.7 禁止自定义字体）。
+- 确认无非 en/zh 的语言资源目录或语言选项（搂R0.6）。
+- 确认 Kotlin 文件不超过999 行（`./gradlew verifyKotlinFileSize` 基线）。
 
-### R2.5 CI workflow 缁存姢
-- 鑻ユ柊澧炰緷璧栨垨鏀瑰彉鏋勫缓閰嶇疆锛圢DK 鐗堟湰銆丄BI銆乫lavor锛夛紝鍚屾鏇存柊 `.github/workflows/build.yml` 涓?`app/build.gradle.kts`銆?
-- 鑻ユ柊澧?signing secret锛屽湪 GitHub repo Settings 鈫?Secrets 閰嶇疆鍚庢洿鏂?workflow 鐨?`env` 鏄犲皠銆?
-
----
-
-## 0. 杩涘叆椤圭洰鍚庣殑鏍囧噯娴佺▼锛堝繀璇伙級
-
-1. **閫氳鏈枃浠?*锛堝挨鍏舵槸銆屄0 寮哄埗瑙勫垯銆嶃€屽綋鍓嶈繘搴︺€嶃€屼笅涓€姝ヤ换鍔°€嶃€岀紪鐮佺害瀹氥€嶄簲鑺傦級銆?
-1b. **`git status` 妫€鏌ユ畫鐣欎慨鏀?*锛氳嫢宸ヤ綔鐩綍鏈夋湭 commit 鐨勪慨鏀癸紙鏉ヨ嚜鍓嶆浼氳瘽閬楁紡锛夛紝鍏堢悊瑙ｅ叾鍐呭骞?commit锛屽啀寮€濮嬫柊宸ヤ綔銆?*涓嶈**鍦ㄦ柊宸ヤ綔寮€濮嬪墠 `git stash` 鎴?`git checkout -- .` 涓㈠純鍓嶆淇敼鈥斺€斿厛鎼炴竻妤氭槸浠€涔堛€佹槸鍚﹂渶瑕佷繚鐣欍€?
-2. 鎸夈€屼笅涓€姝ヤ换鍔°€嶇殑浼樺厛绾ч『搴忔寫閫変竴涓?*鏈€灏忓彲鐙珛浜や粯**鐨勫瓙浠诲姟寮€宸ャ€?
-3. 寮€宸ュ墠鐢?`read`/`grep`/`glob` 闃呰鐩稿叧宸叉湁浠ｇ爜锛?*澶嶇敤鏃㈡湁 Composable銆乂iewModel銆丷epository 涓庡懡鍚?*锛屼笉瑕佸彟璧风倝鐏躲€?
-4. 姣忓畬鎴愪竴涓瓙浠诲姟锛氭墽琛?搂R2.4 闈欐€佹鏌ユ竻鍗曪紝鐒跺悗 `git add -A && git status` 纭鎵€鏈変慨鏀瑰凡 staged锛宍git commit && git push` 瑙﹀彂 CI 楠岃瘉銆?
-5. **鍥炲啓鏈枃浠?*锛堝己鍒讹紝瑙?搂R0锛夛細鏇存柊銆屽綋鍓嶈繘搴︺€嶃€屼笅涓€姝ヤ换鍔°€嶅嬀閫夌姸鎬侊紝骞跺湪銆屽彉鏇存棩蹇椼€嶈拷鍔犱竴琛屻€?
-6. **涓嶈**涓诲姩 `git commit`锛岄櫎闈炵敤鎴锋槑纭姹傘€?*涓嶈**鍐欐湭缁忚姹傜殑 README/鏂囨。銆?*涓嶈**鍔犳敞閲婇櫎闈炵敤鎴疯姹傘€?
-7. **浼氳瘽缁撴潫鍓嶅啀娆＄‘璁?搂R0 鐨勫洖鍐欏凡鎵ц**锛涜嫢鏈墽琛岋紝琛ュ仛鍚庡啀缁撴潫銆?
+### R2.5 CI workflow 维护
+- 若新增依赖或改变构建配置（NDK 版本、ABI、flavor），同步更新 `.github/workflows/build.yml` 为`app/build.gradle.kts`。
+- 若新增signing secret，在 GitHub repo Settings →Secrets 配置后更改workflow 的`env` 映射。
 
 ---
 
-## 1. 椤圭洰瀹氫綅锛堜竴鍙ヨ瘽锛?
+## 0. 进入项目后的标准流程（必读）
 
-Agora 鏄?**BYOK锛圔ring Your Own Key锛塋LM 瀹㈡埛绔?* 鈥?Android 鍘熺敓搴旂敤锛圞otlin + Jetpack Compose锛夛紝鏀寔澶?LLM 鎻愪緵鍟嗐€佹櫤鑳戒唬鐞嗗伐浣滄祦銆佹湰鍦?LLM 鎺ㄧ悊锛坙lama.cpp via NDK锛夈€佽繙绋嬭澶囨帶鍒躲€傛墍鏈夋暟鎹湰鍦板瓨鍌紝鏃犻仴娴嬨€佹棤杩借釜銆侻IT 璁稿彲璇併€?
+1. **通读本文件*（尤其是「搂R0 强制规则」「当前进度」「下一步任务」「编码约定」五节）。
+1b. **`git status` 检查残留修支*：若工作目录有未 commit 的修改（来自前次会话遗漏），先理解其内容并commit，再开始新工作。**不要**在新工作开始前 `git stash` 成`git checkout -- .` 丢弃前次修改——先搞清楚是什么、是否需要保留。
+2. 按「下一步任务」的优先级顺序挑选一为**最小可独立交付**的子任务开工。
+3. 开工前用`read`/`grep`/`glob` 阅读相关已有代码，*复用既有 Composable、ViewModel、Repository 与命后*，不要另起炉灶。
+4. 每完成一个子任务：执血搂R2.4 静态检查清单，然后 `git add -A && git status` 确认所有修改已 staged，`git commit && git push` 触发 CI 验证。
+5. **回写本文件*（强制，见搂R0）：更新「当前进度」「下一步任务」勾选状态，并在「变更日志」追加一行。
+6. **不要**主动 `git commit`，除非用户明确要求。**不要**写未经请求的 README/文档。**不要**加注释除非用户要求。
+7. **会话结束前再次鐟记搂R0 的回写已执行**；若未执行，补做后再结束。
 
-## 2. 纭害鏉燂紙浠讳綍鏀瑰姩閮戒笉寰楄繚鍙嶏級
+---
 
-| 缁村害 | 绾︽潫 | 楠岃瘉鏂瑰紡 |
+## 1. 项目定位（一句话）
+
+Agora 更**BYOK（Bring Your Own Key）LLM 客户端* —Android 原生应用（Kotlin + Jetpack Compose），支持多LLM 提供商、智能代理工作流、本在LLM 推理（llama.cpp via NDK）、远程设备控制。所有数据本地存储，无遥测、无追踪。MIT 许可证。
+
+## 2. 硬约束（任何改动都不得违反）
+
+| 维度 | 约束 | 验证方式 |
 |---|---|---|
-| 搴旂敤 ID | `com.lxseek.chat` | `app/build.gradle.kts` |
-| ABI | **浠?`arm64-v8a`** | `ndk { abiFilters }` |
+| 应用 ID | `com.lxseek.chat` | `app/build.gradle.kts` |
+| ABI | **从`arm64-v8a`** | `ndk { abiFilters }` |
 | SDK | minSdk 24 / targetSdk 36 / compileSdk 36 | `defaultConfig` |
 | NDK | `28.2.13676358` | `ndkVersion` |
-| 璇█ | Kotlin 2.3.21 + Compose BOM 2026.05.01 | `gradle/libs.versions.toml` |
-| i18n | **浠?en + zh**锛埪0.6锛?| `res/values*/` 鐩綍 |
-| 瀛椾綋 | **鏃犺嚜瀹氫箟瀛椾綋**锛埪0.7锛?| `res/font/` 涓嶅瓨鍦?|
-| 婧愮爜澶у皬 | 姣?Kotlin 鏂囦欢 鈮?999 琛?| `./gradlew verifyKotlinFileSize` |
-| 鐗堟湰 | versionName `1.0.59` / versionCode `60` | `defaultConfig` |
-| 浜х墿鍛藉悕 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
-| 璁稿彲璇?| MIT | `LICENSE` |
+| 语言 | Kotlin 2.3.21 + Compose BOM 2026.05.01 | `gradle/libs.versions.toml` |
+| i18n | **从en + zh**（搂R0.6）| `res/values*/` 目录 |
+| 字体 | **无自定义字体**（搂R0.7）| `res/font/` 不存在|
+| 源码大小 | 每Kotlin 文件 ≤999 血| `./gradlew verifyKotlinFileSize` |
+| 版本 | versionName `1.0.59` / versionCode `60` | `defaultConfig` |
+| 产物命名 | `Agora-v{VERSION}-android-arm64-v8a.apk` | CI `build.yml` |
+| 许可译| MIT | `LICENSE` |
 
-鏂板渚濊禆鍓嶅厛璇勪及瀵?APK 浣撶Н鐨勫奖鍝嶏紱浼樺厛浣跨敤 `gradle/libs.versions.toml` 鐗堟湰鐩綍缁熶竴绠＄悊銆?
+新增依赖前先评估对APK 体积的影响；优先使用 `gradle/libs.versions.toml` 版本目录统一管理。
 
-## 3. 浠撳簱缁撴瀯涓庢ā鍧楀垝鍒?
+## 3. 仓库结构与模块划到
 
 ```
 Agora/
-鈹溾攢鈹€ AGENTS.md                          # 鏈枃浠讹紙浠ｇ悊宸ヤ綔鎸囧紩锛?
-鈹溾攢鈹€ ARCHITECTURE.md                    # 鏋舵瀯鏂囨。锛?90 琛岋級
-鈹溾攢鈹€ README.md / README_CN.md           # 鑻辨枃/涓枃璇存槑
-鈹溾攢鈹€ build.gradle.kts                   # 椤跺眰鏋勫缓锛堝０鏄庢彃浠讹級
-鈹溾攢鈹€ settings.gradle.kts                # include(":app") + includeBuild("build-logic")
-鈹溾攢鈹€ gradle.properties                  # Gradle 閰嶇疆
-鈹溾攢鈹€ gradle/libs.versions.toml          # 鐗堟湰鐩綍锛圓GP/Kotlin/Compose/Room 绛夛級
-鈹溾攢鈹€ build-proot.sh                     # PRoot 鍘熺敓浜岃繘鍒舵瀯寤鸿剼鏈紙232 琛岋級
-鈹溾攢鈹€ mkdocs.yml                         # MkDocs 鏂囨。閰嶇疆锛坋n + zh锛?
-鈹溾攢鈹€ app/                               # 涓?Android 搴旂敤妯″潡锛堝敮涓€ Gradle 妯″潡锛?
-鈹?  鈹溾攢鈹€ build.gradle.kts              # 搴旂敤鏋勫缓閰嶇疆锛坒lavors: play + fdroid锛?
-鈹?  鈹溾攢鈹€ proguard-rules.pro            # ProGuard 瑙勫垯
-鈹?  鈹溾攢鈹€ schemas/                      # Room DB schema 蹇収锛坴10鈥搗22锛?
-鈹?  鈹斺攢鈹€ src/
-鈹?      鈹溾攢鈹€ main/                      # 涓绘簮闆?
-鈹?      鈹?  鈹溾攢鈹€ AndroidManifest.xml
-鈹?      鈹?  鈹溾攢鈹€ assets/               # Provider 鍥炬爣锛圫VG/PNG锛?
-鈹?      鈹?  鈹溾攢鈹€ cpp/                  # JNI 鍘熺敓浠ｇ爜锛圕Make锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ CMakeLists.txt    # 鏋勫缓 agora_llama + agora_proot
-鈹?      鈹?  鈹?  鈹溾攢鈹€ llama_jni.cpp     # llama.cpp JNI 缁戝畾
-鈹?      鈹?  鈹?  鈹溾攢鈹€ llama_chat_jni.cpp
-鈹?      鈹?  鈹?  鈹斺攢鈹€ proot_jni.cpp     # PRoot JNI stub
-鈹?      鈹?  鈹溾攢鈹€ java/com/lxseek/chat/
-鈹?      鈹?  鈹?  鈹溾攢鈹€ AgoraApplication.kt   # Application锛堟寔鏈?AppContainer锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ MainActivity.kt       # 鍞竴 Activity锛圕ompose 鍏ュ彛锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ api/               # LLM Provider 閫傞厤鍣紙39 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ LlmProvider.kt    # Provider 鎺ュ彛 + StreamEvent
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ HttpClient.kt     # OkHttp 鍗曚緥 + SSE
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ openai/           # OpenAI/DeepSeek/Qwen/OpenRouter/Groq/Custom
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ anthropic/        # Anthropic Claude
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ gemini/           # Google Gemini
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ ollama/           # 鏈湴 Ollama
-鈹?      鈹?  鈹?  鈹?  鈹斺攢鈹€ local/            # llama.cpp 鏈湴鎺ㄧ悊
-鈹?      鈹?  鈹?  鈹溾攢鈹€ data/              # Room + DataStore + Repository锛?9 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ model/             # 鏁版嵁妯″瀷 / DTO锛?7 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ viewmodel/         # ViewModel + 鐢熸垚鎺у埗鍣紙92 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ ui/                # Compose UI锛?22 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ chat/          # 鑱婂ぉ鐣岄潰锛?3 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ settings/      # 璁剧疆鐣岄潰锛?7 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ theme/         # Type.kt / Theme.kt / Color.kt锛? 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ tasks/         # 浠诲姟鍘嗗彶锛? 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹?  鈹溾攢鈹€ onboarding/    # 娆㈣繋寮曞锛? 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹?  鈹斺攢鈹€ components/    # 閫氱敤缁勪欢锛? 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ tool/              # 宸ュ叿鎻愪緵鑰咃紙25 鏂囦欢锛?
+├── AGENTS.md                          # 本文件（代理工作指引）
+├── ARCHITECTURE.md                    # 架构文档，90 行）
+├── README.md / README_CN.md           # 英文/中文说明
+├── build.gradle.kts                   # 顶层构建（声明插件）
+├── settings.gradle.kts                # include(":app") + includeBuild("build-logic")
+├── gradle.properties                  # Gradle 配置
+├── gradle/libs.versions.toml          # 版本目录（AGP/Kotlin/Compose/Room 等）
+├── build-proot.sh                     # PRoot 原生二进制构建脚本（232 行）
+├── mkdocs.yml                         # MkDocs 文档配置（en + zh）
+├── app/                               # 为Android 应用模块（唯一 Gradle 模块）
+─  ├── build.gradle.kts              # 应用构建配置（flavors: play + fdroid）
+─  ├── proguard-rules.pro            # ProGuard 规则
+─  ├── schemas/                      # Room DB schema 快照（v10–v22）
+─  └── src/
+─      ├── main/                      # 主源码
+─      ─  ├── AndroidManifest.xml
+─      ─  ├── assets/               # Provider 图标（SVG/PNG）
+─      ─  ├── cpp/                  # JNI 原生代码（CMake）
+─      ─  ─  ├── CMakeLists.txt    # 构建 agora_llama + agora_proot
+─      ─  ─  ├── llama_jni.cpp     # llama.cpp JNI 绑定
+─      ─  ─  ├── llama_chat_jni.cpp
+─      ─  ─  └── proot_jni.cpp     # PRoot JNI stub
+─      ─  ├── java/com/lxseek/chat/
+─      ─  ─  ├── AgoraApplication.kt   # Application（持有AppContainer）
+─      ─  ─  ├── MainActivity.kt       # 唯一 Activity（Compose 入口）
+─      ─  ─  ├── api/               # LLM Provider 适配器（39 文件）
+─      ─  ─  ─  ├── LlmProvider.kt    # Provider 接口 + StreamEvent
+─      ─  ─  ─  ├── HttpClient.kt     # OkHttp 单例 + SSE
+─      ─  ─  ─  ├── openai/           # OpenAI/DeepSeek/Qwen/OpenRouter/Groq/Custom
+─      ─  ─  ─  ├── anthropic/        # Anthropic Claude
+─      ─  ─  ─  ├── gemini/           # Google Gemini
+─      ─  ─  ─  ├── ollama/           # 本地 Ollama
+─      ─  ─  ─  └── local/            # llama.cpp 本地推理
+─      ─  ─  ├── data/              # Room + DataStore + Repository，9 文件，
+─      ─  ─  ├── model/             # 数据模型 / DTO，7 文件，
+─      ─  ─  ├── viewmodel/         # ViewModel + 生成控制器（92 文件）
+─      ─  ─  ├── ui/                # Compose UI，22 文件，
+─      ─  ─  ─  ├── chat/          # 聊天界面，3 文件，
+─      ─  ─  ─  ├── settings/      # 设置界面，7 文件，
+─      ─  ─  ─  ├── theme/         # Type.kt / Theme.kt / Color.kt， 文件，
+─      ─  ─  ─  ├── tasks/         # 任务历史， 文件，
+─      ─  ─  ─  ├── onboarding/    # 欢迎引导， 文件，
+─      ─  ─  ─  └── components/    # 通用组件， 文件，
+─      ─  ─  ├── tool/              # 工具提供者（25 文件）
 
-鈹?      鈹?  鈹?  鈹溾攢鈹€ service/           # 鍓嶅彴鏈嶅姟 + WorkManager锛? 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ mcp/               # MCP 鍗忚瀹㈡埛绔紙4 鏂囦欢锛?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ sandbox/           # 娌欑洅鎺ュ彛
-鈹?      鈹?  鈹?  鈹溾攢鈹€ automation/        # 浠诲姟銆佸惊鐜€佽皟搴?
-鈹?      鈹?  鈹?  鈹溾攢鈹€ di/AppContainer.kt # 鎵嬪姩 DI 瀹瑰櫒
-鈹?      鈹?  鈹?  鈹斺攢鈹€ util/              # 宸ュ叿绫伙紙CrashReporter / AppExecutors / ErrorSanitizer / TtsManager / SshClient 绛夛級
-鈹?      鈹?  鈹斺攢鈹€ res/                   # 璧勬簮
-鈹?      鈹?      鈹溾攢鈹€ values/            # 鑻辨枃锛堥粯璁わ級鈥?7 涓?xml
-鈹?      鈹?      鈹溾攢鈹€ values-zh/         # 绠€浣撲腑鏂?鈥?6 涓?xml
-鈹?      鈹?      鈹溾攢鈹€ values-night/      # 澶滈棿涓婚
-鈹?      鈹?      鈹溾攢鈹€ drawable/          # 鍥炬爣
-鈹?      鈹?      鈹溾攢鈹€ raw/               # 娆㈣繋瑙嗛锛圡P4锛?
-鈹?      鈹?      鈹斺攢鈹€ xml/               # backup/data extraction rules
-鈹?      鈹溾攢鈹€ fdroid/                    # F-Droid flavor锛圥Root 娌欑洅锛?
-鈹?      鈹溾攢鈹€ play/                      # Google Play flavor锛堟棤 PRoot锛?
-鈹?      鈹斺攢鈹€ test/                      # 鍗曞厓娴嬭瘯
-鈹溾攢鈹€ server/                            # 鏈嶅姟绔唬鐮?
-鈹?  鈹溾攢鈹€ rating/                        # 璇勫垎鎻愪氦 API锛圥ython/SQLite, port 8091锛?
-鈹?  鈹斺攢鈹€ crash/                         # 宕╂簝鎶ュ憡鎺ユ敹锛圥ython/JSONL, port 8092锛?
-鈹溾攢鈹€ thirdparty/                        # 绗笁鏂瑰師鐢熶緷璧?
-鈹?  鈹溾攢鈹€ llama.cpp/                     # git submodule
-鈹?  鈹溾攢鈹€ proot/                         # git submodule
-鈹?  鈹斺攢鈹€ talloc/                        # 鍐呰仈婧愮爜
-鈹溾攢鈹€ build-logic/                       # Gradle included build锛堝瓧鑺傜爜淇 + 婧愮爜澶у皬绛栫暐锛?
-鈹溾攢鈹€ docs/                              # MkDocs 鐢ㄦ埛鎵嬪唽锛坋n + zh锛?
-鈹溾攢鈹€ fastlane/                          # fastlane 鑷姩鍖栵紙Fastfile/Appfile/Gemfile + 鍏冩暟鎹?en-US + zh-CN锛?
-鈹?  鈹溾攢鈹€ Fastfile                       # lane 瀹氫箟锛坆uild_fdroid/build_play/github_release/validate_metadata/generate_changelog/release锛?
-鈹?  鈹溾攢鈹€ Appfile                        # package_name("com.newoether.agora")
-鈹?  鈹溾攢鈹€ Gemfile                        # fastlane Ruby 渚濊禆
-鈹?  鈹斺攢鈹€ metadata/android/             # F-Droid 鍏冩暟鎹紙en-US + zh-CN锛屽惈 changelogs + screenshots锛?
-鈹溾攢鈹€ scripts/                           # 杈呭姪鑴氭湰锛坮ound_icon.py锛?
-鈹溾攢鈹€ config/                            # 婧愮爜澶у皬鍩虹嚎閰嶇疆
-鈹斺攢鈹€ .github/workflows/
-    鈹溾攢鈹€ build.yml                      # CI/CD: 鏋勫缓 APK + GitHub Release
-    鈹溾攢鈹€ ci.yml                         # PR/push 缂栬瘧妫€鏌?
-    鈹溾攢鈹€ fastlane.yml                   # fastlane 鍏冩暟鎹獙璇侊紙PR/push 瑙﹀彂锛?
-    鈹斺攢鈹€ mkdocs.yml                     # 鏂囨。閮ㄧ讲鍒?GitHub Pages
+─      ─  ─  ├── service/           # 前台服务 + WorkManager， 文件，
+─      ─  ─  ├── mcp/               # MCP 协议客户端（4 文件）
+─      ─  ─  ├── sandbox/           # 沙盒接口
+─      ─  ─  ├── automation/        # 任务、循环、调度
+─      ─  ─  ├── di/AppContainer.kt # 手动 DI 容器
+─      ─  ─  └── util/              # 工具类（CrashReporter / AppExecutors / ErrorSanitizer / TtsManager / SshClient 等）
+─      ─  └── res/                   # 资源
+─      ─      ├── values/            # 英文（默认）—7 为xml
+─      ─      ├── values-zh/         # 简体中改—6 为xml
+─      ─      ├── values-night/      # 夜间主题
+─      ─      ├── drawable/          # 图标
+─      ─      ├── raw/               # 欢迎视频（MP4）
+─      ─      └── xml/               # backup/data extraction rules
+─      ├── fdroid/                    # F-Droid flavor（PRoot 沙盒）
+─      ├── play/                      # Google Play flavor（无 PRoot）
+─      └── test/                      # 单元测试
+├── server/                            # 服务端代码
+─  ├── rating/                        # 评分提交 API（Python/SQLite, port 8091）
+─  └── crash/                         # 崩溃报告接收（Python/JSONL, port 8092）
+├── thirdparty/                        # 第三方原生依资
+─  ├── llama.cpp/                     # git submodule
+─  ├── proot/                         # git submodule
+─  └── talloc/                        # 内联源码
+├── build-logic/                       # Gradle included build（字节码修复 + 源码大小策略）
+├── docs/                              # MkDocs 用户手册（en + zh）
+├── fastlane/                          # fastlane 自动化（Fastfile/Appfile/Gemfile + 元数换en-US + zh-CN）
+─  ├── Fastfile                       # lane 定义（build_fdroid/build_play/github_release/validate_metadata/generate_changelog/release，
+─  ├── Appfile                        # package_name("com.newoether.agora")
+─  ├── Gemfile                        # fastlane Ruby 依赖
+─  └── metadata/android/             # F-Droid 元数据（en-US + zh-CN，含 changelogs + screenshots）
+├── scripts/                           # 辅助脚本（round_icon.py）
+├── config/                            # 源码大小基线配置
+└── .github/workflows/
+    ├── build.yml                      # CI/CD: 构建 APK + GitHub Release
+    ├── ci.yml                         # PR/push 编译检查
+    ├── fastlane.yml                   # fastlane 元数据验证（PR/push 触发）
+    └── mkdocs.yml                     # 文档部署到GitHub Pages
 ```
 
-**鏁版嵁娴?*锛歚UI (Compose) 鈫?ViewModel 鈫?Repository 鈫?(Room/DataStore | LlmProvider 鈫?OkHttp SSE | LlamaEngine JNI)`锛涘伐鍏疯皟鐢ㄧ粡 `tool/`锛涘悗鍙颁换鍔＄粡 `service/` + WorkManager銆?
+**数据流*：`UI (Compose) →ViewModel →Repository →(Room/DataStore | LlmProvider →OkHttp SSE | LlamaEngine JNI)`；工具调用经 `tool/`；后台任务经 `service/` + WorkManager。
 
-## 4. 褰撳墠杩涘害锛堟埅鑷?2026-08-20锛?
+## 4. 当前进度（截至2026-08-20）
 
-### 鉁?宸插畬鎴?
+### ✅已完成
 - **任务40 ASR 默认中文 + 麦克风单次录音时长上限**（2026-08-20，本次会话，coding-engineer team-mate）：① 将 `voice/voice_language` 默认值从 `en` 改为 `zh`（SettingsManager + SettingsRepository）；② 修复 `VoiceConversationController.transcribeWithVosk()` 语言不匹配 bug — 当 Vosk 已就绪但加载的语言与用户选择的不一致时（如用户选 `zh` 但 Vosk 仍持有 `en` 模型），旧代码跳过初始化直接转写导致乱码；新代码增加 `voskTranscriber.getCurrentLanguage() != langCode` 检查并移除硬编码 `"en"` 回退；③ 给 `SINGLE_ASR` 单次录音加 90 秒上限（`MAX_SINGLE_ASR_DURATION_MS = 90_000L`），超时自动调用 `stopCaptureAndTranscribe()` 转写已采集音频，在 `startSingleAsr`/`stopSingleAsr`/`stop`/`finishConversationTurn`/`handleTranscriptionResult` 各路径正确取消超时 Job。修改 3 文件：`SettingsManager.kt`（+1/-1）、`SettingsRepository.kt`（+1/-1）、`VoiceConversationController.kt`（955→982 行，+34/-7）。**约束遵守**：文件 ≤999 行 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅。commit `ceda24ab`。**未 push**（GitHub 网络不可达，按 R0.8 待后续 push 验证 CI）。
 - **任务41 ASR/语音日志清理按钮**（2026-08-20，本次会话，coding-engineer team-mate）：在设置页 ASR 诊断区添加"清空 ASR 日志"按钮，点击调用 `AppLog.clear()` 清空内存日志并显示 Toast 提示。修改 3 文件：`SettingsAsrDiagnosticsSection.kt`（202→210 行，+8）— 在现有按钮 Row 内（copy log / save to downloads 之后）新增 `TextButton`，onClick 调用 `AppLog.clear()` + `Toast.makeText` 显示 `R.string.asr_log_cleared`；`values/strings.xml`（+2）— 新增 `asr_clear_log`="Clear ASR Log" + `asr_log_cleared`="ASR log cleared"；`values-zh/strings.xml`（+2）— 新增 `asr_clear_log`="清空 ASR 日志" + `asr_log_cleared`="ASR 日志已清空"。**约束遵守**：文件 ≤999 行 ✅，代码与注释均英文 ✅，用户可见文本 en/zh 双语 ✅，未 bump 版本号 ✅。commit `435e8e8d`。**未 push**（GitHub 网络不可达，按 R0.8 待后续 push 验证 CI）。
 - **任务24 VoskTranscriber 流式会话自动初始化**（2026-08-19，本次会话，coding-engineer team-mate）：修复 `VoskTranscriber.startStreamingSession()` 在模型文件已下载但 `initialize()` 未调用时（如进程重启或调用方遗漏 init）直接返回 false 导致流式语音识别失败的问题。① `startStreamingSession()` 改为 `suspend fun`，在 `synchronized(streamingLock)` 块之前添加 auto-init 逻辑：当 `!isModelLoaded || model == null` 且 `am/final.mdl` 存在时自动调用 `initialize(languageCode)`；② `getLanguageByCode()` 添加 `Log.w` 警告日志，未知语言代码回退时可观测。修改 1 文件：`VoskTranscriber.kt`（+24/-4）。调用点 `VoiceConversationController.kt:436` 已在协程作用域内，无需修改。**约束遵守**：文件 806 行 ≤999 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅。commit `ec99db01`，**已 push**，CI #32252119499 全绿通过（conclusion=success）。
 - **任务17 TTS barge-in + 强制 TTS 播放**（2026-08-19，本次会话，coding-engineer team-mate）：修复实时语音对话中 TTS 不播放的问题。① 新回复到达时停止当前 TTS 播放（barge-in），切换到最新消息；② 实时语音对话模式下强制开启 TTS 自动播放（隐藏的、强制的，不依赖用户设置）。修改 2 文件：`VoiceConversationController.kt`（949→955 行，+10/-2）— 新增 `isConversationStreaming()` 暴露流式会话状态 + `handleTranscriptionResult` CONVERSATION 分支添加 `TtsManager.stop()` barge-in + `observeLlmAndTts` 条件改为 `isStreamingConversation || ttsAutoPlayOn()`；`ChatViewModel.kt`（998→999 行，+3/-1）— `onStreamCommit` 回调添加 `voiceStreaming` 变量并修改 TTS 播放条件。**约束遵守**：文件 ≤999 行 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅，代码与注释均用英文 ✅。commit `ee98a23a`，CI 全绿验证通过（conclusion=success）。
-### 馃煛 宸茬煡闂
-- **PRoot 浜岃繘鍒堕渶 CI 鏋勫缓**锛歚build-proot.sh` 浜х墿锛坄libproot_*.so`, `libtalloc.so`锛夎 `.gitignore` 蹇界暐锛孋I 涓敱 `./build-proot.sh force` 鐜板満鏋勫缓銆?
-- **绛惧悕瀵嗛挜**锛歊elease 绛惧悕闇€鍦?GitHub Secrets 閰嶇疆 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`锛涙湭閰嶇疆鏃跺洖閫€ debug 绛惧悕銆?
+### 🟡 已知问题
+- **PRoot 二进制需 CI 构建**：`build-proot.sh` 产物（`libproot_*.so`, `libtalloc.so`）被 `.gitignore` 忽略，CI 中由 `./build-proot.sh force` 现场构建。
+- **签名密钥**：Release 签名需在GitHub Secrets 配置 `KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`；未配置时回退 debug 签名。
 
-### 鉂?鏈畬鎴?
-1. 婊戝姩杩炵画澶氶€夛細鏈疄鐜帮紙宸叉敮鎸侀暱鎸夎繘鍏ュ閫夛級銆?
+### ❌未完成
+1. 滑动连续多选：未实现（已支持长按进入多选）。
 
-## 5. 鍏抽敭鎺ュ彛濂戠害锛堜笉瑕佺牬鍧忔棦鏈夌鍚嶏級
+## 5. 关键接口契约（不要破坏既有签名）
 
-### 搴旂敤鍏ュ彛锛堝凡鍥哄寲锛?
-- `AgoraApplication`锛氭寔鏈?`AppContainer`锛堟墜鍔?DI 瀹瑰櫒锛岃繘绋嬬骇鍗曚緥锛夈€?
-- `MainActivity.attachBaseContext(newBase: Context)`锛氭牴鎹?`SettingsManager.appLanguage` 璁剧疆 Locale锛堝綋鍓嶄粎 `en`/`zh`/`system`锛夈€?
-- `MainActivity.onCreate()`锛氬畨瑁?Splash 鈫?鍒濆鍖?DebugLog 鈫?鍒涘缓閫氱煡娓犻亾 鈫?璇锋眰閫氱煡鏉冮檺 鈫?Compose `setContent { AgoraTheme { ... } }`銆?
+### 应用入口（已固化，
+- `AgoraApplication`：持有`AppContainer`（手加DI 容器，进程级单例）。
+- `MainActivity.attachBaseContext(newBase: Context)`：根换`SettingsManager.appLanguage` 设置 Locale（当前仅 `en`/`zh`/`system`）。
+- `MainActivity.onCreate()`：安装Splash →初始匀DebugLog →创建通知渠道 →请求通知权限 →Compose `setContent { AgoraTheme { ... } }`。
 
-### LLM Provider 濂戠害锛堝凡鍥哄寲锛?
-- `LlmProvider` 鎺ュ彛锛坄api/LlmProvider.kt`锛夛細瀹氫箟 `StreamEvent` 瀵嗗皝绫伙紙TextChunk / thoughtChunk / ToolCallUpdate / ToolCallRequest / UsageUpdate / Retrying / Error锛夈€?
-- `HttpClient`锛坄api/HttpClient.kt`锛夛細OkHttp 鍗曚緥锛孲SE 娴佸紡瑙ｆ瀽锛坄BufferedSource` 閫愯璇?`data:`锛夈€?
-- Provider 瀹炵幇锛歄penAI / Anthropic / Gemini / DeepSeek / Qwen / OpenRouter / Groq / Ollama / Custom / Local锛坙lama.cpp JNI锛夈€?
+### LLM Provider 契约（已固化）
+- `LlmProvider` 接口（`api/LlmProvider.kt`）：定义 `StreamEvent` 密封类（TextChunk / thoughtChunk / ToolCallUpdate / ToolCallRequest / UsageUpdate / Retrying / Error）。
+- `HttpClient`（`api/HttpClient.kt`）：OkHttp 单例，SSE 流式解析（`BufferedSource` 逐行译`data:`）。
+- Provider 实现：OpenAI / Anthropic / Gemini / DeepSeek / Qwen / OpenRouter / Groq / Ollama / Custom / Local（llama.cpp JNI）。
 
-### 涓婚涓庡瓧浣撳绾︼紙宸插浐鍖栵紝搂R0.7锛?
-- `OutfitFamily = FontFamily.Default`锛圲I 鏂囨湰锛夆€?`ui/theme/Type.kt`銆?
-- `MonoFamily = FontFamily.Monospace`锛堜唬鐮?缁堢/宕╂簝鏃ュ織锛夆€?`ui/theme/Type.kt`銆?
-- `AgoraTheme(themeMode, colorSchemePreset, schemeStyle, dynamicColor, fontPreference, customFontPath, content)` 鈥?`ui/theme/Theme.kt`銆?
-- `ChatType` 瀵硅薄锛氳亰澶╃晫闈㈢殑鎺掔増 scale锛坱itle/input/body/sub/meta/code 鍏眰锛夛紝`chatFontFamily` 鍙彉锛堢敱 Theme.kt 鏍规嵁 fontPreference 璁剧疆锛夈€?
+### 主题与字体契约（已固化，搂R0.7，
+- `OutfitFamily = FontFamily.Default`（UI 文本）—`ui/theme/Type.kt`。
+- `MonoFamily = FontFamily.Monospace`（代码终端/崩溃日志）—`ui/theme/Type.kt`。
+- `AgoraTheme(themeMode, colorSchemePreset, schemeStyle, dynamicColor, fontPreference, customFontPath, content)` —`ui/theme/Theme.kt`。
+- `ChatType` 对象：聊天界面的排版 scale（title/input/body/sub/meta/code 六层），`chatFontFamily` 可变（由 Theme.kt 根据 fontPreference 设置）。
 
-### 鏁版嵁灞傚绾︼紙宸插浐鍖栵級
-- Room Database v22锛坄data/local/ChatDatabase`锛夛細鏍戝舰娑堟伅缁撴瀯锛宻chema 蹇収鍦?`app/schemas/`銆?
-- `SettingsManager`锛坄data/SettingsManager`锛夛細DataStore Preferences锛岀鐞嗘墍鏈夌敤鎴疯缃紙appLanguage / themeMode / colorScheme / fontPreference 绛夛級銆?
-- `AppContainer`锛坄di/AppContainer.kt`锛夛細鎵嬪姩 DI锛屾彁渚?`chatViewModelFactory()` / `conversationRepository` 绛夎繘绋嬬骇鍗曚緥銆?
+### 数据层契约（已固化）
+- Room Database v22（`data/local/ChatDatabase`）：树形消息结构，schema 快照在`app/schemas/`。
+- `SettingsManager`（`data/SettingsManager`）：DataStore Preferences，管理所有用户设置（appLanguage / themeMode / colorScheme / fontPreference 等）。
+- `AppContainer`（`di/AppContainer.kt`）：手动 DI，提供`chatViewModelFactory()` / `conversationRepository` 等进程级单例。
 
-### i18n 濂戠害锛堝凡鍥哄寲锛屄0.6锛?
-- 璇█閫夐」锛歚SettingsLanguagePage.kt` 涓?`LanguageOption("system"|"en"|"zh")`銆?
-- Locale 鏄犲皠锛歚MainActivity.attachBaseContext()` 涓?`when (langCode) { "zh" -> Locale("zh","CN"); "en" -> Locale("en"); else -> null }`銆?
-- 鏂囨。璇█鏄犲皠锛歚DocumentationFab.kt` 涓?`langTag.startsWith("zh") -> "zh/"`锛屽叾浣?鈫?鑻辨枃鏍广€?
-- 绯荤粺鎻愮ず鏍囬锛歚DefaultSystemPrompt.titleForLocale()` 涓?`"zh" -> 绠€浣撲腑鏂囨爣棰榒锛屽叾浣?鈫?"Default"銆?
+### i18n 契约（已固化，搂R0.6）
+- 语言选项：`SettingsLanguagePage.kt` 为`LanguageOption("system"|"en"|"zh")`。
+- Locale 映射：`MainActivity.attachBaseContext()` 为`when (langCode) { "zh" -> Locale("zh","CN"); "en" -> Locale("en"); else -> null }`。
+- 文档语言映射：`DocumentationFab.kt` 为`langTag.startsWith("zh") -> "zh/"`，其他→英文根。
+- 系统提示标题：`DefaultSystemPrompt.titleForLocale()` 为`"zh" -> 简体中文标题`，其他→"Default"。
 
-### Product Flavors锛堝凡鍥哄寲锛?
-- `play`锛欸oogle Play 鐗堬紝`PlaySandboxManager`锛堟棤 PRoot锛夈€?
-- `fdroid`锛欶-Droid 鐗堬紝`ProotSandboxManager`锛圥Root + Alpine Linux锛夈€?
-- CI 鏋勫缓 fdroid flavor锛歚./gradlew assembleFdroidRelease`銆?
+### Product Flavors（已固化）
+- `play`：Google Play 版，`PlaySandboxManager`（无 PRoot）。
+- `fdroid`：F-Droid 版，`ProotSandboxManager`（PRoot + Alpine Linux）。
+- CI 构建 fdroid flavor：`./gradlew assembleFdroidRelease`。
 
-### 鍘熺敓鏋勫缓锛堝凡鍥哄寲锛?
-- CMake锛坄app/src/main/cpp/CMakeLists.txt`锛夛細鏋勫缓 `agora_llama`锛坙lama.cpp JNI锛? `agora_proot`锛圥Root JNI stub锛夈€?
-- PRoot 浜岃繘鍒讹紙`build-proot.sh`锛夛細鏋勫缓 `libproot_exec.so` / `libproot_loader.so` / `libtalloc.so` 鈫?`app/src/{main,fdroid}/jniLibs/arm64-v8a/`銆?
-- 瀛愭ā鍧楋細`thirdparty/llama.cpp` + `thirdparty/proot`锛坈heckout 闇€ `--recurse-submodules`锛夈€?
+### 原生构建（已固化）
+- CMake（`app/src/main/cpp/CMakeLists.txt`）：构建 `agora_llama`（llama.cpp JNI， `agora_proot`（PRoot JNI stub）。
+- PRoot 二进制（`build-proot.sh`）：构建 `libproot_exec.so` / `libproot_loader.so` / `libtalloc.so` →`app/src/{main,fdroid}/jniLibs/arm64-v8a/`。
+- 子模块：`thirdparty/llama.cpp` + `thirdparty/proot`（checkout 需 `--recurse-submodules`）。
 
-### Agent 鑳藉姏娣卞寲 P2 濂戠害锛?026-08-17 钀藉湴锛屽凡鍥哄寲锛?
-- **`ToolTierPolicy`**锛坄tool/ToolTierPolicy.kt`锛夛細宸ュ叿鍒嗘。涓嬪彂绛栫暐銆?
-  - `ToolTier` 鏋氫妇锛歚Core` / `Extended` / `Dangerous`锛堝彲瑙佹€ч€掑噺锛孋ore 濮嬬粓涓嬪彂锛孌angerous 闇€鏄惧紡鎺堟潈锛夈€?
-  - `tierOf(name: String): ToolTier`锛氬伐鍏峰悕 鈫?妗ｄ綅鏄犲皠锛坒ile_write/file_edit 灞?Extended 妗ｏ紝瀹夊叏鎬х敱 RiskLevel + 纭闂ㄦ帶淇濋殰锛宼ier 浠呮帶鍒跺彲瑙佹€э級銆?
-  - `allowedTiers(ctx: GenerationContext): Set<ToolTier>`锛氭牴鎹?`ctx.toolTier`锛?core"/"extended"/"all"锛夋垨 `agentMode` 鍥為€€鍐冲畾鍏佽妗ｄ綅闆嗗悎銆?
-  - `filterByTier(definitions: List<ToolDefinition>, ctx: GenerationContext): List<ToolDefinition>`锛氶摼寮忚繃婊わ紝琚?`GenerationToolExecutor.definitions` 璋冪敤銆?
-  - `GenerationContext.toolTier: String = "all"`锛坄viewmodel/GenerationContracts.kt` 鏂板瀛楁锛夈€?
-- **`ActionTraceBus`**锛坄tool/ActionTraceBus.kt`锛夛細琛屽姩杞ㄨ抗鎬荤嚎锛岃繘绋嬬骇 object 鍗曚緥銆?
-  - 256 鏉?`ArrayDeque` 鐜舰缂撳啿鍖?+ `Mutex` 淇濇姢骞跺彂銆?
-  - `record(entry: ActionTraceEntry)`锛氳褰曚竴娆″伐鍏锋墽琛岋紙`GenerationToolExecutor.execute` 璋冪敤锛宔xecute 寮€濮嬭褰?startMs + 浠庡伐鍏峰弬鏁?JSON 鎻愬彇 server 瀛楁锛夈€?
-  - `snapshot(limit: Int = 50): List<ActionTraceEntry>`锛氬彇鏈€杩?limit 鏉★紙鏃р啋鏂帮級銆?
-  - `clear()`锛氭竻绌虹紦鍐插尯銆?
-  - `toJson(limit: Int = 50): String`锛氬簭鍒楀寲涓?JSON锛堜緵 `get_action_trace` 宸ュ叿杩斿洖锛夈€?
-- **`ActionTraceEntry`**锛坉ata class锛夛細`toolName` / `argumentsSummary` / `resultSummary` / `isError` / `server` / `conversationId` / `runId` / `timestampMs` / `durationMs`銆?
-- **`ActionTraceToolProvider`**锛坄tool/ActionTraceToolProvider.kt`锛夛細瀹炵幇 `ToolProvider`锛屾毚闇?`get_action_trace` ReadOnly 宸ュ叿锛堟棤鍓綔鐢紝杩斿洖 `ActionTraceBus.toJson()`锛夈€?
-- **`execute_shell_batch`**锛坄tool/ShellToolDefinitions.kt` + `tool/ShellToolProvider.kt`锛夛細鎵归噺澶氭湇鍔″櫒骞惰鎵ц宸ュ叿銆?
-  - 鍙傛暟锛歚command: String` / `servers: Array<String>` / `timeout_ms: Int` / `workdir: String`銆?
-  - `servers` 绌烘暟缁勬椂 fallback 鍒?`ctx.shellDevices` 鎵€鏈夊凡閰嶇疆鏈嶅姟鍣紙鎺掗櫎 Local Sandbox锛夛紝`items` schema 宸茶ˉ锛堜慨澶?zen provider 鏍￠獙锛夈€?
-  - 鎵ц锛歚coroutineScope { servers.map { async { ... } }.awaitAll() }` 骞惰 + 涓€娆℃€?confirm 闂ㄦ帶 + `parseBackendResult` 鑱氬悎 JSON銆?
-  - `riskLevel = RiskLevel.Moderate`銆?
+### Agent 能力深化 P2 契约，026-08-17 落地，已固化，
+- **`ToolTierPolicy`**（`tool/ToolTierPolicy.kt`）：工具分档下发策略。
+  - `ToolTier` 枚举：`Core` / `Extended` / `Dangerous`（可见性递减，Core 始终下发，Dangerous 需显式授权）。
+  - `tierOf(name: String): ToolTier`：工具名 →档位映射（file_write/file_edit 属Extended 档，安全性由 RiskLevel + 确认门控保障，tier 仅控制可见性）。
+  - `allowedTiers(ctx: GenerationContext): Set<ToolTier>`：根换`ctx.toolTier`，core"/"extended"/"all"）或 `agentMode` 回退决定允许档位集合。
+  - `filterByTier(definitions: List<ToolDefinition>, ctx: GenerationContext): List<ToolDefinition>`：链式过滤，被`GenerationToolExecutor.definitions` 调用。
+  - `GenerationContext.toolTier: String = "all"`（`viewmodel/GenerationContracts.kt` 新增字段）。
+- **`ActionTraceBus`**（`tool/ActionTraceBus.kt`）：行动轨迹总线，进程级 object 单例。
+  - 256 束`ArrayDeque` 环形缓冲匀+ `Mutex` 保护并发。
+  - `record(entry: ActionTraceEntry)`：记录一次工具执行（`GenerationToolExecutor.execute` 调用，execute 开始记录startMs + 从工具参数JSON 提取 server 字段）。
+  - `snapshot(limit: Int = 50): List<ActionTraceEntry>`：取最过limit 条（旧→新）。
+  - `clear()`：清空缓冲区。
+  - `toJson(limit: Int = 50): String`：序列化为JSON（供 `get_action_trace` 工具返回）。
+- **`ActionTraceEntry`**（data class）：`toolName` / `argumentsSummary` / `resultSummary` / `isError` / `server` / `conversationId` / `runId` / `timestampMs` / `durationMs`。
+- **`ActionTraceToolProvider`**（`tool/ActionTraceToolProvider.kt`）：实现 `ToolProvider`，暴露`get_action_trace` ReadOnly 工具（无副作用，返回 `ActionTraceBus.toJson()`）。
+- **`execute_shell_batch`**（`tool/ShellToolDefinitions.kt` + `tool/ShellToolProvider.kt`）：批量多服务器并行执行工具。
+  - 参数：`command: String` / `servers: Array<String>` / `timeout_ms: Int` / `workdir: String`。
+  - `servers` 空数组时 fallback 到`ctx.shellDevices` 所有已配置服务器（排除 Local Sandbox），`items` schema 已补（修多zen provider 校验）。
+  - 执行：`coroutineScope { servers.map { async { ... } }.awaitAll() }` 并行 + 一次性confirm 门控 + `parseBackendResult` 聚合 JSON。
+  - `riskLevel = RiskLevel.Moderate`。
 
-## 6. 涓嬩竴姝ヤ换鍔★紙鎸変紭鍏堢骇锛岄€愰」鍕鹃€夛級
+## 6. 下一步任务（按优先级，逐项勾选）
 
-> 姣忛」閮芥槸鍙嫭绔嬩氦浠樼殑鏈€灏忓崟鍏冦€傚畬鎴愬嵆鎵撳嬀骞剁Щ鍒般€屽凡瀹屾垚銆嶅尯銆?
+> 每项都是可独立交付的最小单元。完成即打勾并移到「已完成」区。
 
-- [ ] 鍔熻兘寮€鍙?/ bug 淇 / 鎬ц兘浼樺寲绛夌敤鎴锋寚娲句换鍔°€?
+- [ ] 功能开发/ bug 修复 / 性能优化等用户指派任务。
 
-## 7. 缂栫爜绾﹀畾锛堝己鍒讹級
+## 7. 编码约定（强制）
 
-- **璇█**锛氫唬鐮佷笌娉ㄩ噴涓€寰嬭嫳鏂囷紙鏍囪瘑绗︺€乨oc comment銆佹棩蹇楁秷鎭級锛涙湰鏂囦欢鍜岄潰鍚戠敤鎴风殑鏂囨。鐢ㄧ畝浣撲腑鏂囥€?
-- **涓嶅啓娉ㄩ噴**闄ら潪鐢ㄦ埛瑕佹眰锛涜绫诲瀷涓庡嚱鏁板悕鑷В閲娿€侹Doc锛坄/** */`锛夊厑璁镐笖榧撳姳鐢ㄤ簬 public API銆?
-- **UI**锛?00% Jetpack Compose + Material 3锛屾棤 XML 甯冨眬锛坄themes.xml` 浠呯敤浜庡惎鍔ㄥ睆锛夈€傚崟 Activity 鏋舵瀯銆?
-- **鏋舵瀯**锛歁VVM + Coroutines & Flow銆俈iewModel 鎸佹湁 `StateFlow`锛孶I 閫氳繃 `collectAsState()` 璁㈤槄銆?
-- **DI**锛氭墜鍔?DI via `AppContainer`锛屼笉鐢?Hilt/Dagger銆?
-- **缃戠粶**锛歄kHttp + SSE锛屼笉鐢?Retrofit/Ktor銆傛祦寮忓搷搴旈€愯瑙ｆ瀽 `data:` 琛屻€?
-- **搴忓垪鍖?*锛歚kotlinx.serialization`锛圝SON锛夈€?
-- **瀛樺偍**锛歊oom锛堟爲褰㈡秷鎭級+ DataStore Preferences銆傛暟鎹簱杩佺Щ闇€鏂板 schema 蹇収鍒?`app/schemas/`銆?
-- **i18n**锛埪0.6锛夛細浠?`values/`锛坋n锛? `values-zh/`锛坺h锛夈€傛柊澧炲瓧绗︿覆闇€鍚屾椂鍦ㄤ袱澶勬坊鍔犮€俙SettingsLanguagePage.kt` 涓?`MainActivity.attachBaseContext()` 蹇呴』鍚屾銆?
-- **瀛椾綋**锛埪0.7锛夛細`OutfitFamily` = `FontFamily.Default`锛宍MonoFamily` = `FontFamily.Monospace`銆傜姝?`R.font.*` 寮曠敤銆?
-- **鍛藉悕**锛欳omposable 鍑芥暟 PascalCase锛堝 `ChatApp`锛夛紝ViewModel/Repository/Manager 鍚庣紑鏄庣‘锛屽寘鍚嶅崟鏁般€?
-- **婧愮爜澶у皬**锛氭瘡 Kotlin 鏂囦欢 鈮?999 琛岋紙`./gradlew verifyKotlinFileSize` 寮哄埗锛夈€?
-- **娴嬭瘯**锛氬崟鍏冩祴璇曟斁 `app/src/test/`锛孎-Droid 涓撳睘娴嬭瘯鏀?`app/src/testFdroid/`銆?
-- **浜х墿**锛欳I 浜у嚭 `Agora-v{VERSION}-android-arm64-v8a.apk`锛屼粎 `arm64-v8a` ABI銆?
+- **语言**：代码与注释一律英文（标识符、doc comment、日志消息）；本文件和面向用户的文档用简体中文。
+- **不写注释**除非用户要求；让类型与函数名自解释。KDoc（`/** */`）允许且鼓励用于 public API。
+- **UI**，00% Jetpack Compose + Material 3，无 XML 布局（`themes.xml` 仅用于启动屏）。单 Activity 架构。
+- **架构**：MVVM + Coroutines & Flow。ViewModel 持有 `StateFlow`，UI 通过 `collectAsState()` 订阅。
+- **DI**：手加DI via `AppContainer`，不用Hilt/Dagger。
+- **网络**：OkHttp + SSE，不用Retrofit/Ktor。流式响应逐行解析 `data:` 行。
+- **序列匀*：`kotlinx.serialization`（JSON）。
+- **存储**：Room（树形消息）+ DataStore Preferences。数据库迁移需新增 schema 快照到`app/schemas/`。
+- **i18n**（搂R0.6）：件`values/`（en， `values-zh/`（zh）。新增字符串需同时在两处添加。`SettingsLanguagePage.kt` 为`MainActivity.attachBaseContext()` 必须同步。
+- **字体**（搂R0.7）：`OutfitFamily` = `FontFamily.Default`，`MonoFamily` = `FontFamily.Monospace`。禁此`R.font.*` 引用。
+- **命名**：Composable 函数 PascalCase（如 `ChatApp`），ViewModel/Repository/Manager 后缀明鐟，包名单数。
+- **源码大小**：每 Kotlin 文件 ≤999 行（`./gradlew verifyKotlinFileSize` 强制）。
+- **测试**：单元测试放 `app/src/test/`，F-Droid 专属测试支`app/src/testFdroid/`。
+- **产物**：CI 产出 `Agora-v{VERSION}-android-arm64-v8a.apk`，仅 `arm64-v8a` ABI。
 
-## 8. 甯哥敤鍛戒护
+## 8. 常用命令
 
 ```bash
-# 鏋勫缓 F-Droid Release APK锛圕I 涓荤洰鏍囷級
+# 构建 F-Droid Release APK（CI 主目标）
 ./gradlew assembleFdroidRelease
 
-# 鏋勫缓 Google Play Release APK
+# 构建 Google Play Release APK
 ./gradlew assemblePlayRelease
 
-# 鏋勫缓 Play AAB bundle
+# 构建 Play AAB bundle
 ./gradlew bundlePlayRelease
 
-# 鍗曞厓娴嬭瘯
+# 单元测试
 ./gradlew test
 
-# 鏋勫缓鎻掍欢娴嬭瘯锛堝瓧鑺傜爜淇 + 婧愮爜澶у皬绛栫暐锛?
+# 构建插件测试（字节码修复 + 源码大小策略）
 ./gradlew -p build-logic test
 
-# 婧愮爜澶у皬绛栫暐楠岃瘉锛堟瘡鏂囦欢 鈮?999 琛岋級
+# 源码大小策略验证（每文件 ≤999 行）
 ./gradlew verifyKotlinFileSize
 
-# 鏋勫缓 PRoot 鍘熺敓浜岃繘鍒讹紙闇€ NDK 28.2.13676358锛?
+# 构建 PRoot 原生二进制（需 NDK 28.2.13676358）
 ./build-proot.sh
 
 # Lint
 ./gradlew lint
 
-# 鍙戠増锛堣Е鍙?CI 娴佹按绾匡級
+# 发版（触发CI 流水线）
 git tag v1.0.0
 git push origin v1.0.0
-# 鈫?CI 鑷姩鏋勫缓 Agora-v1.0.0-android-arm64-v8a.apk 骞跺彂甯冨埌 GitHub Release
+# →CI 自动构建 Agora-v1.0.0-android-arm64-v8a.apk 并发布到 GitHub Release
 
-# 鏌ョ湅 CI 杩愯鐘舵€?
+# 查看 CI 运行状性
 gh run watch
-gh run view --log-failed    # 澶辫触鏃舵煡鐪嬫姤閿欐棩蹇?
+gh run view --log-failed    # 失败时查看报错日志
 ```
 
-鐜锛氭湰鍦扮绾匡紝缂?Android SDK/NDK/CMake锛?*鏃犳硶**鏈湴 `./gradlew assembleFdroidRelease`銆傜紪璇戦獙璇佽蛋 GitHub CI锛埪2锛夈€傚瓙妯″潡 checkout 闇€ `--recurse-submodules`銆?
+环境：本地离线，缺Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（搂R2）。子模块 checkout 需 `--recurse-submodules`。
 
-## 9. 鍙樻洿鏃ュ織锛堣拷鍔犳柊琛岋紝鏈€鏂板湪涓婏級
+## 9. 变更日志（追加新行，最新在上）
 
 - 2026-08-20 task id=40 ASR 默认中文 + 麦克风单次录音时长上限（本次会话，coding-engineer team-mate）：将 ASR 默认语言改为中文、修复 Vosk 语言不匹配 bug、给单次录音加 90 秒超时。
   - `ceda24ab` **feat(asr)**: default to zh + fix language mismatch + single-asr recording timeout。
@@ -407,31 +407,31 @@ gh run view --log-failed    # 澶辫触鏃舵煡鐪嬫姤閿欐棩蹇?
     - `WelcomeScreen.kt:473-481` — `selectedProvider` 是委托属性无法 smart cast，捕获到 local val `providerForDesc`。
   - **验证**：GitHub CI 全绿，编译验证通过。本次为全量代码审查后的批量修复，无新增功能，无接口契约变更。
 
-## 10. 鍙傝€冪储寮?
+## 10. 参考索引
 
-- 鏋舵瀯鏂囨。锛歚ARCHITECTURE.md`锛?90 琛岋紝璇︾粏鏋舵瀯璇存槑锛夈€?
-- 鐗堟湰鐩綍锛歚gradle/libs.versions.toml`锛圓GP/Kotlin/Compose/Room 绛夌増鏈粺涓€绠＄悊锛夈€?
-- 涓婃父鍊熼壌锛歚/opt/github/RustSync`锛堢紪璇戞祦姘寸嚎鍙傜収锛歵ag 瑙﹀彂 鈫?浜х墿鍛藉悕 鈫?GitHub Release 妯″紡锛夈€?
-- 鍏抽敭鏂囦欢閫熸煡锛堣鏁颁负 PowerShell 瀹炴祴鍊硷紝2026-08-18 鍚屾锛夛細
-  - 搴旂敤鍏ュ彛锛歚app/src/main/java/com/lxseek/chat/MainActivity.kt`
-  - Application锛歚app/src/main/java/com/lxseek/chat/AgoraApplication.kt`
-  - DI 瀹瑰櫒锛歚app/src/main/java/com/lxseek/chat/di/AppContainer.kt`
-  - Provider 鎺ュ彛锛歚app/src/main/java/com/lxseek/chat/api/LlmProvider.kt`
-  - HTTP 瀹㈡埛绔細`app/src/main/java/com/lxseek/chat/api/HttpClient.kt`
-  - 涓婚锛歚app/src/main/java/com/lxseek/chat/ui/theme/{Type,Theme,Color}.kt`
-  - 璇█閫夐」锛歚app/src/main/java/com/lxseek/chat/ui/settings/SettingsLanguagePage.kt`
-  - 绯荤粺鎻愮ず锛歚app/src/main/java/com/lxseek/chat/data/DefaultSystemPrompt.kt`
-  - 鑱婂ぉ涓?Composable锛歚app/src/main/java/com/lxseek/chat/ui/chat/ChatApp.kt`锛?91 琛岋級
-  - 鑱婂ぉ鎷嗗垎鏂囦欢锛歚ChatAppBottomBarSection.kt`锛?57锛? `ChatAppOverlays.kt`锛?96锛? `ChatAppInteractionEffects.kt`锛?57锛? `ChatAppDialogHost.kt`锛?46锛?
-  - 鍙戦€佸尯锛歚ui/chat/bottombar/ChatBottomBar.kt`锛?95锛? `ComposerSendButton.kt`锛?32锛?
-  - 璇煶瀵硅瘽鎺у埗鍣細`viewmodel/VoiceConversationController.kt`锛?49锛?
-  - 璇煶瑕嗙洊灞傦細`ui/chat/VoiceConversationOverlay.kt`锛?67锛? `SingleAsrOverlay.kt`锛?36锛?
-  - 闊抽閲囬泦锛歚speech/AudioCaptureManager.kt`锛?34锛?
-  - ChatViewModel锛歚viewmodel/ChatViewModel.kt`锛?98锛?
-  - SettingsManager锛歚data/SettingsManager.kt`锛?98锛?
-  - UI 閲嶈璁¤鏍硷細`UI_REDESIGN_SPEC.md`锛?01 琛岋級
-  - 鏋舵瀯鏂囨。锛歚ARCHITECTURE.md`锛?90 琛岋級
-  - 鏋勫缓閰嶇疆锛歚app/build.gradle.kts`
-  - CI 娴佹按绾匡細`.github/workflows/build.yml`
-  - PRoot 鏋勫缓锛歚build-proot.sh`
-  - 鍘熺敓鏋勫缓锛歚app/src/main/cpp/CMakeLists.txt`
+- 架构文档：`ARCHITECTURE.md`，90 行，详细架构说明）。
+- 版本目录：`gradle/libs.versions.toml`（AGP/Kotlin/Compose/Room 等版本统一管理）。
+- 上游借鉴：`/opt/github/RustSync`（编译流水线参照：tag 触发 →产物命名 →GitHub Release 模式）。
+- 关键文件速查（行数为 PowerShell 实测值，2026-08-18 同步）：
+  - 应用入口：`app/src/main/java/com/lxseek/chat/MainActivity.kt`
+  - Application：`app/src/main/java/com/lxseek/chat/AgoraApplication.kt`
+  - DI 容器：`app/src/main/java/com/lxseek/chat/di/AppContainer.kt`
+  - Provider 接口：`app/src/main/java/com/lxseek/chat/api/LlmProvider.kt`
+  - HTTP 客户端：`app/src/main/java/com/lxseek/chat/api/HttpClient.kt`
+  - 主题：`app/src/main/java/com/lxseek/chat/ui/theme/{Type,Theme,Color}.kt`
+  - 语言选项：`app/src/main/java/com/lxseek/chat/ui/settings/SettingsLanguagePage.kt`
+  - 系统提示：`app/src/main/java/com/lxseek/chat/data/DefaultSystemPrompt.kt`
+  - 聊天为Composable：`app/src/main/java/com/lxseek/chat/ui/chat/ChatApp.kt`，91 行）
+  - 聊天拆分文件：`ChatAppBottomBarSection.kt`，57， `ChatAppOverlays.kt`，96， `ChatAppInteractionEffects.kt`，57， `ChatAppDialogHost.kt`，46，
+  - 发送区：`ui/chat/bottombar/ChatBottomBar.kt`，95， `ComposerSendButton.kt`，32，
+  - 语音对话控制器：`viewmodel/VoiceConversationController.kt`，49，
+  - 语音覆盖层：`ui/chat/VoiceConversationOverlay.kt`，67， `SingleAsrOverlay.kt`，36，
+  - 音频采集：`speech/AudioCaptureManager.kt`，34，
+  - ChatViewModel：`viewmodel/ChatViewModel.kt`，98，
+  - SettingsManager：`data/SettingsManager.kt`，98，
+  - UI 重设计规格：`UI_REDESIGN_SPEC.md`，01 行）
+  - 架构文档：`ARCHITECTURE.md`，90 行）
+  - 构建配置：`app/build.gradle.kts`
+  - CI 流水线：`.github/workflows/build.yml`
+  - PRoot 构建：`build-proot.sh`
+  - 原生构建：`app/src/main/cpp/CMakeLists.txt`
