@@ -285,6 +285,15 @@ class VoiceConversationController(
             beginVoskCapture()
             return
         }
+        // Offline-first: if a Vosk model is installed (even if not yet loaded), prefer it so
+        // offline ASR actually runs. transcribeWithVosk() loads the model at stop time and
+        // surfaces the exact failure if loading fails (e.g. missing native lib).
+        val downloaded = try { voskTranscriber.getDownloadedLanguages() } catch (e: Throwable) { emptyList() }
+        if (downloaded.isNotEmpty()) {
+            Log.i(TAG, "auto: vosk model installed ($downloaded), preferring offline vosk")
+            beginVoskCapture()
+            return
+        }
         val hasKey = !whisperApiKey().isNullOrBlank()
         if (hasKey) {
             Log.i(TAG, "auto: vosk not ready, whisper key available, starting whisper capture")
@@ -585,6 +594,8 @@ class VoiceConversationController(
                     // Boost the RMS into a 0-1 display range so the voiceprint visibly moves.
                     _amplitude.value = (audioCaptureManager.amplitude.value * AMPLITUDE_BOOST).coerceIn(0f, 1f)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 Log.e(TAG, "Audio capture flow crashed: ${e.javaClass.simpleName}: ${e.message}", e)
                 if (active) {
@@ -693,10 +704,15 @@ class VoiceConversationController(
                 }
             }
             if (!voskTranscriber.isReady()) {
-                Log.e(TAG, "No Vosk model ready for $langCode 鈥?download one in Settings 鈫?Speech")
+                if (!whisperApiKey().isNullOrBlank()) {
+                    Log.w(TAG, "Vosk model failed to load for $langCode; falling back to whisper")
+                    transcribeWithWhisper(wavFile)
+                    return
+                }
+                Log.e(TAG, "No Vosk model ready for $langCode — download one in Settings → Speech")
                 wavFile.delete()
                 handleTranscriptionResult(
-                    "[Vosk model not loaded 鈥?download in Settings 鈫?Speech]"
+                    "[Vosk model not loaded — download in Settings → Speech]"
                 )
                 return
             }

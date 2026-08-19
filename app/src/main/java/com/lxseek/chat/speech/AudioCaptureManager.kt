@@ -154,9 +154,16 @@ class AudioCaptureManager(private val context: Context) {
 
         try {
             audioRecord?.stop()
-            pcmOutputStream?.close()
+        } catch (e: IllegalStateException) {
+            // Already stopped by a concurrent path (captureJob.cancel -> awaitClose -> here,
+            // racing stopCapture() -> here). Harmless; the recording is already finalized.
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping recording", e)
+        }
+        try {
+            pcmOutputStream?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing PCM stream", e)
         }
 
         pcmOutputStream = null
