@@ -1,4 +1,4 @@
-# AGENTS.md 鈥?Agora 椤圭洰浠ｇ悊宸ヤ綔鎸囧紩
+﻿# AGENTS.md 鈥?Agora 椤圭洰浠ｇ悊宸ヤ綔鎸囧紩
 
 > 鏈枃浠朵緵 AI 缂栫爜浠ｇ悊锛堝惈鏈潵浼氳瘽锛夎繘鍏ラ」鐩椂**棣栧厛鑷**锛屽揩閫熷榻愰」鐩畾浣嶃€佸綋鍓嶈繘搴︺€佹灦鏋勫绾︿笌涓嬩竴姝ヤ换鍔★紝鐒跺悗**缁х画瀹屽杽鏈畬鎴愮殑浠ｇ爜**銆?
 > 浼樺厛绾э細鏈枃浠?> `ARCHITECTURE.md`锛堟灦鏋勬枃妗ｏ紝490 琛岋級> `README.md` / `README_CN.md`銆?
@@ -208,10 +208,10 @@ Agora/
 
 **鏁版嵁娴?*锛歚UI (Compose) 鈫?ViewModel 鈫?Repository 鈫?(Room/DataStore | LlmProvider 鈫?OkHttp SSE | LlamaEngine JNI)`锛涘伐鍏疯皟鐢ㄧ粡 `tool/`锛涘悗鍙颁换鍔＄粡 `service/` + WorkManager銆?
 
-## 4. 褰撳墠杩涘害锛堟埅鑷?2026-08-18锛?
+## 4. 褰撳墠杩涘害锛堟埅鑷?2026-08-19锛?
 
 ### 鉁?宸插畬鎴?
-- **任务24 VoskTranscriber 流式会话自动初始化**（2026-08-19，本次会话，coding-engineer team-mate）：修复 `VoskTranscriber.startStreamingSession()` 在模型文件已下载但 `initialize()` 未调用时（如进程重启或调用方遗漏 init）直接返回 false 导致流式语音识别失败的问题。① `startStreamingSession()` 改为 `suspend fun`，在 `synchronized(streamingLock)` 块之前添加 auto-init 逻辑：当 `!isModelLoaded || model == null` 且 `am/final.mdl` 存在时自动调用 `initialize(languageCode)`；② `getLanguageByCode()` 添加 `Log.w` 警告日志，未知语言代码回退时可观测。修改 1 文件：`VoskTranscriber.kt`（+24/-4）。调用点 `VoiceConversationController.kt:436` 已在协程作用域内，无需修改。**约束遵守**：文件 806 行 ≤999 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅。commit `ec99db01`，**未 push**（按任务要求，团队负责人统一推送）。
+- **任务24 VoskTranscriber 流式会话自动初始化**（2026-08-19，本次会话，coding-engineer team-mate）：修复 `VoskTranscriber.startStreamingSession()` 在模型文件已下载但 `initialize()` 未调用时（如进程重启或调用方遗漏 init）直接返回 false 导致流式语音识别失败的问题。① `startStreamingSession()` 改为 `suspend fun`，在 `synchronized(streamingLock)` 块之前添加 auto-init 逻辑：当 `!isModelLoaded || model == null` 且 `am/final.mdl` 存在时自动调用 `initialize(languageCode)`；② `getLanguageByCode()` 添加 `Log.w` 警告日志，未知语言代码回退时可观测。修改 1 文件：`VoskTranscriber.kt`（+24/-4）。调用点 `VoiceConversationController.kt:436` 已在协程作用域内，无需修改。**约束遵守**：文件 806 行 ≤999 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅。commit `ec99db01`，**已 push**，CI #32252119499 全绿通过（conclusion=success）。
 - **任务17 TTS barge-in + 强制 TTS 播放**（2026-08-19，本次会话，coding-engineer team-mate）：修复实时语音对话中 TTS 不播放的问题。① 新回复到达时停止当前 TTS 播放（barge-in），切换到最新消息；② 实时语音对话模式下强制开启 TTS 自动播放（隐藏的、强制的，不依赖用户设置）。修改 2 文件：`VoiceConversationController.kt`（949→955 行，+10/-2）— 新增 `isConversationStreaming()` 暴露流式会话状态 + `handleTranscriptionResult` CONVERSATION 分支添加 `TtsManager.stop()` barge-in + `observeLlmAndTts` 条件改为 `isStreamingConversation || ttsAutoPlayOn()`；`ChatViewModel.kt`（998→999 行，+3/-1）— `onStreamCommit` 回调添加 `voiceStreaming` 变量并修改 TTS 播放条件。**约束遵守**：文件 ≤999 行 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅，代码与注释均用英文 ✅。commit `ee98a23a`，CI 全绿验证通过（conclusion=success）。
 - **全量代码审查与修复**（2026-08-19，本次会话，文档维护代理）：对全量 Kotlin 源码进行安全/崩溃/UI/CI 审查，产出 3 个 commit（`6723e6e7`/`fbf6231d`/`354e566e`），修复 Zip Slip 路径遍历、NPE 崩溃、Room DB 泄漏、Compose recompose race、smart cast 委托属性等问题。CI 全绿验证通过。详见 §9 变更日志。
 - **浠诲姟16 VAD 澧炲己 + 绉婚櫎 TTS 鍥炲０闃叉姢 + ASR 瀹¤锛?026-08-18锛屾湰娆′細璇濓紝coding-engineer team-mate锛?*锛氬弬鐓?`鍒嗘閫昏緫.txt`锛坱ime缁熻澶氭鑰楁椂9_鍙敤 - 鍓湰.py Config 鍙傛暟锛変负 `VoiceConversationController.beginStreamingVoskCapture()` 绉婚櫎 TTS 鍥炲０闃叉姢 + 鍥涢」 VAD 澧炲己 + 鍏ㄩ噺 ASR 瀹¤銆?*鈶?绉婚櫎 TTS 鍥炲０闃叉姢**锛氬垹闄?L419-427 `TtsManager.isPlaying.value` 瀹堝崼鍧楋紙鐢ㄦ埛纭鎵嬫満鎵０鍣?TTS 闊抽涓嶈楹﹀厠椋庡綍鍏ワ紝璇ラ槻鎶ゅ浣欎笖瀵艰嚧 VAD 鍦?TTS 鎾斁鏃舵紡妫€璇煶锛夛紱`TtsManager` import 淇濈暀锛坰top()/observeLlmAndTts/observeTtsPlaying 浠嶇敤锛夈€?*鈶?鏅鸿兘鍚堝苟 1.5s鈫?.6s**锛歚streamingSilenceDurationMs = 1500L鈫?600L`锛堝搴?MAX_SOFT_MERGE_GAP_S=1.6s锛夈€?*鈶?鑷€傚簲闃堝€兼粦鍔ㄧ獥鍙?*锛歚streamingThresholdRatio = 1.5f鈫?.3f`锛堝潎鍊?0.3锛? 鏂板 `streamingNoiseFloorMultiplier=3.0f`/`streamingRollingWindowSize=30`锛屾牎鍑嗗悗缁存姢 30 chunk `ArrayDeque<Float>` 婊戝姩绐楀彛锛屾瘡 chunk 鏇存柊 `dynamicThreshold = max(rollingAvg*0.3, noiseFloor*3.0, 0.05)`锛宯oiseFloor 鍙栨粴鍔ㄥ潎鍊兼渶灏忓€笺€?*鈶?婊炲洖瑙﹀彂**锛氭柊澧?`streamingHysteresisRatio=0.6f`锛岃闊宠Е鍙?`amp >= dynamicThreshold`锛堜笉鍙橈級锛岄潤闊虫娴?`amp < dynamicThreshold*0.6`锛堝師 `amp < dynamicThreshold`锛夛紝闃叉鐭殏鎸箙璺岃惤鍒囨柇鍙ュ瓙銆?*鈶?鏈€灏忔闀胯繃婊?*锛氭柊澧?`streamingMinSegmentMs=150L`锛堝搴?MIN_ENERGY_DURATION_S=0.15s锛夛紝鍒嗘鏃舵鏌?`System.currentTimeMillis() - speakStartMs < 150ms` 鍒欎涪寮冿紙璋?endSegment 浣嗕笉鍙戦€?LLM锛夈€?*鈶?鍏ㄩ噺 ASR 瀹¤**锛氬紩鎿庨€夋嫨锛坅uto鈫抳osk鈫抴hisper鈫抯ystem 浼樺厛绾ф纭級/ 閿欒澶勭悊锛坃singleAsrError + handleTranscriptionResult 涓婃诞 UI锛? 璧勬簮閲婃斁锛坰top()+dispose() 瀹屾暣锛? SINGLE_ASR锛坮ecord鈫抰ranscribe鈫抍omposer 姝ｅ父锛? partial transcript锛坰treaming callback + system partialJob 瀹炴椂鏇存柊锛夆€?鍧囧仴鍏紝鏈彂鐜伴櫎 TTS 闃叉姢澶栧叾浠栨槑鏄?bug锛屾湭閲嶆瀯宸ヤ綔浠ｇ爜銆?*鏀瑰姩**锛歏oiceConversationController.kt 827鈫?62 琛岋紙+53/-18锛夛紝1 鏂囦欢銆?*绾︽潫閬靛畧**锛氭枃浠?鈮?99 琛屻€佹湭鏂板瀛楃涓层€佹湭 bump 鐗堟湰鍙枫€佷唬鐮佷笌娉ㄩ噴涓€寰嬭嫳鏂囥€佷笉鐮村潖鏃㈡湁鎺ュ彛绛惧悕銆丄rrayDeque/maxOf 涓?Kotlin stdlib 鏃犻渶 import銆傛湰鍦?git push 缃戠粶澶辫触锛屾敼鐢?GitHub REST API 鎺ㄩ€併€俢ommit `2e50265f`锛孋I #32156168519 鍏ㄧ豢楠岃瘉閫氳繃锛坈onclusion=success锛夈€?
@@ -360,7 +360,7 @@ Agora/
 > 姣忛」閮芥槸鍙嫭绔嬩氦浠樼殑鏈€灏忓崟鍏冦€傚畬鎴愬嵆鎵撳嬀骞剁Щ鍒般€屽凡瀹屾垚銆嶅尯銆?
 
 - [x] **全量代码审查与修复**（2026-08-19）：安全/崩溃/UI/CI 批量修复完成，CI 全绿。无待办任务，等待用户指派新工作。
-- [x] **task id=23 ASR 设置严格引擎就绪检查 + 显著语言选择器**（2026-08-19，coding-engineer team-mate）：commit `d409bbd5`（3 files, +205/-39），**已 commit 未 push**。修复 ASR 设置页面引擎就绪诊断缺失 + 语言选择器不显著问题。待 push 后 CI 验证。
+- [x] **task id=23 ASR 设置严格引擎就绪检查 + 显著语言选择器**（2026-08-19，coding-engineer team-mate）：commit `d409bbd5`（3 files, +205/-39），**已 push**，CI 全绿通过。修复 ASR 设置页面引擎就绪诊断缺失 + 语言选择器不显著问题。
 ### P0 鈥?CI 缂栬瘧楠岃瘉涓庨娆″彂鐗?鉁?
 - [x] 閰嶇疆 GitHub Secrets锛坄KEYSTORE_BASE64`/`KEYSTORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD`锛夌敤浜?Release 绛惧悕锛堝彲閫夛紝鏈厤缃垯鐢?debug 绛惧悕锛夈€?
 - [x] `git tag v1.0.1 && git push origin v1.0.1` 瑙﹀彂娴佹按绾裤€?
@@ -395,6 +395,8 @@ Agora/
 - [x] 浠诲姟17+19 鏁翠綋 UI 缁熺浼樺寲 P0/P1 鎵规锛氭嵁鍑嗗垯涓庡璁℃竻鍗曟壒閲忓疄鏂斤紙commit `59b5ef73`锛?7 鏂囦欢 +278/-53锛孋I #193/32015537543 鍏ㄧ豢锛夆€斺€擯roviderPalette 鍝佺墝鑹插父閲?+ ProviderBadge 鎺ョ嚎銆佸渾瑙掔粺涓€锛堟秷鎭鍗?鍙戦€佸尯/椤舵爮/Drawer/SegmentDetailSheet/WelcomeScreen 鍏ㄩ儴鏀舵暃 12dp锛夈€乪levation 鍘昏楗帮紙WelcomeScreen/Tasks/SystemPrompt/Sandbox tonalElevation鈫? + SegmentDetailSheet shadow鈫? + surfaceColorAtElevation鈫抯urfaceContainer锛夈€佺‖缂栫爜閿欒绾⑩啋error 璇箟鑹层€乧onversationsTitle 25sp鈫?6sp銆丏rawer 鎸夐挳鐭╁舰鍖栥€?
 - [x] 浠诲姟19 鍚庣画鎵规锛圥2 宸插畬鎴愶級锛氬叏灞€杈撳叆妗?璁剧疆鍗＄墖 RoundedCornerShape(16.dp)鈫?2.dp 缁熶竴锛圫ettingsShellPage/SettingsGenerationPage 棣栨壒 + 鏈 19 鏂囦欢绾?60 澶勶紝瀵瑰簲瀹¤鎶ュ憡 B2/B4 椤癸級+ 闂磋窛瀵归綈 + stackedShape 鏀舵暃 + 椤舵爮楂樺害鍘嬬缉銆俢ommit `dac336d1`锛堣缃〉杈撳叆妗嗛杞級+ `4d0c68ac`锛圥2 鎵规锛夛紝CI #32017946042/#32018736163 鍏ㄧ豢銆?
 - [x] 浠诲姟21/22 UI 鎺ㄥ€掗噸璁捐 + P3 楠岃瘉鎵规锛氫换鍔?1 浜у嚭 UI_REDESIGN_SPEC.md锛?01 琛岋級鈫?浠诲姟22 鍒?3 鎵瑰疄鏂?17 鏂囦欢 ~35 琛屾敼鍔紙commit a0e03400/9aabf116/84fc5046/f3e20714锛孋I #32089087085/#32090477436/#32091183286 鍏ㄧ豢锛夆啋 浠诲姟23 P3 鍏ㄩ噺楠岃瘉淇 3 澶勬畫鐣欙紙SettingsModelsPage 鍫嗗彔 24/5鈫?2/4 + VoiceConversationStatusOverlay 28鈫?6dp + AttachmentPreviewRow clip鈫扖ircleShape锛夈€傚綋鍓?master 瀵归綈 ChatGPT 鏋佺畝椋庛€俢ommit 16b24a3e锛坉ocs 鍥炲啓锛夈€?
+- [x] 浠诲姟24 VoskTranscriber auto-init + warn on unknown lang锛堟026-08-19锛夛細commit `ec99db01`锛宲ush 鍒?origin/master锛孋I #32252119499 鍏ㄧ豢閫氳繃銆?
+- [x] 浠诲姟22 缁熶竴 push + CI 楠岃瘉锛堟026-08-19锛夛細3 涓 commit锛坉409bbd5`/`005c5b9f`/`ec99db01`锛夊凡 push锛孋I 鍏ㄧ豢銆?
 - [ ] 鍔熻兘寮€鍙?/ bug 淇 / 鎬ц兘浼樺寲绛夌敤鎴锋寚娲句换鍔°€?
 
 ## 7. 缂栫爜绾﹀畾锛堝己鍒讹級
@@ -461,7 +463,7 @@ gh run view --log-failed    # 澶辫触鏃舵煡鐪嬫姤閿欐棩蹇?
     - `VoskTranscriber.kt:101-108` — `getLanguageByCode()` 添加 `android.util.Log.w` 警告日志，当语言代码未在 `AVAILABLE_LANGUAGES` 中找到时记录回退，便于 logcat 调试。
   - **调用点分析**：`VoiceConversationController.kt:436` 的 `startStreamingSession()` 调用在 `scope.launch {}` 协程作用域内，改为 `suspend fun` 无需修改调用点。调用方已有 auto-init 逻辑（L400-410），本次修复为 defense-in-depth。
   - **约束遵守**：`VoskTranscriber.kt` 806 行 ≤999 ✅；代码与注释均英文 ✅；无新增字符串资源 ✅；无 bump 版本号 ✅。
-  - **验证**：本地 git commit 成功（`ec99db01`，1 file changed, +24/-4），**未 push**（按任务要求，团队负责人统一推送）。GitHub CI 验证待 push 后执行。
+  - **验证**：本地 git commit 成功（`ec99db01`，1 file changed, +24/-4），**已 push**，CI #32252119499 全绿验证通过（conclusion=success）。
 
 - 2026-08-19 task id=23 ASR 设置严格引擎就绪检查 + 显著语言选择器（本次会话，coding-engineer team-mate）：修复 ASR 设置页面缺乏引擎就绪诊断、语言选择器不显著导致用户无法定位 Vosk ASR 静默失败根因的问题。
   - `d409bbd5` **fix(asr-settings)**: strict engine readiness checks + prominent language selector。
@@ -469,7 +471,7 @@ gh run view --log-failed    # 澶辫触鏃舵煡鐪嬫姤閿欐棩蹇?
     - `SettingsGenerationPage.kt:757-761` — `SettingsAsrDiagnosticsSection(` 调用点添加 5 个新参数（`asrUseRemote`/`asrRemoteBaseUrl`/`asrRemoteApiKey`/`asrRemoteModel`/`voiceLanguage`），所需变量在作用域中已存在。
     - `SettingsVoskModelsSection.kt` — Change B（前一个 subagent 完成）：新增 `BASE_LANGUAGE_DISPLAY_NAMES` 友好显示名映射（23 种基础语言）；将语言选择器重构为显著 `Surface` 卡片，显示当前语言友好名 + 下载状态指示器（✓/⚠）+ 下拉菜单（每项标注 ✓ 已下载）+ 不匹配警告（当前语言无已下载模型时红色提示）+ Ready/Lang 状态行；保留模型列表（下载/删除）功能。
   - **约束遵守**：每文件 ≤999 行；代码和注释均英文；无新增字符串资源；无 bump 版本号；未修改 `VoiceConversationController.kt`/`ChatViewModel.kt`；`VoskTranscriber.kt` 工作目录修改未纳入本次 commit（不属于本任务范围）。
-  - **验证**：本地 git commit 成功（`d409bbd5`，3 files changed, +205/-39），**未 push**（按任务要求）。GitHub CI 验证待 push 后执行。
+  - **验证**：本地 git commit 成功（`d409bbd5`，3 files changed, +205/-39），**已 push**，CI #32250168436 全绿验证通过（conclusion=success）。
 
 - 2026-08-19 task id=17 TTS barge-in + 强制 TTS 播放（本次会话，coding-engineer team-mate）：修复实时语音对话中 TTS 不播放的问题。
   - `ee98a23a` **fix(voice)**: force TTS in streaming conversation + barge-in on new reply。
