@@ -371,6 +371,9 @@
     <string name="tts_copy_log">复制日志</string>
     <string name="tts_save_to_downloads">保存到下载</string>
     <string name="log_clear">清空日志</string>
+    <string name="voice_log_section_title">语音日志</string>
+    <string name="voice_log_tts_subtitle">TTS 日志</string>
+    <string name="voice_log_asr_subtitle">ASR 日志</string>
     <string name="tts_install_google_tts">安装 Google 语音</string>
     <string name="tts_install_google_tts_desc">引擎不工作？从 Play 商店安装 Google 语音。</string>
     <string name="tts_install_google">安装</string>
@@ -845,6 +848,7 @@
     <string name="asr_no_logs_yet">暂无 ASR 日志记录</string>
     <string name="asr_clear_log">清空 ASR 日志</string>
     <string name="asr_log_cleared">ASR 日志已清空</string>
+    <string name="toast_select_model_first">请先选择模型</string>
     <string name="voice_conversation_listening">聆听中…</string>
     <string name="voice_conversation_processing">思考中…</string>
     <string name="voice_conversation_speaking">朗读中…</string>

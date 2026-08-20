@@ -1,5 +1,6 @@
 package com.lxseek.chat.ui.chat.bottombar
 
+import android.widget.Toast
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
@@ -24,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.lxseek.chat.R
@@ -73,6 +75,7 @@ internal fun ComposerSendButton(
     onStopSingleAsr: () -> Unit = {},
 ) {
     val haptics = LocalAgoraHaptics.current
+    val context = LocalContext.current
     val submitScope = rememberCoroutineScope()
     var isSubmitting by remember { mutableStateOf(false) }
     // Snapshot captured at the moment the send button is tapped. pendingSend is shared across
@@ -126,7 +129,13 @@ internal fun ComposerSendButton(
     val attachmentsIsEmpty = composer.selectedAttachments.isEmpty()
     val showStop = isLoading && !isStopping && textIsEmpty && attachmentsIsEmpty
 
-    val canSend = (textFieldState.text.isNotBlank() || composer.selectedAttachments.isNotEmpty()) && isModelValid && !isSwitching && !isStopping && !isCompacting && !isSubmitting
+    // hasInput tracks only whether the composer has any user content; it does NOT depend on
+    // model validity or switching state. The FAB icon uses hasInput (after stop/ASR states) so
+    // the send arrow stays visible whenever there is text/attachments, even when no model is
+    // selected or a model switch is in progress. canSend below still gates the actual submit
+    // and the primary color highlight.
+    val hasInput = textFieldState.text.isNotBlank() || composer.selectedAttachments.isNotEmpty()
+    val canSend = hasInput && isModelValid && !isSwitching && !isStopping && !isCompacting && !isSubmitting
             && composer.selectedAttachments.none { it.localPath == null && (it.type == "image" || it.type == "file") }
     val isBusy = isStopping || isCompacting || isSubmitting || composer.pendingSend
     val isActionable = (isLoading || canSend || voiceConversationActive || singleAsrRecording || voiceConversationEnabled) && !isSwitching && !isBusy
@@ -136,7 +145,7 @@ internal fun ComposerSendButton(
         composer.pendingSend -> ComposerActionIcon.PENDING
         showStop -> ComposerActionIcon.STOP
         singleAsrRecording -> ComposerActionIcon.SEND
-        canSend -> ComposerActionIcon.SEND
+        hasInput -> ComposerActionIcon.SEND
         else -> ComposerActionIcon.IDLE
     }
 
@@ -176,6 +185,17 @@ internal fun ComposerSendButton(
                     if (composer.pendingSend) {
                         haptics.selection()
                         composer.pendingSend = false
+                        return@FloatingActionButton
+                    }
+                    // The send arrow is shown whenever there is input (even with no valid
+                    // model selected). Prompt the user to pick a model instead of silently
+                    // doing nothing. isSwitching is already handled by the early return above.
+                    if (!isModelValid) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.toast_select_model_first),
+                            Toast.LENGTH_SHORT,
+                        ).show()
                         return@FloatingActionButton
                     }
                     if (canSend) {

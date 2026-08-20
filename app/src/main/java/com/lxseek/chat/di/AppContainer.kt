@@ -77,6 +77,21 @@ class AppContainer(private val appContext: Context) {
             conversationRepository.ensureRunRecovery()
             automationScheduler.start()
         }
+        // Auto-download Chinese Vosk model for ASR on first launch.
+        appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val vosk = com.lxseek.chat.speech.VoskTranscriber(appContext)
+                if ("zh" !in vosk.getDownloadedLanguages()) {
+                    com.lxseek.chat.util.DebugLog.d("AppContainer", "Auto-downloading zh Vosk model")
+                    vosk.downloadModel("zh").collect { /* swallow progress states */ }
+                    com.lxseek.chat.util.DebugLog.d("AppContainer", "zh Vosk model auto-download finished")
+                } else {
+                    com.lxseek.chat.util.DebugLog.d("AppContainer", "zh Vosk model already downloaded, skip")
+                }
+            } catch (e: Throwable) {
+                com.lxseek.chat.util.DebugLog.e("AppContainer", "zh Vosk model auto-download failed", e)
+            }
+        }
     }
 
     val taskRepository: TaskRepository by lazy {

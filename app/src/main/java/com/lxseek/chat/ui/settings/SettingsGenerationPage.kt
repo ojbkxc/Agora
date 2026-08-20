@@ -44,7 +44,7 @@ import com.lxseek.chat.ui.common.OpenAiServiceTierControlPanel
 import com.lxseek.chat.ui.common.ThinkingControlPanel
 import com.lxseek.chat.ui.common.openAiServiceTierShortLabel
 import com.lxseek.chat.ui.common.thinkingControlShortLabel
-import com.lxseek.chat.util.CrashReporter
+
 import com.lxseek.chat.util.TtsManager
 import com.lxseek.chat.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
@@ -487,71 +487,7 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                                 )
                             }
                         },
-                        {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.tts_engine_info),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    text = if (ttsDiagnostic.availableEngines.isEmpty()) {
-                                        stringResource(R.string.tts_no_engine)
-                                    } else {
-                                        "${ttsDiagnostic.engineName ?: "unknown"} (${ttsDiagnostic.availableEngines.joinToString(", ")})"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                                Text(
-                                    text = "Init: $ttsInitStatus | Speak: ${ttsSpeakResult.ifEmpty { "—" }} | Lang: ${ttsLangResult.ifEmpty { "—" }}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                                Row(
-                                    modifier = Modifier.padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    TextButton(onClick = {
-                                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                            putExtra(android.content.Intent.EXTRA_TEXT, TtsManager.getLogText())
-                                            type = "text/plain"
-                                        }
-                                        ttsContext.startActivity(android.content.Intent.createChooser(sendIntent, "TTS Log"))
-                                    }) { Text(stringResource(R.string.tts_export_log)) }
-                                    TextButton(onClick = {
-                                        val clipboard = ttsContext.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("TTS Log", TtsManager.getLogText()))
-                                    }) { Text(stringResource(R.string.tts_copy_log)) }
-                                    TextButton(onClick = {
-                                        val name = CrashReporter.exportDiagnostics(
-                                            ttsContext,
-                                            "=== AppLog (all modules) ===\n" +
-                                                com.lxseek.chat.util.AppLog.getText() + "\n\n" +
-                                                TtsManager.getLogText() + "\n\n" +
 
-                                                viewModel.voiceConversation.getVoskTranscriber().getDiagnosticText()
-                                        )
-                                        if (name != null) {
-                                            android.widget.Toast.makeText(ttsContext, "Saved to Downloads/Agora/$name", android.widget.Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            android.widget.Toast.makeText(ttsContext, "Failed to save", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
-                                    }) { Text(stringResource(R.string.tts_save_to_downloads)) }
-                                    TextButton(onClick = {
-                                        com.lxseek.chat.util.AppLog.clear()
-                                        TtsManager.clearLog()
-                                        android.widget.Toast.makeText(ttsContext, "Logs cleared", android.widget.Toast.LENGTH_SHORT).show()
-                                    }) { Text(stringResource(R.string.log_clear)) }
-                                }
-                            }
-                        },
                     ),
                 )
 
@@ -765,6 +701,15 @@ fun SettingsGenerationPage(viewModel: ChatViewModel, onBack: () -> Unit) {
                             )
                         }
                     },
+                )
+
+                SettingsVoiceLogSection(
+                    context = ttsContext,
+                    ttsDiagnostic = ttsDiagnostic,
+                    ttsInitStatus = ttsInitStatus,
+                    ttsSpeakResult = ttsSpeakResult,
+                    ttsLangResult = ttsLangResult,
+                    voskTranscriber = viewModel.voiceConversation.getVoskTranscriber(),
                 )
             }
 

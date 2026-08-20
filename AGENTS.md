@@ -211,6 +211,7 @@ Agora/
 ## 4. 当前进度（截至2026-08-20）
 
 ### ✅已完成
+- **任务3 启动时自动下载中文 ASR 模型**（2026-08-20，本次会话，coding-engineer team-mate）：在 `AppContainer.startProcessServices()` 新增独立后台协程，启动时检查中文 Vosk 模型（`zh`，vosk-model-small-cn-0.22，42MB）是否已下载，未下载则自动触发下载。① 用独立 `appScope.launch(Dispatchers.IO)`，与 `ensureRunRecovery`/`automationScheduler` 并行，不阻塞启动；② 先检查 `"zh" !in vosk.getDownloadedLanguages()`，已下载则跳过，避免重复下载；③ `try/catch(Throwable)` 包裹，任何失败都不影响 App 启动（appScope 的 SupervisorJob + CoroutineExceptionHandler 已兜底，显式 catch 更清晰）；④ `downloadModel("zh").collect {}` 收集 Flow 直到完成（downloadModel 内部 emit Complete/Error 后 close）；⑤ 用 `DebugLog.d/e` 记录日志（DebugLog 无 i 方法，用 d 替代）。修改 1 文件：`AppContainer.kt`（242→257 行，+15）。**约束遵守**：文件 257 行 ≤999 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅（后台行为，日志用 DebugLog），未 bump 版本号 ✅，未新增依赖 ✅，未新增 import（用全限定名）✅。**未 git commit**（依任务要求）。
 - **任务40 ASR 默认中文 + 麦克风单次录音时长上限**（2026-08-20，本次会话，coding-engineer team-mate）：① 将 `voice/voice_language` 默认值从 `en` 改为 `zh`（SettingsManager + SettingsRepository）；② 修复 `VoiceConversationController.transcribeWithVosk()` 语言不匹配 bug — 当 Vosk 已就绪但加载的语言与用户选择的不一致时（如用户选 `zh` 但 Vosk 仍持有 `en` 模型），旧代码跳过初始化直接转写导致乱码；新代码增加 `voskTranscriber.getCurrentLanguage() != langCode` 检查并移除硬编码 `"en"` 回退；③ 给 `SINGLE_ASR` 单次录音加 90 秒上限（`MAX_SINGLE_ASR_DURATION_MS = 90_000L`），超时自动调用 `stopCaptureAndTranscribe()` 转写已采集音频，在 `startSingleAsr`/`stopSingleAsr`/`stop`/`finishConversationTurn`/`handleTranscriptionResult` 各路径正确取消超时 Job。修改 3 文件：`SettingsManager.kt`（+1/-1）、`SettingsRepository.kt`（+1/-1）、`VoiceConversationController.kt`（955→982 行，+34/-7）。**约束遵守**：文件 ≤999 行 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅。commit `ceda24ab`。**未 push**（GitHub 网络不可达，按 R0.8 待后续 push 验证 CI）。
 - **任务41 ASR/语音日志清理按钮**（2026-08-20，本次会话，coding-engineer team-mate）：在设置页 ASR 诊断区添加"清空 ASR 日志"按钮，点击调用 `AppLog.clear()` 清空内存日志并显示 Toast 提示。修改 3 文件：`SettingsAsrDiagnosticsSection.kt`（202→210 行，+8）— 在现有按钮 Row 内（copy log / save to downloads 之后）新增 `TextButton`，onClick 调用 `AppLog.clear()` + `Toast.makeText` 显示 `R.string.asr_log_cleared`；`values/strings.xml`（+2）— 新增 `asr_clear_log`="Clear ASR Log" + `asr_log_cleared`="ASR log cleared"；`values-zh/strings.xml`（+2）— 新增 `asr_clear_log`="清空 ASR 日志" + `asr_log_cleared`="ASR 日志已清空"。**约束遵守**：文件 ≤999 行 ✅，代码与注释均英文 ✅，用户可见文本 en/zh 双语 ✅，未 bump 版本号 ✅。commit `435e8e8d`。**未 push**（GitHub 网络不可达，按 R0.8 待后续 push 验证 CI）。
 - **任务24 VoskTranscriber 流式会话自动初始化**（2026-08-19，本次会话，coding-engineer team-mate）：修复 `VoskTranscriber.startStreamingSession()` 在模型文件已下载但 `initialize()` 未调用时（如进程重启或调用方遗漏 init）直接返回 false 导致流式语音识别失败的问题。① `startStreamingSession()` 改为 `suspend fun`，在 `synchronized(streamingLock)` 块之前添加 auto-init 逻辑：当 `!isModelLoaded || model == null` 且 `am/final.mdl` 存在时自动调用 `initialize(languageCode)`；② `getLanguageByCode()` 添加 `Log.w` 警告日志，未知语言代码回退时可观测。修改 1 文件：`VoskTranscriber.kt`（+24/-4）。调用点 `VoiceConversationController.kt:436` 已在协程作用域内，无需修改。**约束遵守**：文件 806 行 ≤999 ✅，代码与注释均英文 ✅，未新增字符串资源 ✅，未 bump 版本号 ✅。commit `ec99db01`，**已 push**，CI #32252119499 全绿通过（conclusion=success）。
@@ -345,6 +346,31 @@ gh run view --log-failed    # 失败时查看报错日志
 环境：本地离线，缺Android SDK/NDK/CMake，**无法**本地 `./gradlew assembleFdroidRelease`。编译验证走 GitHub CI（搂R2）。子模块 checkout 需 `--recurse-submodules`。
 
 ## 9. 变更日志（追加新行，最新在上）
+
+- 2026-08-20 task id=2 修复发送按钮显示逻辑（本次会话，coding-engineer team-mate）：文本框有输入时即使未选模型/切换中也显示发送箭头，点击无效模型时 Toast 提示先选模型。
+  - **未 commit**（依任务要求"不要 git commit"）**fix(chat)**: show send arrow on input even without valid model。
+    - `ComposerSendButton.kt`（247→267 行）— 新增 `hasInput` 变量（text/attachments 非空）；`fabIcon` 在 `singleAsrRecording` 之后、`canSend` 之前新增 `hasInput -> ComposerActionIcon.SEND` 分支，使有输入时优先显示发送箭头而非 IDLE 波形；SEND 点击分支在 `singleAsrRecording`/`pendingSend` 检查后新增 `!isModelValid` 早返回 + Toast 提示 `toast_select_model_first`；`canSend` 定义用 `hasInput` 替代内联表达式（语义等价），颜色保持 `if (canSend) primary else surfaceVariant`。
+    - `values/strings.xml`（+1）— 新增 `toast_select_model_first`="Please select a model first"。
+    - `values-zh/strings.xml`（+1）— 新增 `toast_select_model_first`="请先选择模型"。
+  - **约束遵守**：`ComposerSendButton.kt` 267 行 ≤999 ✅；代码注释均英文 ✅；en/zh 双语 ✅；未 bump 版本号 ✅；Composable 签名不变 ✅。
+  - **验证**：本地静态检查通过，**未 push**（依任务要求"不要 git commit"，等 team leader 统一验证 CI）。
+
+- 2026-08-20 task id=1 统一 TTS/ASR 日志到「语音日志」区（本次会话，coding-engineer team-mate）：在生成设置页内新建统一「语音日志」Section，合并 TTS/ASR 日志查看/复制/保存/清空。
+  - **未 commit**（依任务要求"不要 git commit"）**refactor(settings)**: unify TTS/ASR logs into Voice Logs section。
+    - 新建 `SettingsVoiceLogSection.kt`（195 行）— `@Composable fun SettingsVoiceLogSection(context, ttsDiagnostic, ttsInitStatus, ttsSpeakResult, ttsLangResult, voskTranscriber)`，用 `SettingsGroup(voice_log_section_title)` 包裹两个子区块：TTS 子区块（标题 + 引擎信息 + 日志文本 TtsManager.getLogText() 每 3 秒刷新 + 4 按钮 导出/复制/保存/清空）+ ASR 子区块（标题 + 日志文本 AppLog.getFilteredText(ASR_LOG_TAGS,30) 每 3 秒刷新 + 3 按钮 复制/保存/清空）。ASR_LOG_TAGS 从 SettingsAsrDiagnosticsSection 迁移至此。
+    - `SettingsGenerationPage.kt`（969→912 行）— 移除 TTS Section 内日志块（原 490-554 行：引擎信息 + 4 按钮），移除未使用 import `CrashReporter`；在 ASR 诊断区调用之后（第 706 行）新增 `SettingsVoiceLogSection(...)` 调用，传入 ttsContext/ttsDiagnostic/ttsInitStatus/ttsSpeakResult/ttsLangResult/voskTranscriber。
+    - `SettingsAsrDiagnosticsSection.kt`（210→139 行）— 移除日志文本显示 + 3 按钮 Row + ASR_LOG_TAGS 定义；清理未使用 import（Arrangement/Row/TextButton/LaunchedEffect/mutableStateOf/remember/setValue/Color/AppLog/CrashReporter/delay）；硬编码红色 `Color(0xFFE53935)` 改为 `MaterialTheme.colorScheme.error`。保留引擎就绪检查、语言警告、Vosk 诊断文本。Composable 签名不变。
+    - `values/strings.xml`（+3）— 新增 `voice_log_section_title`="Voice Logs" + `voice_log_tts_subtitle`="TTS Log" + `voice_log_asr_subtitle`="ASR Log"。
+    - `values-zh/strings.xml`（+3）— 新增 `voice_log_section_title`="语音日志" + `voice_log_tts_subtitle`="TTS 日志" + `voice_log_asr_subtitle`="ASR 日志"。
+  - **约束遵守**：每文件 ≤999 行 ✅（195/912/139）；代码与注释均英文 ✅；颜色用 MaterialTheme.colorScheme.* 语义化 ✅（移除硬编码 0xFFE53935）；i18n 仅 en/zh ✅；未 bump 版本号 ✅；未新增字体/依赖 ✅；Composable 签名不变 ✅；复用既有 CrashReporter/AppLog/TtsManager API ✅。
+  - **验证**：本地静态检查通过，**未 push**（依任务要求"不要 git commit"，等 team leader 统一验证 CI）。
+
+- 2026-08-20 task id=3 启动时自动下载中文 ASR 模型（本次会话，coding-engineer team-mate）：在 `AppContainer.startProcessServices()` 新增独立后台协程自动下载中文 Vosk 模型。
+  - **未 commit**（依任务要求"不要 git commit"）**feat(asr)**: auto-download zh Vosk model on startup。
+    - `AppContainer.kt:80-94` — `startProcessServices()` 新增第二个 `appScope.launch(Dispatchers.IO)` 协程：① 构造 `VoskTranscriber(appContext)`；② 检查 `"zh" !in vosk.getDownloadedLanguages()`，未下载则 `vosk.downloadModel("zh").collect {}` 收集 Flow 直到完成；③ `try/catch(Throwable)` 包裹，失败用 `DebugLog.e` 记录，不影响 App 启动；④ 用 `DebugLog.d` 记录下载开始/完成/跳过日志（DebugLog 无 i 方法，用 d 替代）。与原有 `ensureRunRecovery`/`automationScheduler` 协程并行，不阻塞启动。
+  - **约束遵守**：`AppContainer.kt` 257 行 ≤999 ✅；代码与注释均英文 ✅；无新增字符串资源 ✅（后台行为，日志用 DebugLog）；无 bump 版本号 ✅；无新增依赖 ✅；无新增 import（用全限定名 `com.lxseek.chat.speech.VoskTranscriber`/`com.lxseek.chat.util.DebugLog`）✅。
+  - **DownloadState 行为确认**：`VoskTranscriber.downloadModel()` (L328) 用 `callbackFlow`，成功路径 emit `Downloading`→`Extracting`→`Complete(modelDir)` 后 `close()`，失败路径 emit `Error(message)` 后 `close()`，`collect {}` 会正常结束不挂起。`getDownloadedLanguages()` (L147) 通过检查 `am/final.mdl` 存在性判断已下载，避免重复下载。
+  - **验证**：本地静态检查通过，**未 git commit**（依任务要求），**未 push**（按 R0.8 待后续 push 验证 CI）。
 
 - 2026-08-20 task id=40 ASR 默认中文 + 麦克风单次录音时长上限（本次会话，coding-engineer team-mate）：将 ASR 默认语言改为中文、修复 Vosk 语言不匹配 bug、给单次录音加 90 秒超时。
   - `ceda24ab` **feat(asr)**: default to zh + fix language mismatch + single-asr recording timeout。
