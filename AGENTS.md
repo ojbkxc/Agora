@@ -347,7 +347,14 @@ gh run view --log-failed    # 失败时查看报错日志
 
 ## 9. 变更日志（追加新行，最新在上）
 
-- 2026-08-20 task id=2 修复发送按钮显示逻辑（本次会话，coding-engineer team-mate）：文本框有输入时即使未选模型/切换中也显示发送箭头，点击无效模型时 Toast 提示先选模型。
+- 2026-08-20 ASR 只采麦克风不采扬声器（本次会话，team-leader 统筹 + coding-engineer team-mate 实现）：让录音永不录入扬声器（TTS）声音，实时对话不再因 TTS 播放而暂停。
+  - commit `ca3b1dce` **fix(asr)**: use VOICE_RECOGNITION source so mic never captures speaker TTS; drop streaming echo guard。
+    - `Speech/AudioCaptureManager.kt`（250→252 行）— `AudioRecord` 音频源 `MediaRecorder.AudioSource.MIC` → `VOICE_RECOGNITION`（系统自带 AEC 回声消除 + 降噪，麦克风只采人声）；日志行注明 source=VOICE_RECOGNITION。无 MIC fallback（用户核心诉求"麦克风永不录入扬声器声音"，VOICE_RECOGNITION 初始化失败按原路径报 IllegalStateException，不静默降级）。
+    - `viewmodel/VoiceConversationController.kt`（991→984 行）— 删除 `beginStreamingVoskCapture()` 中的 Echo guard（`if (TtsManager.isPlaying.value) { ... return@collect }`），TTS 播放期间音频持续喂给 `voskTranscriber.acceptWaveform(chunk)`，实时对话无需因 TTS 播放暂停。
+    - `TtsManager` import 保留（stop()/isPlaying 等 6 处仍使用）。
+  - **CI 验证**：push master 后 CI run 282（head_sha=ca3b1dce）success 全绿 ✅。
+  - **约束遵守**：每文件 ≤999 行 ✅（252/984）；代码与注释均英文 ✅；未新增字符串资源 ✅；未 bump 版本号 ✅；未新增依赖 ✅。
+  - **已知小问题**：本地工作区尚有遗留未跟踪文件 `agora_rename_manifest.md`（Agora→LxChat 重命名清单，1806 行），非本次任务产物，未提交。
   - **未 commit**（依任务要求"不要 git commit"）**fix(chat)**: show send arrow on input even without valid model。
     - `ComposerSendButton.kt`（247→267 行）— 新增 `hasInput` 变量（text/attachments 非空）；`fabIcon` 在 `singleAsrRecording` 之后、`canSend` 之前新增 `hasInput -> ComposerActionIcon.SEND` 分支，使有输入时优先显示发送箭头而非 IDLE 波形；SEND 点击分支在 `singleAsrRecording`/`pendingSend` 检查后新增 `!isModelValid` 早返回 + Toast 提示 `toast_select_model_first`；`canSend` 定义用 `hasInput` 替代内联表达式（语义等价），颜色保持 `if (canSend) primary else surfaceVariant`。
     - `values/strings.xml`（+1）— 新增 `toast_select_model_first`="Please select a model first"。
