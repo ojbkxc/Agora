@@ -65,10 +65,12 @@ class AudioCaptureManager(private val context: Context) {
         try {
             outputFile = File(context.cacheDir, "audio_${System.currentTimeMillis()}.pcm")
             pcmOutputStream = FileOutputStream(outputFile)
-            Log.i(TAG, "Starting AudioRecord: rate=$SAMPLE_RATE, mono, PCM16, bufferSize=$bufferSize, perm=${hasRecordPermission()}")
+            Log.i(TAG, "Starting AudioRecord: source=VOICE_RECOGNITION (system AEC + noise suppression), rate=$SAMPLE_RATE, mono, PCM16, bufferSize=$bufferSize, perm=${hasRecordPermission()}")
 
+            // VOICE_RECOGNITION relies on the system AEC so the mic never picks up TTS/speaker
+            // output, keeping the feed to the user's voice only.
             audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
                 SAMPLE_RATE,
                 CHANNEL_CONFIG,
                 AUDIO_FORMAT,
